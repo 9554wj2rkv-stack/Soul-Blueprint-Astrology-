@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="SBA Calculator" />
+  <meta name="theme-color" content="#3a3530" />
+  <title>SBA True Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ───────────────────────────────────────────────────────────────────────
+       Styles are copied verbatim from the original project's index.css.
+       ─────────────────────────────────────────────────────────────────────── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background-color: #f5f3ef;
+      color: #2c2c2c;
+      line-height: 1.6;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: normal;
+      letter-spacing: 0.04em;
+      color: #1a1a1a;
+      margin-bottom: 0.25rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: normal;
+      letter-spacing: 0.05em;
+      color: #444;
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
+    .app-container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    .app-header {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid #ddd8d0;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #777;
+      letter-spacing: 0.03em;
+    }
+
+    .system-note {
+      font-size: 0.75rem;
+      color: #bbb;
+      letter-spacing: 0.02em;
+      margin-top: 0.3rem;
+    }
+
+    .form-section {
+      background: #fff;
+      border: 1px solid #e0dbd3;
+      border-radius: 4px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem 1.75rem;
+    }
+
+    @media (max-width: 520px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.78rem;
+      color: #666;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    input {
+      border: 1px solid #ccc7bc;
+      border-radius: 3px;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.92rem;
+      font-family: inherit;
+      background: #fafaf8;
+      color: #1a1a1a;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #8a7f72;
+      background: #fff;
+    }
+
+    input::placeholder {
+      color: #bbb;
+    }
+
+    .btn-calculate {
+      display: block;
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      background: #3a3530;
+      color: #f5f3ef;
+      border: none;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 1.5rem;
+    }
+
+    .btn-calculate:hover {
+      background: #2a2520;
+    }
+
+    .btn-calculate:disabled {
+      background: #bbb;
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      background: #fff3f3;
+      border: 1px solid #e5b8b8;
+      border-radius: 3px;
+      padding: 0.85rem 1rem;
+      color: #8b2020;
+      font-size: 0.88rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .results-section {
+      margin-top: 2rem;
+    }
+
+    .results-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .results-header h2 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #666;
+      margin-bottom: 0;
+    }
+
+    .client-name-display {
+      font-size: 1.15rem;
+      color: #1a1a1a;
+      margin-bottom: 0.25rem;
+    }
+
+    .birth-display {
+      font-size: 0.82rem;
+      color: #888;
+    }
+
+    .sba-summary {
+      background: #fff;
+      border: 1px solid #e0dbd3;
+      border-radius: 4px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 520px) {
+      .sba-summary {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sba-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .sba-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #888;
+    }
+
+    .sba-value {
+      font-size: 1.05rem;
+      color: #1a1a1a;
+    }
+
+    .sba-value.highlight {
+      font-size: 1.3rem;
+      color: #3a3530;
+    }
+
+    .table-container {
+      background: #fff;
+      border: 1px solid #e0dbd3;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #f0ede8;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.65rem 1rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #666;
+      font-weight: normal;
+      border-bottom: 1px solid #e0dbd3;
+    }
+
+    td {
+      padding: 0.65rem 1rem;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #f0ede8;
+      color: #1a1a1a;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #faf8f5;
+    }
+
+    td.body-name {
+      font-weight: 500;
+      color: #3a3530;
+    }
+
+    td.constellation {
+      color: #555;
+    }
+
+    td.ra-dec {
+      font-family: 'Courier New', monospace;
+      font-size: 0.83rem;
+      color: #555;
+    }
+
+    td.sba-house-num {
+      font-weight: 600;
+      color: #5a4e3c;
+      text-align: center;
+      min-width: 4rem;
+    }
+
+    td.sba-house-name {
+      font-style: italic;
+      color: #3a3530;
+      white-space: nowrap;
+    }
+
+    td.sba-house-theme {
+      font-size: 0.82rem;
+      color: #666;
+      max-width: 22rem;
+    }
+
+    td.sba-house-phrase {
+      font-style: italic;
+      font-size: 0.85rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .wheel-note {
+      font-size: 0.8rem;
+      color: #888;
+      margin: 0 0 1.25rem;
+      font-style: italic;
+    }
+
+    .wheel-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1.25rem;
+      justify-content: center;
+      margin-top: 0.85rem;
+      font-family: Georgia, serif;
+      font-size: 0.72rem;
+    }
+
+    .wheel-legend .legend-planets {
+      color: #2c2820;
+    }
+
+    .wheel-legend .legend-angles {
+      color: #5a3070;
+      font-weight: 700;
+    }
+
+    .wheel-legend .legend-points {
+      color: #3a5a40;
+    }
+
+    .section-divider {
+      height: 1px;
+      background: #e0dbd3;
+      margin: 2rem 0;
+    }
+
+    .loading-indicator {
+      text-align: center;
+      padding: 2rem;
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    .place-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .place-row input {
+      flex: 1;
+    }
+
+    .btn-find-place {
+      padding: 0.55rem 1.1rem;
+      background: #f0ede8;
+      color: #3a3530;
+      border: 1px solid #ccc7bc;
+      border-radius: 3px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-find-place:hover {
+      background: #e4e0da;
+    }
+
+    .btn-find-place:disabled {
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    .place-resolved {
+      margin-top: 0.45rem;
+      font-size: 0.84rem;
+      color: #555;
+    }
+
+    .place-check {
+      color: #5a8a5a;
+      font-weight: bold;
+    }
+
+    .place-coords {
+      color: #999;
+      font-size: 0.78rem;
+      font-family: 'Courier New', monospace;
+    }
+
+    .field-error {
+      margin-top: 0.4rem;
+      font-size: 0.82rem;
+      color: #8b2020;
+    }
+
+    .field-hint {
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: #888;
+      line-height: 1.5;
+    }
+
+    .tz-input {
+      max-width: 160px;
+    }
+
+    .advanced-section {
+      margin-top: 1.5rem;
+      border-top: 1px solid #ede9e3;
+      padding-top: 1rem;
+    }
+
+    .btn-advanced-toggle {
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: #888;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .btn-advanced-toggle:hover {
+      color: #555;
+    }
+
+    .advanced-fields {
+      margin-top: 1rem;
+    }
+
+    .advanced-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .angles-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .angles-heading {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #666;
+      margin-bottom: 0.65rem;
+    }
+
+    .angles-note {
+      margin-top: 0.6rem;
+      font-size: 0.78rem;
+      color: #999;
+      font-style: italic;
+    }
+
+    [hidden] { display: none !important; }
+
+    /* ───────────────────────────────────────────────────────────────────────
+       STEP 1 — Mobile / iPhone layout improvements (additive; no existing
+       rule above is modified). Targets touch usability, readability, the
+       notch safe-area, responsive tables, and wheel scaling.
+       ─────────────────────────────────────────────────────────────────────── */
+
+    /* Respect the iPhone notch / home-indicator safe areas. */
+    .app-container {
+      padding-left: max(1.5rem, env(safe-area-inset-left));
+      padding-right: max(1.5rem, env(safe-area-inset-right));
+    }
+
+    /* Smooth momentum scrolling for any horizontally-scrolling table. */
+    .table-container {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 640px) {
+      .app-container {
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+      }
+
+      h1 { font-size: 1.4rem; }
+
+      .form-section {
+        padding: 1.25rem 1.1rem;
+      }
+
+      /* 16px input font stops iOS Safari from auto-zooming on focus. */
+      input {
+        font-size: 16px;
+        padding: 0.7rem 0.75rem;
+      }
+
+      /* Stack the place input + button so neither gets cramped. */
+      .place-row {
+        flex-direction: column;
+      }
+      .btn-find-place {
+        width: 100%;
+        padding: 0.7rem 1.1rem;
+      }
+
+      /* Comfortable, full-width tap target for the main action. */
+      .btn-calculate {
+        padding: 0.9rem 1.5rem;
+        font-size: 1rem;
+      }
+
+      .tz-input { max-width: 100%; }
+
+      /* Tighten table cells slightly so more fits before scrolling. */
+      th, td {
+        padding: 0.55rem 0.7rem;
+        font-size: 0.85rem;
+      }
+      td.ra-dec { font-size: 0.78rem; }
+
+      /* Hint that wide tables scroll sideways rather than truncating. */
+      .table-container {
+        border-radius: 6px;
+      }
+
+      .sba-summary {
+        padding: 1.25rem 1.1rem;
+      }
+    }
+
+    /* Very small phones (older/SE-sized): give tables an explicit min-width
+       so columns stay aligned and the container scrolls instead of squashing. */
+    @media (max-width: 430px) {
+      table { min-width: 460px; }
+      .section-divider { margin: 1.5rem 0; }
+    }
+
+    /* The wheel already scales via width:100%/max-width on its <svg>; make sure
+       its container never forces overflow on a narrow screen. */
+    .angles-section svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* ───────────────────────────────────────────────────────────────────────
+       FIX — iOS Safari gives date/time inputs their own intrinsic sizing that
+       ignores width:100%, so they overflow the card. Force them to behave like
+       the other inputs. (CSS only; calculator untouched.)
+       ─────────────────────────────────────────────────────────────────────── */
+    input[type="date"],
+    input[type="time"] {
+      -webkit-appearance: none;
+      appearance: none;
+      min-width: 0;
+      max-width: 100%;
+      width: 100%;
+    }
+
+    /* ───────────────────────────────────────────────────────────────────────
+       STEP 2 — App polish (additive only; no existing rule above is modified).
+       Header, section cards, button styling, back-to-top, print layout.
+       ─────────────────────────────────────────────────────────────────────── */
+
+    /* Slightly richer header without changing its structure. */
+    .app-header {
+      background: linear-gradient(180deg, #fbfaf7 0%, rgba(251,250,247,0) 100%);
+      border-radius: 6px 6px 0 0;
+      padding-top: 0.25rem;
+    }
+    .app-header h1 {
+      display: inline-block;
+      border-bottom: 2px solid #d8c9b0;
+      padding-bottom: 0.15rem;
+    }
+
+    /* Soften and lift the card surfaces (form, summary, tables). */
+    .form-section,
+    .sba-summary,
+    .table-container {
+      box-shadow: 0 1px 2px rgba(58, 53, 48, 0.04), 0 1px 8px rgba(58, 53, 48, 0.04);
+    }
+    .form-section { border-radius: 6px; }
+    .sba-summary  { border-radius: 6px; }
+    .table-container { border-radius: 6px; }
+
+    /* Primary button: subtle depth + clearer active/focus feedback. */
+    .btn-calculate {
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+    .btn-calculate:active {
+      transform: translateY(1px);
+    }
+    .btn-calculate:focus-visible,
+    .btn-find-place:focus-visible {
+      outline: 2px solid #8a7f72;
+      outline-offset: 2px;
+    }
+
+    /* Secondary button (Find Place): match the rounded, tactile feel. */
+    .btn-find-place {
+      border-radius: 4px;
+    }
+    .btn-find-place:active {
+      transform: translateY(1px);
+    }
+
+    /* Section heading accent — a small marker before each results heading. */
+    .angles-heading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .angles-heading::before {
+      content: "";
+      width: 14px;
+      height: 2px;
+      background: #c9b896;
+      display: inline-block;
+    }
+
+    /* ── Back-to-top floating button ─────────────────────────────────────── */
+    .back-to-top {
+      position: fixed;
+      right: max(1rem, env(safe-area-inset-right));
+      bottom: max(1rem, env(safe-area-inset-bottom));
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid #d8d2c8;
+      background: #3a3530;
+      color: #f5f3ef;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+      z-index: 50;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .back-to-top:hover { background: #2a2520; }
+    .back-to-top:focus-visible {
+      outline: 2px solid #8a7f72;
+      outline-offset: 2px;
+    }
+
+    /* ── Print / Save-as-PDF layout ──────────────────────────────────────── */
+    @media print {
+      body { background: #fff; }
+      .app-container { max-width: 100%; padding: 0; }
+
+      /* Hide interactive controls that make no sense on paper. */
+      .form-section,
+      .back-to-top,
+      .btn-calculate,
+      .btn-find-place,
+      .loading-indicator {
+        display: none !important;
+      }
+
+      /* Flatten cards: no shadows/heavy borders, avoid awkward page breaks. */
+      .sba-summary,
+      .table-container,
+      .form-section {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+      }
+      .angles-section,
+      .table-container,
+      .sba-summary {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .section-divider { margin: 1rem 0; }
+      a[href]:after { content: ""; } /* don't append URLs */
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="app-header">
+      <h1>SBA True Calculator</h1>
+      <p class="subtitle">Solar-Biological-Astral Profile</p>
+      <p class="system-note">Astronomy-first system (IAU sky). Not tropical astrology.</p>
+    </div>
+
+    <div class="form-section">
+      <h2>Birth Data</h2>
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="clientName">Client Name</label>
+          <input id="clientName" name="clientName" type="text" placeholder="Full name" />
+        </div>
+
+        <div class="form-group">
+          <label for="birthDate">Birth Date</label>
+          <input id="birthDate" name="birthDate" type="date" />
+        </div>
+
+        <div class="form-group">
+          <label for="birthTime">Birth Time</label>
+          <input id="birthTime" name="birthTime" type="time" />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="birthPlace">Birth Place</label>
+          <div class="place-row">
+            <input id="birthPlace" name="birthPlace" type="text" placeholder="e.g. Copenhagen, Denmark" />
+            <button type="button" class="btn-find-place" id="btnFindPlace">Find Place</button>
+          </div>
+          <div class="field-error" id="placeError" hidden></div>
+          <div class="place-resolved" id="placeResolved" hidden></div>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="tzOffset">Timezone Offset (hours from UTC)</label>
+          <input id="tzOffset" name="tzOffset" type="number" step="0.5" placeholder="e.g. 0, 1, -5" value="0" class="tz-input" />
+          <div class="field-hint">
+            Timezone still needs manual checking for now. Iceland = 0. Denmark winter = +1. Denmark summer = +2.
+          </div>
+        </div>
+      </div>
+
+      <div class="advanced-section">
+        <button type="button" class="btn-advanced-toggle" id="btnAdvancedToggle">▸ Advanced / manual correction</button>
+
+        <div class="advanced-fields" id="advancedFields" hidden>
+          <div class="form-grid advanced-grid">
+            <div class="form-group">
+              <label for="latitude">Latitude</label>
+              <input id="latitude" name="latitude" type="number" step="0.0001" placeholder="e.g. 55.6761" />
+            </div>
+            <div class="form-group">
+              <label for="longitude">Longitude</label>
+              <input id="longitude" name="longitude" type="number" step="0.0001" placeholder="e.g. 12.5683" />
+            </div>
+          </div>
+          <div class="field-hint" style="margin-top: 0.5rem;">
+            These are filled automatically by Find Place. Edit only if you need to correct the coordinates.
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-calculate" id="btnCalculate">Calculate SBA Profile</button>
+    </div>
+
+    <div class="error-message" id="errorMessage" hidden></div>
+    <div class="loading-indicator" id="loadingIndicator" hidden>Computing planetary positions…</div>
+
+    <div class="results-section" id="resultsSection" hidden></div>
+  </div>
+
+  <script type="module">
+    // ─────────────────────────────────────────────────────────────────────────
+    // astronomy-engine is loaded from a CDN (ES module build) so this single
+    // file needs no build step. The math below is unchanged from the original
+    // sbaCalculations.ts — only TypeScript type annotations were removed.
+    // ─────────────────────────────────────────────────────────────────────────
+    import * as Astronomy from "https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/+esm";
+
+    // ─── SBA House system ───────────────────────────────────────────────────
+
+    const SBA_HOUSES = {
+      Aries:        { house: 1,  constellation: "Aries",        name: "Emergence",     theme: "Birth of identity, physical body, presence, instinct",                                              phrase: "I exist" },
+      Taurus:       { house: 2,  constellation: "Taurus",       name: "Stabilization", theme: "Survival, resources, value, building safety",                                                      phrase: "I need to sustain myself" },
+      Gemini:       { house: 3,  constellation: "Gemini",       name: "Awareness",     theme: "Learning, communication, perception, making sense of reality",                                     phrase: "I understand" },
+      Cancer:       { house: 4,  constellation: "Cancer",       name: "Foundation",    theme: "Roots, home, emotional base, inner security",                                                      phrase: "I belong somewhere" },
+      Leo:          { house: 5,  constellation: "Leo",          name: "Expression",    theme: "Creativity, joy, self-expression, taking up space",                                               phrase: "I create" },
+      Virgo:        { house: 6,  constellation: "Virgo",        name: "Refinement",    theme: "Discipline, health, routines, improvement and adjustment",                                        phrase: "I optimize" },
+      Libra:        { house: 7,  constellation: "Libra",        name: "Reflection",    theme: "Relationships, mirrors, others, seeing self through others",                                      phrase: "I meet you" },
+      Scorpius:     { house: 8,  constellation: "Scorpius",     name: "Descent",       theme: "Breakdown, loss, death of identity, confronting shadow and endings",                             phrase: "I am stripped" },
+      Ophiuchus:    { house: 9,  constellation: "Ophiuchus",    name: "Alchemy",       theme: "Healing, integration, inner rebuilding, wisdom from pain, rewiring self after collapse",         phrase: "I transform what I survived" },
+      Sagittarius:  { house: 10, constellation: "Sagittarius",  name: "Expansion",     theme: "Meaning, truth, direction, new worldview after transformation",                                  phrase: "I rise with purpose" },
+      Capricornus:  { house: 11, constellation: "Capricornus",  name: "Contribution",  theme: "Society, impact, influence, role in the collective",                                             phrase: "I give to the world" },
+      Aquarius:     { house: 12, constellation: "Aquarius",     name: "Dissolution",   theme: "Letting go, surrender, ego release, spiritual detachment",                                      phrase: "I release" },
+      Pisces:       { house: 13, constellation: "Pisces",       name: "Return",        theme: "Completion, reset, transition to new cycle, death of the cycle itself, rebirth potential",       phrase: "I return to begin again" },
+    };
+
+    const SBA_HOUSES_ORDERED = Object.values(SBA_HOUSES).sort((a, b) => a.house - b.house);
+
+    function getSBAHouse(constellation) {
+      return SBA_HOUSES[constellation] ?? null;
+    }
+
+    // ─── Bodies list ─────────────────────────────────────────────────────────
+
+    const BODIES = [
+      { name: "Sun", body: Astronomy.Body.Sun },
+      { name: "Moon", body: Astronomy.Body.Moon },
+      { name: "Mercury", body: Astronomy.Body.Mercury },
+      { name: "Venus", body: Astronomy.Body.Venus },
+      { name: "Mars", body: Astronomy.Body.Mars },
+      { name: "Jupiter", body: Astronomy.Body.Jupiter },
+      { name: "Saturn", body: Astronomy.Body.Saturn },
+      { name: "Uranus", body: Astronomy.Body.Uranus },
+      { name: "Neptune", body: Astronomy.Body.Neptune },
+      { name: "Pluto", body: Astronomy.Body.Pluto },
+    ];
+
+    // ─── Math helpers ──────────────────────────────────────────────────────────
+
+    function toRad(deg) {
+      return (deg * Math.PI) / 180;
+    }
+
+    function toDeg(rad) {
+      return (rad * 180) / Math.PI;
+    }
+
+    function normalize360(deg) {
+      return ((deg % 360) + 360) % 360;
+    }
+
+    function equatorialToEclipticLon(ra_hours, dec_deg, eps_deg) {
+      const alpha = toRad(ra_hours * 15);
+      const delta = toRad(dec_deg);
+      const eps   = toRad(eps_deg);
+      const sinLon = Math.sin(delta) * Math.sin(eps) + Math.cos(delta) * Math.cos(eps) * Math.sin(alpha);
+      const cosLon = Math.cos(delta) * Math.cos(alpha);
+      return normalize360(toDeg(Math.atan2(sinLon, cosLon)));
+    }
+
+    function julianDate(date) {
+      return date.getTime() / 86400000 + 2440587.5;
+    }
+
+    /** IAU 1980 mean obliquity of the ecliptic (degrees). T in Julian centuries from J2000. */
+    function meanObliquity(jd) {
+      const T = (jd - 2451545.0) / 36525;
+      return (
+        23.439291111 -
+        0.013004167 * T -
+        1.6388889e-7 * T * T +
+        5.0361111e-7 * T * T * T
+      );
+    }
+
+    function eclipticLonToEquatorial(lonDeg, eps) {
+      const l = toRad(lonDeg);
+      const e = toRad(eps);
+      const raRaw = toDeg(Math.atan2(Math.sin(l) * Math.cos(e), Math.cos(l)));
+      const dec = toDeg(Math.asin(Math.sin(e) * Math.sin(l)));
+      return { ra: normalize360(raRaw) / 15, dec };
+    }
+
+    function constellationForEclipticLon(lonDeg, eps) {
+      const eq = eclipticLonToEquatorial(lonDeg, eps);
+      return Astronomy.Constellation(eq.ra, eq.dec).name;
+    }
+
+    // ─── AC / MC ────────────────────────────────────────────────────────────────
+
+    function calcMC(ramcDeg, epsDeg) {
+      const ramc = toRad(ramcDeg);
+      const eps = toRad(epsDeg);
+      return normalize360(toDeg(Math.atan2(Math.sin(ramc), Math.cos(ramc) * Math.cos(eps))));
+    }
+
+    function calcAscendant(ramcDeg, epsDeg, latDeg) {
+      const ramc = toRad(ramcDeg);
+      const eps = toRad(epsDeg);
+      const lat = toRad(latDeg);
+      const y = Math.cos(ramc);
+      const x = -(Math.sin(ramc) * Math.cos(eps) + Math.tan(lat) * Math.sin(eps));
+      return normalize360(toDeg(Math.atan2(y, x)));
+    }
+
+    function calcVertex(ramcDeg, epsDeg, latDeg) {
+      const antiVertex = calcAscendant(normalize360(ramcDeg + 90), epsDeg, -latDeg);
+      return normalize360(antiVertex + 180);
+    }
+
+    // ─── Kepler orbit solver for Chiron ────────────────────────────────────────
+
+    function solveKepler(M, e) {
+      let E = M;
+      for (let i = 0; i < 100; i++) {
+        const dE = (M - E + e * Math.sin(E)) / (1 - e * Math.cos(E));
+        E += dE;
+        if (Math.abs(dE) < 1e-12) break;
+      }
+      return E;
+    }
+
+    function helioEclipticFromElements(jd, el) {
+      const M = toRad(normalize360(el.M0 + el.n * (jd - el.epochJD)));
+      const E = solveKepler(M, el.e);
+      const nu = 2 * Math.atan2(
+        Math.sqrt(1 + el.e) * Math.sin(E / 2),
+        Math.sqrt(1 - el.e) * Math.cos(E / 2)
+      );
+      const r = el.a * (1 - el.e * Math.cos(E));
+      const omega = toRad(el.omega);
+      const Omega = toRad(el.Omega);
+      const incl = toRad(el.i);
+      const u = nu + omega;
+      const lon = Math.atan2(Math.sin(u) * Math.cos(incl), Math.cos(u)) + Omega;
+      const lat = Math.asin(Math.sin(u) * Math.sin(incl));
+      return { lon: normalize360(toDeg(lon)), lat: toDeg(lat), r };
+    }
+
+    function geocentricEclipticLon(helio, earthVec) {
+      const lonR = toRad(helio.lon);
+      const latR = toRad(helio.lat);
+      const cx = helio.r * Math.cos(latR) * Math.cos(lonR);
+      const cy = helio.r * Math.cos(latR) * Math.sin(lonR);
+
+      const earthEcl = Astronomy.Ecliptic(earthVec);
+      const earthR = earthVec.Length();
+      const elon = toRad(earthEcl.elon);
+      const elat = toRad(earthEcl.elat);
+      const ex = earthR * Math.cos(elat) * Math.cos(elon);
+      const ey = earthR * Math.cos(elat) * Math.sin(elon);
+
+      return normalize360(toDeg(Math.atan2(cy - ey, cx - ex)));
+    }
+
+    // ─── Formatting ──────────────────────────────────────────────────────────────
+
+    function formatEclipticLon(deg) {
+      const d = Math.floor(deg);
+      const mTotal = (deg - d) * 60;
+      const m = Math.floor(mTotal);
+      const s = Math.round((mTotal - m) * 60);
+      return `${String(d).padStart(3, "\u2007")}° ${String(m).padStart(2, "0")}' ${String(s).padStart(2, "0")}''`;
+    }
+
+    function formatRA(ra) {
+      const totalSeconds = Math.round(ra * 3600);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+
+    function formatDec(dec) {
+      const sign = dec >= 0 ? "+" : "-";
+      const abs = Math.abs(dec);
+      const d = Math.floor(abs);
+      const mTotal = (abs - d) * 60;
+      const m = Math.floor(mTotal);
+      const s = Math.round((mTotal - m) * 60);
+      return `${sign}${String(d).padStart(2, "0")}° ${String(m).padStart(2, "0")}' ${String(s).padStart(2, "0")}''`;
+    }
+
+    function formatDate(date) {
+      return date.toISOString().replace("T", " ").substring(0, 19) + " UTC";
+    }
+
+    function formatDateShort(date) {
+      return date.toISOString().substring(0, 10);
+    }
+
+    // ─── SBA house annotation helpers ─────────────────────────────────────────
+
+    function withHouse(constellation) {
+      const h = getSBAHouse(constellation);
+      return {
+        sbaHouseNumber: h ? h.house : null,
+        sbaHouseName: h ? h.name : "—",
+        sbaHouseTheme: h ? h.theme : "—",
+        sbaHousePhrase: h ? h.phrase : "—",
+      };
+    }
+
+    // ─── Main calculation ──────────────────────────────────────────────────────
+
+    function calculateSBA(birthDate, birthTime, tzOffset, latitude, longitude) {
+      const [year, month, day] = birthDate.split("-").map(Number);
+      const [hour, minute] = birthTime.split(":").map(Number);
+
+      const localMs =
+        Date.UTC(year, month - 1, day, hour, minute) - tzOffset * 3600 * 1000;
+      const utcDate = new Date(localMs);
+
+      const observer = new Astronomy.Observer(latitude, longitude, 0);
+      const jd = julianDate(utcDate);
+      const eps = meanObliquity(jd);
+
+      // ── Planets ──────────────────────────────────────────────────────────────
+      const planets = BODIES.map(({ name, body }) => {
+        const equatorial = Astronomy.Equator(body, utcDate, observer, false, true);
+        const con = Astronomy.Constellation(equatorial.ra, equatorial.dec);
+        const eclLon = equatorialToEclipticLon(equatorial.ra, equatorial.dec, eps);
+        return {
+          body: name,
+          constellation: con.name,
+          ra: formatRA(equatorial.ra),
+          dec: formatDec(equatorial.dec),
+          eclipticLon: eclLon,
+          ...withHouse(con.name),
+        };
+      });
+
+      // ── AC / MC / RAMC ───────────────────────────────────────────────────────
+      const gstHours = Astronomy.SiderealTime(utcDate);
+      const lstHours = ((gstHours + longitude / 15) % 24 + 24) % 24;
+      const ramcDeg = lstHours * 15;
+
+      const mcLon = calcMC(ramcDeg, eps);
+      const acLon = calcAscendant(ramcDeg, eps, latitude);
+
+      function makeAngle(name, lon) {
+        const con = constellationForEclipticLon(lon, eps);
+        return {
+          name,
+          eclipticLon: lon,
+          eclipticLonFormatted: formatEclipticLon(lon),
+          constellation: con,
+          ...withHouse(con),
+        };
+      }
+
+      const angles = [
+        makeAngle("Ascendant (AC)", acLon),
+        makeAngle("Midheaven (MC)", mcLon),
+      ];
+
+      // ── Additional points (each independently guarded) ───────────────────────
+
+      const d = jd - 2451545.0;
+
+      const unavailable = {
+        name: "",
+        eclipticLon: 0,
+        eclipticLonFormatted: "Not available yet",
+        constellation: "—",
+        sbaHouseNumber: null,
+        sbaHouseName: "—",
+        sbaHouseTheme: "—",
+        sbaHousePhrase: "—",
+      };
+
+      function tryPoint(label, compute) {
+        try {
+          const lon = compute();
+          const con = constellationForEclipticLon(lon, eps);
+          return {
+            name: label,
+            eclipticLon: lon,
+            eclipticLonFormatted: formatEclipticLon(lon),
+            constellation: con,
+            ...withHouse(con),
+          };
+        } catch (err) {
+          console.error(`[SBA] Additional point "${label}" failed:`, err);
+          return { ...unavailable, name: label };
+        }
+      }
+
+      // 1. Mean North Node: Ω = 125.0445479 − 0.0529539297·d
+      const northNodePoint = tryPoint("North Node", () =>
+        normalize360(125.0445479 - 0.0529539297 * d)
+      );
+
+      // 2. South Node: opposite of North Node
+      const southNodePoint = tryPoint("South Node", () =>
+        normalize360(northNodePoint.eclipticLon + 180)
+      );
+
+      // 3. Chiron (Keplerian geocentric ecliptic longitude)
+      const chironPoint = tryPoint("Chiron", () => {
+        const chironElements = {
+          epochJD: 2452195.5,
+          e: 0.38303,
+          a: 13.6253,
+          i: 6.9218,
+          Omega: 339.1968,
+          omega: 338.7706,
+          M0: 350.6744,
+          n: 0.019549,
+        };
+        const chironHelio = helioEclipticFromElements(jd, chironElements);
+        const earthVec = Astronomy.HelioVector(Astronomy.Body.Earth, utcDate);
+        return geocentricEclipticLon(chironHelio, earthVec);
+      });
+
+      // 4. Mean Black Moon Lilith (mean lunar apogee)
+      const lilithPoint = tryPoint("Lilith (Mean BML)", () =>
+        normalize360(83.3532465 + 0.11140353 * d)
+      );
+
+      // 5. Part of Fortune (day/night aware)
+      let isDayBirth = false;
+      const pofPoint = tryPoint("Part of Fortune", () => {
+        const sunLon = Astronomy.SunPosition(utcDate).elon;
+        const moonLon = Astronomy.EclipticGeoMoon(utcDate).lon;
+        const sunEq = Astronomy.Equator(Astronomy.Body.Sun, utcDate, observer, false, true);
+        const sunHorizon = Astronomy.Horizon(utcDate, observer, sunEq.ra, sunEq.dec, "normal");
+        isDayBirth = sunHorizon.altitude > 0;
+        return isDayBirth
+          ? normalize360(acLon + moonLon - sunLon)
+          : normalize360(acLon - moonLon + sunLon);
+      });
+      if (pofPoint.eclipticLonFormatted !== "Not available yet") {
+        pofPoint.name = `Part of Fortune (${isDayBirth ? "day" : "night"})`;
+      }
+
+      // 6. Vertex
+      const vertexPoint = tryPoint("Vertex (VX)", () =>
+        calcVertex(ramcDeg, eps, latitude)
+      );
+
+      const additionalPoints = [
+        northNodePoint,
+        southNodePoint,
+        chironPoint,
+        lilithPoint,
+        pofPoint,
+        vertexPoint,
+      ];
+
+      // ── SBA Year ───────────────────────────────────────────────────────────────
+      const marchEquinoxSearch = Astronomy.SearchSunLongitude(
+        0,
+        new Date(Date.UTC(year - 1, 11, 1)),
+        400
+      );
+      if (!marchEquinoxSearch) throw new Error("Could not find March equinox for the birth year.");
+
+      const firstNewMoon = Astronomy.SearchMoonPhase(0, marchEquinoxSearch.date, 35);
+      if (!firstNewMoon) throw new Error("Could not find first new moon after March equinox.");
+
+      const sbaYearStart = firstNewMoon.date;
+      let lunarMonth = 1;
+      let searchDate = new Date(sbaYearStart.getTime());
+
+      if (utcDate >= sbaYearStart) {
+        while (true) {
+          const searchFrom = new Date(searchDate.getTime() + 1000);
+          const nextNewMoon = Astronomy.SearchMoonPhase(0, searchFrom, 35);
+          if (!nextNewMoon || nextNewMoon.date > utcDate) break;
+          lunarMonth++;
+          searchDate = nextNewMoon.date;
+        }
+      }
+
+      return {
+        sbaYear: year,
+        sbaYearStart: formatDateShort(sbaYearStart),
+        sbaLunarMonth: lunarMonth,
+        planets,
+        angles,
+        additionalPoints,
+        utcDateTime: formatDate(utcDate),
+      };
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // SBA Wheel — ported verbatim from SBAWheel.tsx (returns an SVG string).
+    // ═════════════════════════════════════════════════════════════════════════
+
+    const CX = 280, CY = 280;
+    const NUM_HOUSES = 13;
+    const DEG = 360 / NUM_HOUSES;
+
+    const ROTATION_OFFSET = DEG / 2 + 90;
+
+    const OUTER_R        = 272;
+    const HOUSE_INNER_R  = 206;
+    const HOUSE_NUM_R    = 254;
+    const HOUSE_CON_R    = 238;
+    const HOUSE_THEME_R  = 222;
+    const PLANET_INNER_R = 152;
+    const CENTER_R       = 25;
+
+    const PLANET_RADII = [177, 160, 194, 143];
+    const POINTS_RADII = [112,  97, 128,  82];
+
+    const STACK_THRESHOLD = 8;
+
+    const HOUSE_DEFS = [
+      { num: 1,  short: "Aries",       theme: "Emergence",     color: "#fff5f4" },
+      { num: 2,  short: "Taurus",      theme: "Stabilization", color: "#f4fff5" },
+      { num: 3,  short: "Gemini",      theme: "Awareness",     color: "#fafaf0" },
+      { num: 4,  short: "Cancer",      theme: "Foundation",    color: "#f0f6ff" },
+      { num: 5,  short: "Leo",         theme: "Expression",    color: "#fffbf0" },
+      { num: 6,  short: "Virgo",       theme: "Refinement",    color: "#f4fef0" },
+      { num: 7,  short: "Libra",       theme: "Reflection",    color: "#fef0fa" },
+      { num: 8,  short: "Scorpio",     theme: "Descent",       color: "#f0eeff" },
+      { num: 9,  short: "Ophiuchus",   theme: "Alchemy",       color: "#eefff7" },
+      { num: 10, short: "Sagittarius", theme: "Expansion",     color: "#fff8f0" },
+      { num: 11, short: "Capricorn",   theme: "Contribution",  color: "#f0f0f8" },
+      { num: 12, short: "Aquarius",    theme: "Dissolution",   color: "#eef6ff" },
+      { num: 13, short: "Pisces",      theme: "Return",        color: "#eefffe" },
+    ];
+
+    const STYLE = {
+      planet: { fontSize: 9,  fill: "#2c2820", fontWeight: "500", tickW: 0.75 },
+      angle:  { fontSize: 10, fill: "#5a3070", fontWeight: "700", tickW: 1.5  },
+      point:  { fontSize: 8,  fill: "#3a5a40", fontWeight: "500", tickW: 0.75 },
+    };
+
+    const ABBREV = {
+      Sun: "Sun", Moon: "Moon", Mercury: "Merc", Venus: "Ven",
+      Mars: "Mars", Jupiter: "Jup", Saturn: "Sat", Uranus: "Uran",
+      Neptune: "Nep", Pluto: "Plu",
+      "Ascendant (AC)": "AC", "Midheaven (MC)": "MC",
+      "North Node": "NN", "South Node": "SN",
+      Chiron: "Chiron", "Lilith (Mean BML)": "Lilith", "Vertex (VX)": "VX",
+    };
+    function abbrev(name) {
+      if (name.startsWith("Part of Fortune")) return "Fort.";
+      return ABBREV[name] ?? name.slice(0, 7);
+    }
+
+    function lonToXY(cx, cy, r, lon) {
+      const a = (lon - ROTATION_OFFSET) * (Math.PI / 180);
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    }
+
+    function piePath(cx, cy, r, s, e) {
+      const p1 = lonToXY(cx, cy, r, s);
+      const p2 = lonToXY(cx, cy, r, e);
+      return `M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 0 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z`;
+    }
+
+    function tangentRot(midAngleDeg) {
+      let rot = ((midAngleDeg + 90) % 360 + 360) % 360;
+      if (rot > 90 && rot < 270) rot = (rot - 180 + 360) % 360;
+      return rot;
+    }
+
+    function assignVisualLongitudes(bodies) {
+      const byHouse = new Map();
+      for (const b of bodies) {
+        const h = b.houseNum ?? 0;
+        if (!byHouse.has(h)) byHouse.set(h, []);
+        byHouse.get(h).push(b);
+      }
+
+      const result = [];
+
+      for (const [houseNum, group] of byHouse.entries()) {
+        if (houseNum < 1 || houseNum > NUM_HOUSES) {
+          for (const b of group) {
+            result.push({ ...b, visualLon: b.eclipticLon });
+          }
+          continue;
+        }
+
+        const segCenter = (houseNum - 1) * DEG + DEG / 2;
+        const usableSpread = DEG * 0.75;
+
+        const sorted = [...group].sort((a, b) => a.eclipticLon - b.eclipticLon);
+
+        sorted.forEach((b, idx) => {
+          const fraction = sorted.length === 1
+            ? 0
+            : (idx / (sorted.length - 1)) - 0.5;
+          const visualLon = segCenter + fraction * usableSpread;
+
+          const lonSegment = Math.floor(b.eclipticLon / DEG) + 1;
+          if (lonSegment !== houseNum) {
+            console.warn(
+              `[SBAWheel] ${b.label}: table house=${houseNum} (constellation-based),` +
+              ` but eclipticLon=${b.eclipticLon.toFixed(1)}° would fall in segment ${lonSegment}.` +
+              ` Placing in house ${houseNum} to match the table.`
+            );
+          }
+
+          result.push({ ...b, visualLon });
+        });
+      }
+
+      return result;
+    }
+
+    function assignRadii(bodies, radii) {
+      const sorted = [...bodies].sort((a, b) => a.visualLon - b.visualLon);
+      const placed = [];
+      for (const b of sorted) {
+        const nearby = placed.filter(p => {
+          const dd = Math.abs(b.visualLon - p.visualLon);
+          return Math.min(dd, 360 - dd) < STACK_THRESHOLD;
+        }).length;
+        placed.push({ ...b, r: radii[Math.min(nearby, radii.length - 1)] });
+      }
+      return placed;
+    }
+
+    // Small helper to escape text placed into SVG/HTML.
+    function esc(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function buildWheelSVG(result) {
+      const rawPlanetBand = [
+        ...result.planets.map(p => ({
+          label: abbrev(p.body),
+          eclipticLon: p.eclipticLon,
+          houseNum: p.sbaHouseNumber,
+          type: "planet",
+        })),
+        ...result.angles.map(a => ({
+          label: abbrev(a.name),
+          eclipticLon: a.eclipticLon,
+          houseNum: a.sbaHouseNumber,
+          type: "angle",
+        })),
+      ];
+
+      const rawPointsBand = result.additionalPoints
+        .filter(pt => pt.eclipticLonFormatted !== "Not available yet")
+        .map(pt => ({
+          label: abbrev(pt.name),
+          eclipticLon: pt.eclipticLon,
+          houseNum: pt.sbaHouseNumber,
+          type: "point",
+        }));
+
+      const planetBodiesVL = assignVisualLongitudes(rawPlanetBand);
+      const pointsBodiesVL = assignVisualLongitudes(rawPointsBand);
+
+      const planetBand = assignRadii(planetBodiesVL, PLANET_RADII);
+      const pointsBand = assignRadii(pointsBodiesVL, POINTS_RADII);
+
+      const rotStr = (rot, p) =>
+        `rotate(${rot.toFixed(1)},${p.x.toFixed(2)},${p.y.toFixed(2)})`;
+
+      let svg = `<svg viewBox="0 0 560 560" style="width:100%;max-width:520px;display:block;margin:0 auto" aria-label="SBA Wheel — placement by constellation-based house">`;
+
+      // 1. House pie slices
+      HOUSE_DEFS.forEach((h, i) => {
+        svg += `<path d="${piePath(CX, CY, OUTER_R, i * DEG, (i + 1) * DEG)}" fill="${h.color}" stroke="#cac2ba" stroke-width="0.5" />`;
+      });
+
+      // 2. Ring borders
+      svg += `<circle cx="${CX}" cy="${CY}" r="${OUTER_R}" fill="none" stroke="#9a9088" stroke-width="1.25" />`;
+      svg += `<circle cx="${CX}" cy="${CY}" r="${HOUSE_INNER_R}" fill="none" stroke="#b0a89a" stroke-width="0.9" />`;
+      svg += `<circle cx="${CX}" cy="${CY}" r="${PLANET_INNER_R}" fill="none" stroke="#cac2ba" stroke-width="0.6" />`;
+
+      // 3. Radial dividers — house ring
+      HOUSE_DEFS.forEach((_, i) => {
+        const p1 = lonToXY(CX, CY, HOUSE_INNER_R, i * DEG);
+        const p2 = lonToXY(CX, CY, OUTER_R,       i * DEG);
+        svg += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="#b0a89a" stroke-width="0.75" />`;
+      });
+
+      // 4. Soft radial dividers — body area
+      HOUSE_DEFS.forEach((_, i) => {
+        const p1 = lonToXY(CX, CY, CENTER_R + 2,      i * DEG);
+        const p2 = lonToXY(CX, CY, HOUSE_INNER_R - 2, i * DEG);
+        svg += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="#ddd8d0" stroke-width="0.4" />`;
+      });
+
+      // 5. House labels — three rows at distinct radii
+      HOUSE_DEFS.forEach((h, i) => {
+        const midLon = i * DEG + DEG / 2;
+        const rot    = tangentRot(midLon - ROTATION_OFFSET);
+        const pNum   = lonToXY(CX, CY, HOUSE_NUM_R,   midLon);
+        const pCon   = lonToXY(CX, CY, HOUSE_CON_R,   midLon);
+        const pThm   = lonToXY(CX, CY, HOUSE_THEME_R, midLon);
+        svg += `<g>`;
+        svg += `<text x="${pNum.x.toFixed(2)}" y="${pNum.y.toFixed(2)}" transform="${rotStr(rot, pNum)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-weight="700" font-size="11" fill="#2a2620">${h.num}</text>`;
+        svg += `<text x="${pCon.x.toFixed(2)}" y="${pCon.y.toFixed(2)}" transform="${rotStr(rot, pCon)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-size="7.5" fill="#555">${esc(h.short)}</text>`;
+        svg += `<text x="${pThm.x.toFixed(2)}" y="${pThm.y.toFixed(2)}" transform="${rotStr(rot, pThm)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-size="6.5" font-style="italic" fill="#888">${esc(h.theme)}</text>`;
+        svg += `</g>`;
+      });
+
+      // 6. Tick marks at house-ring boundary (planet & angle)
+      planetBand.forEach((b) => {
+        const inner = lonToXY(CX, CY, HOUSE_INNER_R - 7, b.visualLon);
+        const outer = lonToXY(CX, CY, HOUSE_INNER_R + 4, b.visualLon);
+        const st    = STYLE[b.type];
+        svg += `<line x1="${inner.x.toFixed(2)}" y1="${inner.y.toFixed(2)}" x2="${outer.x.toFixed(2)}" y2="${outer.y.toFixed(2)}" stroke="${st.fill}" stroke-width="${st.tickW}" />`;
+      });
+
+      // 7. Tick marks at planet-inner boundary (additional points)
+      pointsBand.forEach((b) => {
+        const inner = lonToXY(CX, CY, PLANET_INNER_R - 5, b.visualLon);
+        const outer = lonToXY(CX, CY, PLANET_INNER_R + 3, b.visualLon);
+        svg += `<line x1="${inner.x.toFixed(2)}" y1="${inner.y.toFixed(2)}" x2="${outer.x.toFixed(2)}" y2="${outer.y.toFixed(2)}" stroke="${STYLE.point.fill}" stroke-width="0.75" opacity="0.6" />`;
+      });
+
+      // 8. Additional-point labels
+      pointsBand.forEach((b) => {
+        const pos = lonToXY(CX, CY, b.r, b.visualLon);
+        svg += `<text x="${pos.x.toFixed(2)}" y="${pos.y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-size="${STYLE.point.fontSize}" fill="${STYLE.point.fill}" font-weight="${STYLE.point.fontWeight}">${esc(b.label)}</text>`;
+      });
+
+      // 9. Planet & angle labels
+      planetBand.forEach((b) => {
+        const pos = lonToXY(CX, CY, b.r, b.visualLon);
+        const st  = STYLE[b.type];
+        svg += `<text x="${pos.x.toFixed(2)}" y="${pos.y.toFixed(2)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-size="${st.fontSize}" fill="${st.fill}" font-weight="${st.fontWeight}">${esc(b.label)}</text>`;
+      });
+
+      // 10. AC / MC emphasis dots on the house-ring inner boundary
+      planetBand.filter(b => b.type === "angle").forEach((b) => {
+        const pos = lonToXY(CX, CY, HOUSE_INNER_R, b.visualLon);
+        svg += `<circle cx="${pos.x.toFixed(2)}" cy="${pos.y.toFixed(2)}" r="4" fill="#5a3070" stroke="#fff" stroke-width="1" />`;
+      });
+
+      // 11. Centre decoration
+      svg += `<circle cx="${CX}" cy="${CY}" r="${CENTER_R}" fill="#f5f3ef" stroke="#c0b8b0" stroke-width="0.75" />`;
+      svg += `<text x="${CX}" y="${CY}" text-anchor="middle" dominant-baseline="middle" font-size="7" fill="#aaa" font-family="Georgia, serif" letter-spacing="0.5">SBA</text>`;
+
+      svg += `</svg>`;
+
+      svg += `<div class="wheel-legend">`;
+      svg += `<span class="legend-planets">Bodies: Sun · Moon · Merc · Ven · Mars · Jup · Sat · Uran · Nep · Plu</span>`;
+      svg += `<span class="legend-angles">Angles: AC · MC</span>`;
+      svg += `<span class="legend-points">Points: NN · SN · Lilith · Fort. · VX · Chiron</span>`;
+      svg += `</div>`;
+
+      return svg;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // App wiring — mirrors App.tsx state, validation, geocoding, and rendering.
+    // ═════════════════════════════════════════════════════════════════════════
+
+    const $ = (id) => document.getElementById(id);
+
+    const form = {
+      clientName: $("clientName"),
+      birthDate: $("birthDate"),
+      birthTime: $("birthTime"),
+      birthPlace: $("birthPlace"),
+      latitude: $("latitude"),
+      longitude: $("longitude"),
+      tzOffset: $("tzOffset"),
+    };
+
+    const placeErrorEl    = $("placeError");
+    const placeResolvedEl = $("placeResolved");
+    const btnFindPlace    = $("btnFindPlace");
+    const btnAdvanced     = $("btnAdvancedToggle");
+    const advancedFields  = $("advancedFields");
+    const btnCalculate    = $("btnCalculate");
+    const errorMessageEl  = $("errorMessage");
+    const loadingEl       = $("loadingIndicator");
+    const resultsEl       = $("resultsSection");
+
+    let resolvedPlace = "";
+    let placeLoading = false;
+    let showAdvanced = false;
+
+    function setFieldError(el, msg) {
+      if (msg) { el.textContent = msg; el.hidden = false; }
+      else { el.textContent = ""; el.hidden = true; }
+    }
+
+    // ── Find Place (Nominatim / OpenStreetMap) — unchanged behavior ──────────
+    async function handleFindPlace() {
+      const query = form.birthPlace.value.trim();
+      if (!query) {
+        setFieldError(placeErrorEl, "Please enter a city and country.");
+        return;
+      }
+      setFieldError(placeErrorEl, "");
+      placeResolvedEl.hidden = true;
+      resolvedPlace = "";
+      placeLoading = true;
+      btnFindPlace.disabled = true;
+      btnFindPlace.textContent = "Searching…";
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+        const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+        if (!res.ok) throw new Error("Nominatim request failed.");
+        const data = await res.json();
+        if (!data || data.length === 0) {
+          setFieldError(placeErrorEl, `No results found for "${query}". Try adding a country name.`);
+          return;
+        }
+        const place = data[0];
+        const lat = parseFloat(place.lat).toFixed(4);
+        const lon = parseFloat(place.lon).toFixed(4);
+        const displayName = place.display_name ?? query;
+        form.latitude.value = lat;
+        form.longitude.value = lon;
+        resolvedPlace = displayName;
+        renderResolvedPlace();
+      } catch {
+        setFieldError(placeErrorEl, "Could not reach the geocoding service. Check your connection.");
+      } finally {
+        placeLoading = false;
+        btnFindPlace.disabled = false;
+        btnFindPlace.textContent = "Find Place";
+      }
+    }
+
+    function renderResolvedPlace() {
+      const coordsReady = form.latitude.value !== "" && form.longitude.value !== "";
+      if (resolvedPlace && placeErrorEl.hidden) {
+        placeResolvedEl.innerHTML =
+          `<span class="place-check">✓</span> ${esc(resolvedPlace)}` +
+          (coordsReady
+            ? `<span class="place-coords">&nbsp;· ${esc(form.latitude.value)}, ${esc(form.longitude.value)}</span>`
+            : "");
+        placeResolvedEl.hidden = false;
+      } else {
+        placeResolvedEl.hidden = true;
+      }
+    }
+
+    function validate() {
+      if (!form.clientName.value.trim()) return "Client name is required.";
+      if (!form.birthDate.value) return "Birth date is required.";
+      if (!form.birthTime.value) return "Birth time is required.";
+      const lat = parseFloat(form.latitude.value);
+      const lon = parseFloat(form.longitude.value);
+      const tz = parseFloat(form.tzOffset.value);
+      if (isNaN(lat) || lat < -90 || lat > 90)
+        return "Latitude is missing or invalid. Use Find Place to set it.";
+      if (isNaN(lon) || lon < -180 || lon > 180)
+        return "Longitude is missing or invalid. Use Find Place to set it.";
+      if (isNaN(tz) || tz < -14 || tz > 14)
+        return "Timezone offset must be between -14 and 14.";
+      return "";
+    }
+
+    async function handleCalculate() {
+      setFieldError(errorMessageEl, "");
+      const validationError = validate();
+      if (validationError) {
+        setFieldError(errorMessageEl, validationError);
+        return;
+      }
+      btnCalculate.disabled = true;
+      btnCalculate.textContent = "Calculating...";
+      loadingEl.hidden = false;
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = "";
+      try {
+        await new Promise((r) => setTimeout(r, 50));
+        const sbaResult = calculateSBA(
+          form.birthDate.value,
+          form.birthTime.value,
+          parseFloat(form.tzOffset.value),
+          parseFloat(form.latitude.value),
+          parseFloat(form.longitude.value)
+        );
+        const submittedName = form.clientName.value.trim();
+        const tzNum = parseFloat(form.tzOffset.value);
+        const placeLabel = resolvedPlace || form.birthPlace.value || `${form.latitude.value}, ${form.longitude.value}`;
+        const submittedBirth =
+          `${form.birthDate.value} ${form.birthTime.value} · ${placeLabel} (UTC${tzNum >= 0 ? "+" : ""}${form.tzOffset.value})`;
+        renderResults(sbaResult, submittedName, submittedBirth);
+      } catch (err) {
+        setFieldError(errorMessageEl, err instanceof Error ? err.message : "Calculation failed. Please check your inputs.");
+      } finally {
+        loadingEl.hidden = true;
+        btnCalculate.disabled = false;
+        btnCalculate.textContent = "Calculate SBA Profile";
+      }
+    }
+
+    function renderResults(result, submittedName, submittedBirth) {
+      const planetRows = result.planets.map(p => `
+        <tr>
+          <td class="body-name">${esc(p.body)}</td>
+          <td class="constellation">${esc(p.constellation)}</td>
+          <td class="sba-house-num">${p.sbaHouseNumber ?? "—"}</td>
+          <td class="sba-house-name">${esc(p.sbaHouseName)}</td>
+          <td class="ra-dec">${esc(p.ra)}</td>
+          <td class="ra-dec">${esc(p.dec)}</td>
+        </tr>`).join("");
+
+      const angleRows = result.angles.map(a => `
+        <tr>
+          <td class="body-name">${esc(a.name)}</td>
+          <td class="constellation">${esc(a.constellation)}</td>
+          <td class="sba-house-num">${a.sbaHouseNumber ?? "—"}</td>
+          <td class="sba-house-name">${esc(a.sbaHouseName)}</td>
+          <td class="ra-dec">${esc(a.eclipticLonFormatted)}</td>
+        </tr>`).join("");
+
+      const pointRows = (result.additionalPoints ?? []).map(pt => `
+        <tr>
+          <td class="body-name">${esc(pt.name)}</td>
+          <td class="constellation">${esc(pt.constellation)}</td>
+          <td class="sba-house-num">${pt.sbaHouseNumber ?? "—"}</td>
+          <td class="sba-house-name">${esc(pt.sbaHouseName)}</td>
+          <td class="ra-dec">${esc(pt.eclipticLonFormatted)}</td>
+        </tr>`).join("");
+
+      const houseRefRows = SBA_HOUSES_ORDERED.map(h => `
+        <tr>
+          <td class="sba-house-num">${h.house}</td>
+          <td class="constellation">${esc(h.constellation)}</td>
+          <td class="sba-house-name">${esc(h.name)}</td>
+          <td class="sba-house-theme">${esc(h.theme)}</td>
+          <td class="sba-house-phrase">${esc(h.phrase)}</td>
+        </tr>`).join("");
+
+      resultsEl.innerHTML = `
+        <div class="results-header">
+          <h2>SBA Profile</h2>
+          <div class="client-name-display">${esc(submittedName)}</div>
+          <div class="birth-display">${esc(submittedBirth)} &nbsp;·&nbsp; UTC: ${esc(result.utcDateTime)}</div>
+        </div>
+
+        <div class="sba-summary">
+          <div class="sba-item">
+            <span class="sba-label">SBA Year</span>
+            <span class="sba-value highlight">${result.sbaYear}</span>
+          </div>
+          <div class="sba-item">
+            <span class="sba-label">Year Start (New Moon after March Equinox)</span>
+            <span class="sba-value">${esc(result.sbaYearStart)}</span>
+          </div>
+          <div class="sba-item">
+            <span class="sba-label">SBA Lunar Month (Time-House)</span>
+            <span class="sba-value highlight">${result.sbaLunarMonth}</span>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="angles-section">
+          <div class="angles-heading">SBA Wheel</div>
+          <p class="wheel-note">
+            13 SBA houses shown as the fixed background. Placements are positioned by exact ecliptic longitude.
+          </p>
+          ${buildWheelSVG(result)}
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="angles-section">
+          <div class="angles-heading">Angles</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>Angle</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
+              </thead>
+              <tbody>${angleRows}</tbody>
+            </table>
+          </div>
+          <div class="angles-note">AC and MC depend strongly on exact birth time and location.</div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="angles-section">
+          <div class="angles-heading">Additional Points</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>Point</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
+              </thead>
+              <tbody>${pointRows}</tbody>
+            </table>
+          </div>
+          <div class="angles-note">
+            North Node and Lilith use mean (averaged) positions. Chiron uses orbital elements with geocentric correction. Part of Fortune adapts to day/night birth.
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>Body</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Right Ascension</th><th>Declination</th></tr>
+            </thead>
+            <tbody>${planetRows}</tbody>
+          </table>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="angles-section">
+          <div class="angles-heading">SBA House Reference</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>House</th><th>Constellation</th><th>Name</th><th>Theme</th><th>Phrase</th></tr>
+              </thead>
+              <tbody>${houseRefRows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      resultsEl.hidden = false;
+    }
+
+    // ── Event wiring ──────────────────────────────────────────────────────────
+    btnFindPlace.addEventListener("click", handleFindPlace);
+    form.birthPlace.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleFindPlace();
+    });
+    btnAdvanced.addEventListener("click", () => {
+      showAdvanced = !showAdvanced;
+      advancedFields.hidden = !showAdvanced;
+      btnAdvanced.textContent = (showAdvanced ? "▾" : "▸") + " Advanced / manual correction";
+    });
+    form.latitude.addEventListener("input", renderResolvedPlace);
+    form.longitude.addEventListener("input", renderResolvedPlace);
+    btnCalculate.addEventListener("click", handleCalculate);
+  </script>
+  <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top" title="Back to top">↑</button>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════════════
+       STEP 3a — STORAGE LAYER (SBAStore)
+
+       This block is COMPLETELY INDEPENDENT of the calculation engine above.
+       It does not read, call, or modify any calculation / astronomy / SBA /
+       wheel / house function. It only persists data in localStorage and
+       handles JSON backup import/export.
+
+       Data model (localStorage key: "sba_practitioner_db_v1"):
+         {
+           version: 1,
+           clients: [ Client ],
+         }
+
+       Client = {
+         id,                // automatic unique Client ID
+         name,              // Client Name
+         birthDate,         // Date of birth (YYYY-MM-DD)
+         birthTime,         // Time of birth (HH:MM)
+         birthPlace,        // Birth place (text)
+         latitude,          // permanent birth data
+         longitude,
+         tzOffset,
+         tags: [string],    // e.g. "First Session", "Follow-up", "Family", "VIP"
+         createdAt, updatedAt,
+         sessions: [ Session ]   // unlimited dated consultation sessions
+       }
+
+       Session = {
+         id,
+         consultationDate,  // Date of consultation (YYYY-MM-DD)
+         result,            // IMMUTABLE stored SBA result object (snapshot)
+         input,             // Original Input Data used for this reading
+         notes,             // practitioner notes
+         readingSummary,    // reading summary
+         clientFacingNotes, // optional client-facing notes
+         tags: [string],
+         createdAt, updatedAt
+       }
+       ═══════════════════════════════════════════════════════════════════════ */
+    (function () {
+      "use strict";
+
+      var DB_KEY = "sba_practitioner_db_v1";
+      var DB_VERSION = 1;
+
+      function nowISO() { return new Date().toISOString(); }
+
+      function uid(prefix) {
+        return (prefix || "id") + "_" +
+          Date.now().toString(36) + "_" +
+          Math.random().toString(36).slice(2, 8);
+      }
+
+      function emptyDB() {
+        return { version: DB_VERSION, clients: [] };
+      }
+
+      function load() {
+        try {
+          var raw = localStorage.getItem(DB_KEY);
+          if (!raw) return emptyDB();
+          var parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.clients)) {
+            return emptyDB();
+          }
+          if (typeof parsed.version !== "number") parsed.version = DB_VERSION;
+          return parsed;
+        } catch (err) {
+          console.error("[SBAStore] Failed to load DB:", err);
+          return emptyDB();
+        }
+      }
+
+      function save(db) {
+        try {
+          localStorage.setItem(DB_KEY, JSON.stringify(db));
+          return true;
+        } catch (err) {
+          console.error("[SBAStore] Failed to save DB:", err);
+          return false;
+        }
+      }
+
+      // ── Client CRUD ────────────────────────────────────────────────────────
+
+      function getClients() {
+        return load().clients;
+      }
+
+      function getClient(id) {
+        return load().clients.find(function (c) { return c.id === id; }) || null;
+      }
+
+      function createClient(data) {
+        var db = load();
+        var client = {
+          id: uid("client"),
+          name: (data.name || "").trim(),
+          birthDate: data.birthDate || "",
+          birthTime: data.birthTime || "",
+          birthPlace: data.birthPlace || "",
+          latitude: data.latitude,
+          longitude: data.longitude,
+          tzOffset: data.tzOffset,
+          tags: Array.isArray(data.tags) ? data.tags.slice() : [],
+          createdAt: nowISO(),
+          updatedAt: nowISO(),
+          sessions: []
+        };
+        db.clients.push(client);
+        save(db);
+        return client;
+      }
+
+      // Update permanent birth data / tags on an existing client (never sessions).
+      function updateClient(id, patch) {
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === id; });
+        if (!c) return null;
+        ["name", "birthDate", "birthTime", "birthPlace", "latitude", "longitude", "tzOffset"]
+          .forEach(function (k) {
+            if (patch[k] !== undefined) c[k] = patch[k];
+          });
+        if (patch.tags !== undefined && Array.isArray(patch.tags)) c.tags = patch.tags.slice();
+        c.updatedAt = nowISO();
+        save(db);
+        return c;
+      }
+
+      function deleteClient(id) {
+        var db = load();
+        var before = db.clients.length;
+        db.clients = db.clients.filter(function (c) { return c.id !== id; });
+        save(db);
+        return db.clients.length < before;
+      }
+
+      // Find an existing client by identity (name + birth date + time).
+      function findClientByIdentity(name, birthDate, birthTime) {
+        var n = (name || "").trim().toLowerCase();
+        return load().clients.find(function (c) {
+          return c.name.trim().toLowerCase() === n &&
+                 c.birthDate === birthDate &&
+                 c.birthTime === birthTime;
+        }) || null;
+      }
+
+      // ── Session CRUD ───────────────────────────────────────────────────────
+
+      function addSession(clientId, sessionData) {
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === clientId; });
+        if (!c) return null;
+        var session = {
+          id: uid("session"),
+          consultationDate: sessionData.consultationDate || (nowISO().slice(0, 10)),
+          result: sessionData.result || null,           // immutable snapshot
+          input: sessionData.input || null,             // original input data
+          notes: sessionData.notes || "",
+          readingSummary: sessionData.readingSummary || "",
+          clientFacingNotes: sessionData.clientFacingNotes || "",
+          tags: Array.isArray(sessionData.tags) ? sessionData.tags.slice() : [],
+          createdAt: nowISO(),
+          updatedAt: nowISO()
+        };
+        c.sessions.push(session);
+        c.updatedAt = nowISO();
+        save(db);
+        return session;
+      }
+
+      // Update editable fields of a session. The stored `result` snapshot is
+      // NEVER changed here — it stays immutable. (A deliberate "Recalculate
+      // Session" action in a later step is the only thing that may replace it.)
+      function updateSession(clientId, sessionId, patch) {
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === clientId; });
+        if (!c) return null;
+        var s = c.sessions.find(function (x) { return x.id === sessionId; });
+        if (!s) return null;
+        ["consultationDate", "notes", "readingSummary", "clientFacingNotes"]
+          .forEach(function (k) {
+            if (patch[k] !== undefined) s[k] = patch[k];
+          });
+        if (patch.tags !== undefined && Array.isArray(patch.tags)) s.tags = patch.tags.slice();
+        // Only replace the snapshot if explicitly asked (deliberate recalc).
+        if (patch.result !== undefined && patch.allowResultReplace === true) {
+          s.result = patch.result;
+          if (patch.input !== undefined) s.input = patch.input;
+        }
+        s.updatedAt = nowISO();
+        c.updatedAt = nowISO();
+        save(db);
+        return s;
+      }
+
+      function deleteSession(clientId, sessionId) {
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === clientId; });
+        if (!c) return false;
+        var before = c.sessions.length;
+        c.sessions = c.sessions.filter(function (s) { return s.id !== sessionId; });
+        c.updatedAt = nowISO();
+        save(db);
+        return c.sessions.length < before;
+      }
+
+      // ── Stats ──────────────────────────────────────────────────────────────
+
+      function stats() {
+        var clients = load().clients;
+        var sessions = clients.reduce(function (sum, c) {
+          return sum + (c.sessions ? c.sessions.length : 0);
+        }, 0);
+        return { clients: clients.length, sessions: sessions };
+      }
+
+      // ── Search ─────────────────────────────────────────────────────────────
+
+      function searchClients(query) {
+        var q = (query || "").trim().toLowerCase();
+        var clients = load().clients;
+        if (!q) return clients;
+        return clients.filter(function (c) {
+          if (c.name.toLowerCase().indexOf(q) !== -1) return true;
+          if ((c.birthPlace || "").toLowerCase().indexOf(q) !== -1) return true;
+          if ((c.tags || []).some(function (t) { return t.toLowerCase().indexOf(q) !== -1; })) return true;
+          return false;
+        });
+      }
+
+      function recentClients(limit) {
+        var clients = load().clients.slice();
+        clients.sort(function (a, b) {
+          return (b.updatedAt || "").localeCompare(a.updatedAt || "");
+        });
+        return clients.slice(0, limit || 5);
+      }
+
+      // ── Backup: export / import JSON ─────────────────────────────────────────
+
+      function exportJSON() {
+        return JSON.stringify(load(), null, 2);
+      }
+
+      function downloadBackup() {
+        var data = exportJSON();
+        var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        var blob = new Blob([data], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "sba-clients-backup-" + stamp + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      }
+
+      // mode: "merge" (default, keep existing + add new by id) or "replace".
+      function importJSON(jsonText, mode) {
+        var incoming;
+        try {
+          incoming = JSON.parse(jsonText);
+        } catch (err) {
+          return { ok: false, error: "The file is not valid JSON." };
+        }
+        if (!incoming || !Array.isArray(incoming.clients)) {
+          return { ok: false, error: "This does not look like an SBA backup file." };
+        }
+        if (mode === "replace") {
+          var replaced = { version: DB_VERSION, clients: incoming.clients };
+          save(replaced);
+          return { ok: true, added: incoming.clients.length, merged: 0, mode: "replace" };
+        }
+        // merge
+        var db = load();
+        var existingIds = {};
+        db.clients.forEach(function (c) { existingIds[c.id] = c; });
+        var added = 0, merged = 0;
+        incoming.clients.forEach(function (inc) {
+          if (!inc || !inc.id) {
+            inc.id = uid("client");
+          }
+          if (existingIds[inc.id]) {
+            // Merge sessions by id into the existing client (no overwrite of data).
+            var ex = existingIds[inc.id];
+            var exSessionIds = {};
+            (ex.sessions || []).forEach(function (s) { exSessionIds[s.id] = true; });
+            (inc.sessions || []).forEach(function (s) {
+              if (!exSessionIds[s.id]) ex.sessions.push(s);
+            });
+            ex.updatedAt = nowISO();
+            merged++;
+          } else {
+            db.clients.push(inc);
+            existingIds[inc.id] = inc;
+            added++;
+          }
+        });
+        save(db);
+        return { ok: true, added: added, merged: merged, mode: "merge" };
+      }
+
+      // ── Expose API (read/write only; no calculation involvement) ─────────────
+      window.SBAStore = {
+        DB_KEY: DB_KEY,
+        getClients: getClients,
+        getClient: getClient,
+        createClient: createClient,
+        updateClient: updateClient,
+        deleteClient: deleteClient,
+        findClientByIdentity: findClientByIdentity,
+        addSession: addSession,
+        updateSession: updateSession,
+        deleteSession: deleteSession,
+        stats: stats,
+        searchClients: searchClients,
+        recentClients: recentClients,
+        exportJSON: exportJSON,
+        downloadBackup: downloadBackup,
+        importJSON: importJSON,
+        _uid: uid
+      };
+    })();
+  </script>
+</body>
+</html>
