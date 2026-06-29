@@ -573,6 +573,286 @@
     }
 
     /* ───────────────────────────────────────────────────────────────────────
+       STEP 3b — Practitioner shell (dashboard / client / session / modal).
+       Additive styling only. No existing rule above is modified.
+       ─────────────────────────────────────────────────────────────────────── */
+    .prac-topbar {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.7rem max(1.25rem, env(safe-area-inset-left));
+      background: #3a3530; color: #f5f3ef;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+    }
+    .prac-brand {
+      background: none; border: none; color: #f5f3ef;
+      font-family: Georgia, serif; font-size: 1rem; letter-spacing: 0.06em;
+      cursor: pointer; padding: 0.2rem 0;
+    }
+    .prac-topbar-actions { display: flex; gap: 0.5rem; }
+    .prac-link {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+      color: #f5f3ef; border-radius: 4px; padding: 0.4rem 0.8rem;
+      font-family: inherit; font-size: 0.82rem; cursor: pointer;
+    }
+    .prac-link:hover { background: rgba(255,255,255,0.2); }
+
+    .prac-screen {
+      max-width: 980px; margin: 0 auto;
+      padding: 1.75rem max(1.25rem, env(safe-area-inset-left)) 4rem;
+    }
+    .prac-head { margin-bottom: 1.25rem; }
+    .prac-head h1 {
+      font-size: 1.5rem; display: inline-block;
+      border-bottom: 2px solid #d8c9b0; padding-bottom: 0.15rem;
+    }
+
+    .prac-stats {
+      display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      flex: 1; min-width: 130px;
+      background: #fff; border: 1px solid #e0dbd3; border-radius: 6px;
+      padding: 0.9rem 1.1rem;
+      box-shadow: 0 1px 8px rgba(58,53,48,0.04);
+    }
+    .stat-num { font-size: 1.6rem; color: #3a3530; }
+    .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; }
+
+    .prac-toolbar {
+      display: flex; gap: 0.6rem; margin-bottom: 1.75rem; flex-wrap: wrap;
+    }
+    .prac-toolbar input {
+      flex: 1; min-width: 0;
+      border: 1px solid #ccc7bc; border-radius: 4px;
+      padding: 0.6rem 0.75rem; font-family: inherit; font-size: 16px; background: #fafaf8;
+    }
+
+    .prac-section { margin-bottom: 1.75rem; }
+    .prac-section-head {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: #666; margin-bottom: 0.65rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .prac-section-head .muted { color: #aaa; }
+
+    .client-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .client-card {
+      background: #fff; border: 1px solid #e0dbd3; border-radius: 6px;
+      padding: 0.85rem 1rem; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+      box-shadow: 0 1px 6px rgba(58,53,48,0.03);
+      transition: border-color 0.12s, transform 0.05s;
+    }
+    .client-card:hover { border-color: #c9b896; }
+    .client-card:active { transform: translateY(1px); }
+    .client-card .cc-name { font-size: 1rem; color: #2c2820; }
+    .client-card .cc-meta { font-size: 0.78rem; color: #888; margin-top: 0.15rem; }
+    .client-card .cc-right { text-align: right; font-size: 0.74rem; color: #aaa; white-space: nowrap; }
+
+    .tag-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
+    .chip {
+      font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+      border: 1px solid #d8cfc0; background: #f3efe7; color: #6a5f4c; cursor: pointer;
+      white-space: nowrap;
+    }
+    .chip.on { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; }
+    .chip.static { cursor: default; }
+
+    .empty-note { color: #999; font-size: 0.86rem; font-style: italic; padding: 0.5rem 0; }
+
+    .btn-prac {
+      background: #f0ede8; color: #3a3530; border: 1px solid #ccc7bc;
+      border-radius: 4px; padding: 0.55rem 1rem; font-family: inherit;
+      font-size: 0.86rem; cursor: pointer; transition: background 0.12s, transform 0.05s;
+    }
+    .btn-prac:hover { background: #e4e0da; }
+    .btn-prac:active { transform: translateY(1px); }
+    .btn-prac.primary { background: #3a3530; color: #f5f3ef; border-color: #3a3530; }
+    .btn-prac.primary:hover { background: #2a2520; }
+    .btn-prac.danger { background: #fff3f3; color: #8b2020; border-color: #e5b8b8; }
+    .btn-prac.danger:hover { background: #fbe9e9; }
+
+    .prac-back {
+      background: none; border: none; color: #8a7f72; font-family: inherit;
+      font-size: 0.85rem; cursor: pointer; padding: 0.2rem 0; margin-bottom: 0.75rem;
+    }
+    .prac-back:hover { color: #5a5048; }
+
+    .prac-actions-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .backup-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+    .birth-data-card {
+      background: #fff; border: 1px solid #e0dbd3; border-radius: 6px;
+      padding: 1rem 1.2rem; margin-bottom: 1.25rem; font-size: 0.9rem;
+    }
+    .birth-data-card .bd-row { display: flex; justify-content: space-between; padding: 0.2rem 0; gap: 1rem; }
+    .birth-data-card .bd-label { color: #888; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .birth-data-card .bd-val { color: #2c2820; text-align: right; }
+
+    .session-history { display: flex; flex-direction: column; gap: 0.6rem; }
+    .session-card {
+      background: #fff; border: 1px solid #e0dbd3; border-radius: 6px;
+      padding: 0.85rem 1rem; cursor: pointer;
+      box-shadow: 0 1px 6px rgba(58,53,48,0.03);
+      transition: border-color 0.12s;
+    }
+    .session-card:hover { border-color: #c9b896; }
+    .session-card .sc-top { display: flex; justify-content: space-between; gap: 0.75rem; align-items: baseline; }
+    .session-card .sc-date { font-size: 0.95rem; color: #2c2820; }
+    .session-card .sc-latest { font-size: 0.68rem; color: #5a8a5a; text-transform: uppercase; letter-spacing: 0.06em; }
+    .session-card .sc-summary { font-size: 0.82rem; color: #777; margin-top: 0.25rem; }
+    .session-card .sc-tags { margin-top: 0.4rem; }
+
+    .timeline { border-left: 2px solid #e0dbd3; padding-left: 1rem; margin-left: 0.4rem; }
+    .timeline-item { position: relative; padding: 0.35rem 0; font-size: 0.85rem; color: #555; }
+    .timeline-item::before {
+      content: ""; position: absolute; left: -1.45rem; top: 0.7rem;
+      width: 8px; height: 8px; border-radius: 50%; background: #c9b896;
+    }
+    .timeline-item .tl-date { color: #2c2820; }
+    .timeline-item .tl-follow { color: #9a6a30; }
+
+    .session-meta { background: #fff; border: 1px solid #e0dbd3; border-radius: 6px; padding: 1rem 1.2rem; }
+    .session-meta .sm-block { margin-bottom: 0.85rem; }
+    .session-meta .sm-block:last-child { margin-bottom: 0; }
+    .session-meta .sm-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 0.2rem; }
+    .session-meta .sm-text { font-size: 0.9rem; color: #2c2820; white-space: pre-wrap; }
+
+    .snapshot-wrap { margin-top: 0.5rem; }
+
+    .save-session-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+      flex-wrap: wrap;
+      background: #fbf7ef; border: 1px solid #e6d8bd; border-radius: 6px;
+      padding: 0.85rem 1rem; margin-top: 1.5rem;
+    }
+    .save-session-context { font-size: 0.84rem; color: #7a6a4c; }
+
+    /* Modal */
+    .prac-modal-overlay {
+      position: fixed; inset: 0; background: rgba(40,36,32,0.45);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 2rem 1rem; z-index: 60; overflow-y: auto;
+    }
+    .prac-modal {
+      background: #faf8f5; border-radius: 8px; max-width: 520px; width: 100%;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3); margin: auto;
+    }
+    .prac-modal-title {
+      font-family: Georgia, serif; font-size: 1.05rem; color: #2c2820;
+      padding: 1.1rem 1.3rem; border-bottom: 1px solid #e6e0d6;
+    }
+    .prac-modal-body { padding: 1.1rem 1.3rem; }
+    .prac-field { margin-bottom: 1rem; }
+    .prac-field label {
+      display: block; font-size: 0.74rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #777; margin-bottom: 0.35rem;
+    }
+    .prac-field input, .prac-field textarea {
+      width: 100%; border: 1px solid #ccc7bc; border-radius: 4px;
+      padding: 0.55rem 0.7rem; font-family: inherit; font-size: 16px;
+      background: #fff; color: #2c2820; box-sizing: border-box; resize: vertical;
+    }
+    .prac-modal-actions {
+      display: flex; justify-content: flex-end; gap: 0.6rem;
+      padding: 1rem 1.3rem; border-top: 1px solid #e6e0d6;
+    }
+
+    @media (max-width: 640px) {
+      .prac-screen { padding-top: 1.25rem; }
+      .prac-head h1 { font-size: 1.35rem; }
+      .client-card, .session-card { padding: 0.8rem 0.85rem; }
+      .prac-actions-row .btn-prac { flex: 1; }
+    }
+
+    @media print {
+      .prac-topbar, .save-session-bar,
+      .prac-actions-row, .prac-back, .prac-toolbar,
+      .prac-stats, .backup-row { display: none !important; }
+    }
+
+    /* ───────────────────────────────────────────────────────────────────────
+       STEP 4 — Interpretation library (additive styling only).
+       ─────────────────────────────────────────────────────────────────────── */
+    .card-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.5rem;
+    }
+    .lib-card {
+      background: #fff; border: 1px solid #e0dbd3; border-radius: 6px;
+      padding: 0.7rem 0.85rem; cursor: pointer; text-align: left;
+      font-family: inherit; transition: border-color 0.12s;
+    }
+    .lib-card:hover { border-color: #c9b896; }
+    .lib-card .lc-title { font-size: 0.92rem; color: #2c2820; }
+    .lib-card .lc-sub { font-size: 0.74rem; color: #999; margin-top: 0.15rem; }
+    .lib-card .lc-status { font-size: 0.68rem; margin-top: 0.35rem; letter-spacing: 0.04em; }
+    .lc-status.empty { color: #b08a8a; }
+    .lc-status.written { color: #5a8a5a; }
+
+    .interp-panel {
+      margin-top: 1.5rem; background: #fff; border: 1px solid #e0dbd3;
+      border-radius: 6px; padding: 1rem 1.1rem;
+    }
+    .interp-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+      padding: 0.6rem 0.4rem; border-bottom: 1px solid #f0ede8; cursor: pointer;
+    }
+    .interp-row:last-child { border-bottom: none; }
+    .interp-row:hover { background: #faf8f5; }
+    .interp-row .ir-main { font-size: 0.92rem; color: #2c2820; }
+    .interp-row .ir-sub { font-size: 0.78rem; color: #888; margin-top: 0.1rem; }
+    .interp-row .ir-template { font-size: 0.82rem; color: #6a6258; margin-top: 0.2rem; font-style: italic; }
+    .interp-row .ir-status { font-size: 0.68rem; white-space: nowrap; }
+    .ir-status.empty { color: #b08a8a; }
+    .ir-status.written { color: #5a8a5a; }
+    .interp-group-head {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: #aaa; margin: 0.85rem 0.4rem 0.2rem;
+    }
+
+    .interp-modal { max-width: 600px; }
+    .interp-field { margin-bottom: 0.9rem; }
+    .interp-field .if-label {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #888; margin-bottom: 0.25rem;
+    }
+    .interp-field .if-value {
+      font-size: 0.9rem; color: #2c2820; white-space: pre-wrap; line-height: 1.5;
+    }
+    .interp-field .if-value.empty { color: #b08a8a; font-style: italic; }
+    .interp-field textarea {
+      width: 100%; border: 1px solid #ccc7bc; border-radius: 4px;
+      padding: 0.5rem 0.6rem; font-family: inherit; font-size: 16px;
+      background: #fff; color: #2c2820; box-sizing: border-box; resize: vertical;
+    }
+    .interp-ref {
+      font-size: 0.8rem; color: #777; background: #f7f4ee;
+      border-radius: 4px; padding: 0.5rem 0.7rem; margin-bottom: 0.9rem;
+    }
+
+    /* Internal links */
+    .link-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .link-chip {
+      font-family: inherit; font-size: 0.8rem;
+      padding: 0.3rem 0.7rem; border-radius: 999px;
+      border: 1px solid #c9b896; background: #f3efe7; color: #5a4e3c;
+      cursor: pointer; white-space: nowrap;
+    }
+    .link-chip:hover { background: #ece5d6; }
+    .link-chip.missing {
+      border-color: #e5b8b8; background: #fff3f3; color: #8b2020; cursor: default;
+    }
+    .link-picker {
+      display: flex; flex-wrap: wrap; gap: 0.35rem;
+      max-height: 220px; overflow-y: auto;
+      border: 1px solid #ece6dc; border-radius: 6px; padding: 0.5rem;
+      background: #fcfaf6;
+    }
+    .link-chip.pick { border-color: #d8cfc0; background: #fff; color: #6a5f4c; }
+    .link-chip.pick.on { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; }
+
+    /* ───────────────────────────────────────────────────────────────────────
        STEP 2 — App polish (additive only; no existing rule above is modified).
        Header, section cards, button styling, back-to-top, print layout.
        ─────────────────────────────────────────────────────────────────────── */
@@ -700,7 +980,161 @@
   </style>
 </head>
 <body>
-  <div class="app-container">
+  <!-- ───────────────────────────────────────────────────────────────────────
+       STEP 3b — Practitioner shell (top bar + dashboard/client/session screens
+       + save modal). This is LAYOUT ONLY, added AROUND the existing calculator.
+       It contains no astronomy/SBA/wheel logic. The calculator markup below is
+       unchanged except for the id="screenCalculator" hook used to show/hide it.
+       ─────────────────────────────────────────────────────────────────────── -->
+  <div class="prac-topbar" id="pracTopbar">
+    <button class="prac-brand" id="navDashboard" type="button">SBA&nbsp;Practice</button>
+    <div class="prac-topbar-actions">
+      <button class="prac-link" id="navLibrary" type="button">Library</button>
+      <button class="prac-link" id="navNewCalc" type="button">+ New Reading</button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="prac-screen" id="screenDashboard" hidden>
+    <div class="prac-head">
+      <h1>Client Dashboard</h1>
+      <p class="subtitle">Private consultation records · stored on this device only</p>
+    </div>
+
+    <div class="prac-stats" id="dashStats"></div>
+
+    <div class="prac-toolbar">
+      <input id="clientSearch" type="text" placeholder="Search clients by name, place, or tag…" autocomplete="off" />
+      <button class="btn-prac primary" id="btnNewClient" type="button">+ New Client</button>
+    </div>
+
+    <div class="prac-section">
+      <div class="prac-section-head">Recent</div>
+      <div id="recentList" class="client-list"></div>
+    </div>
+
+    <div class="prac-section">
+      <div class="prac-section-head">All Clients</div>
+      <div id="clientList" class="client-list"></div>
+    </div>
+
+    <div class="prac-section backup-row">
+      <button class="btn-prac" id="btnExportBackup" type="button">⬇ Export Backup (JSON)</button>
+      <button class="btn-prac" id="btnImportBackup" type="button">⬆ Import Backup (JSON)</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+    </div>
+  </div>
+
+  <!-- ── CLIENT VIEW ── -->
+  <div class="prac-screen" id="screenClient" hidden>
+    <button class="prac-back" id="clientBack" type="button">‹ Dashboard</button>
+    <div class="prac-head" id="clientHeader"></div>
+    <div class="prac-actions-row" id="clientActions"></div>
+    <div id="clientBirthEdit" hidden></div>
+    <div class="prac-section">
+      <div class="prac-section-head">Sessions <span class="muted" id="sessionCount"></span></div>
+      <div id="sessionHistory" class="session-history"></div>
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Timeline</div>
+      <div id="clientTimeline" class="timeline"></div>
+    </div>
+  </div>
+
+  <!-- ── SESSION VIEW ── -->
+  <div class="prac-screen" id="screenSession" hidden>
+    <button class="prac-back" id="sessionBack" type="button">‹ Client</button>
+    <div class="prac-head" id="sessionHeader"></div>
+    <div class="prac-actions-row" id="sessionActions"></div>
+    <div class="session-meta" id="sessionMeta"></div>
+    <div class="section-divider"></div>
+    <!-- Saved immutable HTML snapshot is injected here verbatim -->
+    <div class="snapshot-wrap" id="sessionSnapshot"></div>
+  </div>
+
+  <!-- ── SAVE SESSION MODAL ── -->
+  <div class="prac-modal-overlay" id="saveModal" hidden>
+    <div class="prac-modal">
+      <div class="prac-modal-title" id="saveModalTitle">Save as consultation session</div>
+      <div class="prac-modal-body">
+        <div class="prac-field">
+          <label for="saveConsultDate">Date of consultation</label>
+          <input id="saveConsultDate" type="date" />
+        </div>
+        <div class="prac-field">
+          <label>Tags</label>
+          <div class="tag-chips" id="saveTagChips"></div>
+          <input id="saveTags" type="text" placeholder="Comma-separated, e.g. Follow-up, VIP" />
+        </div>
+        <div class="prac-field">
+          <label for="saveNotes">Practitioner notes</label>
+          <textarea id="saveNotes" rows="4" placeholder="Private notes for this reading…"></textarea>
+        </div>
+        <div class="prac-field">
+          <label for="saveReadingSummary">Reading summary</label>
+          <textarea id="saveReadingSummary" rows="2" placeholder="Short summary of this session…"></textarea>
+        </div>
+        <div class="prac-field">
+          <label for="saveClientNotes">Client-facing notes (optional)</label>
+          <textarea id="saveClientNotes" rows="3" placeholder="Notes that can be shared with the client…"></textarea>
+        </div>
+        <div class="prac-field">
+          <label for="saveFollowUp">Future follow-up date (optional)</label>
+          <input id="saveFollowUp" type="date" />
+        </div>
+      </div>
+      <div class="prac-modal-actions">
+        <button class="btn-prac" id="saveCancel" type="button">Cancel</button>
+        <button class="btn-prac primary" id="saveConfirm" type="button">Save Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── INTERPRETATION LIBRARY ── -->
+  <div class="prac-screen" id="screenLibrary" hidden>
+    <div class="prac-head">
+      <h1>SBA Interpretation Library</h1>
+      <p class="subtitle">Your own SBA meanings · stored on this device · editable anytime</p>
+    </div>
+    <div class="prac-toolbar">
+      <input id="librarySearch" type="text" placeholder="Search houses, planets, points, angles…" autocomplete="off" />
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Houses</div>
+      <div id="libHouses" class="card-grid"></div>
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Cycles</div>
+      <div id="libCycles" class="card-grid"></div>
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Bodies</div>
+      <div id="libBodies" class="card-grid"></div>
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Angles</div>
+      <div id="libAngles" class="card-grid"></div>
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Points</div>
+      <div id="libPoints" class="card-grid"></div>
+    </div>
+  </div>
+
+  <!-- ── INTERPRETATION CARD MODAL ── -->
+  <div class="prac-modal-overlay" id="interpModal" hidden>
+    <div class="prac-modal interp-modal">
+      <div class="prac-modal-title" id="interpTitle">Interpretation</div>
+      <div class="prac-modal-body" id="interpBody"></div>
+      <div class="prac-modal-actions">
+        <button class="btn-prac" id="interpClose" type="button">Close</button>
+        <button class="btn-prac" id="interpEdit" type="button">Edit</button>
+        <button class="btn-prac primary" id="interpSave" type="button" hidden>Save Interpretation</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container" id="screenCalculator">
     <div class="app-header">
       <h1>SBA True Calculator</h1>
       <p class="subtitle">Solar-Biological-Astral Profile</p>
@@ -771,6 +1205,16 @@
     <div class="loading-indicator" id="loadingIndicator" hidden>Computing planetary positions…</div>
 
     <div class="results-section" id="resultsSection" hidden></div>
+
+    <div class="save-session-bar" id="saveSessionBar" hidden>
+      <span class="save-session-context" id="saveSessionContext"></span>
+      <button class="btn-prac primary" id="btnSaveSession" type="button">Save as consultation session</button>
+    </div>
+
+    <div class="interp-panel" id="interpPanel" hidden>
+      <div class="prac-section-head">Interpretation <span class="muted">tap any placement to read / edit your SBA meaning</span></div>
+      <div id="interpPlacements"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -1718,6 +2162,1176 @@
 
   <script>
     /* ═══════════════════════════════════════════════════════════════════════
+       STEP 4 — INTERPRETATION UI CONTROLLER
+
+       Renders the Library screen, the click-to-read/edit card modal, and the
+       post-calculation Interpretation panel. It links calculated placements to
+       library cards by reading the ALREADY-RENDERED results tables in the DOM
+       (constellation + house columns). It never calls the calculation engine
+       and never alters any calculated output.
+       ═══════════════════════════════════════════════════════════════════════ */
+    (function () {
+      "use strict";
+      function $(id) { return document.getElementById(id); }
+      var L = null; // SBALibrary, resolved at boot
+
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+      }
+
+      // ── Card modal ───────────────────────────────────────────────────────────
+      var currentCardId = null;
+      var editing = false;
+
+      function openCard(id) {
+        var card = L.getCard(id);
+        if (!card) return;
+        currentCardId = id; editing = false;
+        renderCardView(card);
+        $("interpSave").hidden = true;
+        $("interpEdit").hidden = false;
+        $("interpModal").hidden = false;
+      }
+
+      function fieldOrder() {
+        return ["meaning","coreTheme","shadow","growth","clientQuestions","practitionerNote"];
+      }
+
+      function renderCardView(card) {
+        $("interpTitle").textContent = card.title;
+        var html = "";
+
+        if (card.kind === "house" && card.ref) {
+          html += '<div class="interp-ref">House ' + card.ref.house +
+            ' · ' + esc(card.ref.name) + ' · “' + esc(card.ref.phrase) + '” · ' +
+            esc(card.ref.constellation) + '</div>';
+        }
+
+        function viewField(label, val) {
+          var empty = !(val || "").trim();
+          return '<div class="interp-field"><div class="if-label">' + esc(label) + '</div>' +
+            '<div class="if-value' + (empty ? ' empty' : '') + '">' +
+            (empty ? L.EMPTY : esc(val)) + '</div></div>';
+        }
+
+        fieldOrder().forEach(function (k) {
+          html += viewField(L.FIELD_LABELS[k], card.fields[k]);
+        });
+        if (card.extra) {
+          Object.keys(card.extra).forEach(function (k) {
+            html += viewField(L.EXTRA_LABELS[k] || k, card.extra[k]);
+          });
+        }
+
+        // Related SBA Pages (internal links) — clickable, missing-safe.
+        var links = card.links || [];
+        html += '<div class="interp-field"><div class="if-label">Related SBA pages</div>';
+        if (!links.length) {
+          html += '<div class="if-value empty">No linked pages yet.</div>';
+        } else {
+          html += '<div class="link-chips">' + links.map(function (tid) {
+            var r = L.resolveLink(tid);
+            if (r.missing) {
+              return '<span class="link-chip missing" title="This linked page no longer exists">⚠ Missing linked page</span>';
+            }
+            return '<button class="link-chip" data-goto="' + esc(r.id) + '">' + esc(r.title) + '</button>';
+          }).join("") + '</div>';
+        }
+        html += '</div>';
+
+        $("interpBody").innerHTML = html;
+      }
+
+      function renderCardEdit(card) {
+        $("interpTitle").textContent = "Editing · " + card.title;
+        var html = "";
+        if (card.kind === "house" && card.ref) {
+          html += '<div class="interp-ref">House ' + card.ref.house + ' · ' + esc(card.ref.name) +
+            ' · “' + esc(card.ref.phrase) + '” · ' + esc(card.ref.constellation) +
+            '<br><span style="color:#aaa">Reference labels above come from your engine and are not editable here.</span></div>';
+        }
+        function editField(key, label, val) {
+          return '<div class="interp-field"><div class="if-label">' + esc(label) + '</div>' +
+            '<textarea rows="3" data-field="' + key + '" placeholder="' + esc(L.PLACEHOLDER) + '">' +
+            esc(val || "") + '</textarea></div>';
+        }
+        fieldOrder().forEach(function (k) { html += editField(k, L.FIELD_LABELS[k], card.fields[k]); });
+        if (card.extra) {
+          Object.keys(card.extra).forEach(function (k) {
+            html += editField("extra:" + k, L.EXTRA_LABELS[k] || k, card.extra[k]);
+          });
+        }
+
+        // Internal-links picker: every other library item as a toggle chip.
+        var current = card.links || [];
+        var all = L.allCards().filter(function (c) { return c.id !== card.id; })
+          .sort(function (a, b) { return a.title.localeCompare(b.title); });
+        html += '<div class="interp-field"><div class="if-label">Internal links (tap to toggle)</div>';
+        html += '<input id="linkFilter" type="text" placeholder="Filter items…" style="margin-bottom:0.5rem;width:100%;border:1px solid #ccc7bc;border-radius:4px;padding:0.4rem 0.55rem;font-family:inherit;font-size:16px;box-sizing:border-box;" />';
+        html += '<div class="link-picker" id="linkPicker">' + all.map(function (c) {
+          var on = current.indexOf(c.id) !== -1;
+          return '<button class="link-chip pick' + (on ? ' on' : '') + '" data-link="' + esc(c.id) +
+            '" data-title="' + esc(c.title.toLowerCase()) + '">' + esc(c.title) + '</button>';
+        }).join("") + '</div></div>';
+
+        $("interpBody").innerHTML = html;
+      }
+
+      function startEdit() {
+        var card = L.getCard(currentCardId);
+        if (!card) return;
+        editing = true;
+        renderCardEdit(card);
+        $("interpEdit").hidden = true;
+        $("interpSave").hidden = false;
+      }
+
+      function saveEdit() {
+        var fields = {}, extra = {};
+        Array.prototype.forEach.call($("interpBody").querySelectorAll("[data-field]"), function (ta) {
+          var key = ta.getAttribute("data-field");
+          if (key.indexOf("extra:") === 0) extra[key.slice(6)] = ta.value;
+          else fields[key] = ta.value;
+        });
+        L.saveCard(currentCardId, fields, Object.keys(extra).length ? extra : null);
+
+        // Persist internal links (ids of toggled-on chips).
+        var picked = [];
+        Array.prototype.forEach.call($("interpBody").querySelectorAll(".link-chip.pick.on"), function (b) {
+          picked.push(b.getAttribute("data-link"));
+        });
+        L.setLinks(currentCardId, picked);
+
+        var card = L.getCard(currentCardId);
+        editing = false;
+        renderCardView(card);
+        $("interpSave").hidden = true;
+        $("interpEdit").hidden = false;
+        // refresh library + panel statuses if visible
+        if (!$("screenLibrary").hidden) renderLibrary();
+        refreshPanelStatuses();
+      }
+
+      function closeCard() { $("interpModal").hidden = true; currentCardId = null; editing = false; }
+
+      // ── Library screen ───────────────────────────────────────────────────────
+      function statusBadge(card) {
+        return L.isCardEmpty(card)
+          ? '<div class="lc-status empty">○ not written yet</div>'
+          : '<div class="lc-status written">● written</div>';
+      }
+
+      function libCardHTML(card, sub) {
+        return '<button class="lib-card" data-card="' + esc(card.id) + '">' +
+          '<div class="lc-title">' + esc(card.title) + '</div>' +
+          (sub ? '<div class="lc-sub">' + esc(sub) + '</div>' : '') +
+          statusBadge(card) + '</button>';
+      }
+
+      function renderLibrary(filter) {
+        var q = (filter || "").trim().toLowerCase();
+        var groups = { house: [], cycle: [], body: [], angle: [], point: [] };
+        L.allCards().forEach(function (c) {
+          if (q) {
+            var hay = (c.title + " " + (c.slug || "") + " " + c.id).toLowerCase();
+            if (hay.indexOf(q) === -1) return;
+          }
+          (groups[c.kind] || (groups[c.kind] = [])).push(c);
+        });
+        $("libHouses").innerHTML = groups.house.map(function (c) {
+          return libCardHTML(c, "“" + c.ref.phrase + "”");
+        }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libCycles").innerHTML = groups.cycle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libBodies").innerHTML = groups.body.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libAngles").innerHTML = groups.angle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libPoints").innerHTML = groups.point.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+      }
+
+      // ── Post-calculation Interpretation panel ────────────────────────────────
+      // Reads the already-rendered results tables (no engine access).
+      function readPlacementsFromDOM() {
+        var root = $("resultsSection");
+        if (!root) return null;
+        var placements = { cycles: [], bodies: [], angles: [], points: [] };
+
+        // Cycles from the summary block (SBA Year / Lunar Month)
+        placements.cycles.push({ key: "SBA Year", id: L.cycleId("SBA Year") });
+        placements.cycles.push({ key: "SBA Lunar Month", id: L.cycleId("SBA Lunar Month") });
+
+        // Walk every results table; classify rows by their first cell.
+        var tables = root.querySelectorAll("table");
+        tables.forEach(function (tbl) {
+          var headers = Array.prototype.map.call(tbl.querySelectorAll("thead th"), function (th) {
+            return th.textContent.trim().toLowerCase();
+          });
+          // Skip the House Reference table (first header is "House").
+          if (headers[0] === "house") return;
+          var firstHead = headers[0] || "";
+          var rows = tbl.querySelectorAll("tbody tr");
+          rows.forEach(function (tr) {
+            var cells = tr.querySelectorAll("td");
+            if (cells.length < 2) return;
+            var name = cells[0].textContent.trim();
+            var constellation = cells[1] ? cells[1].textContent.trim() : "";
+            var houseName = cells[3] ? cells[3].textContent.trim() : "";
+            var houseId = L.houseIdForConstellation(constellation);
+
+            if (firstHead === "body") {
+              placements.bodies.push({ key: name, id: L.bodyId(name), constellation: constellation, houseId: houseId, houseName: houseName });
+            } else if (firstHead === "angle") {
+              placements.angles.push({ key: name, id: L.angleId(name), constellation: constellation, houseId: houseId, houseName: houseName });
+            } else if (firstHead === "point") {
+              // Point names may carry suffixes e.g. "Part of Fortune (day)"; map by prefix.
+              var pid = L.pointId(name);
+              if (!pid) {
+                ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"].forEach(function (base) {
+                  if (!pid && name.indexOf(base.replace(" (Mean BML)","").replace(" (VX)","")) === 0) pid = L.pointId(base);
+                });
+                if (!pid && name.indexOf("Part of Fortune") === 0) pid = L.pointId("Part of Fortune");
+                if (!pid && name.indexOf("Lilith") === 0) pid = L.pointId("Lilith (Mean BML)");
+                if (!pid && name.indexOf("Vertex") === 0) pid = L.pointId("Vertex (VX)");
+              }
+              placements.points.push({ key: name, id: pid, constellation: constellation, houseId: houseId, houseName: houseName });
+            }
+          });
+        });
+        return placements;
+      }
+
+      // Build the short practitioner template line, e.g.
+      // "Moon in Gemini, House 3 — [house meaning + body meaning to combine]"
+      function templateLine(p) {
+        if (!p.constellation || p.constellation === "—") return "";
+        var houseCard = p.houseId ? L.getCard(p.houseId) : null;
+        var houseNum = houseCard && houseCard.ref ? houseCard.ref.house : "";
+        var head = esc(p.key) + " in " + esc(p.constellation) +
+          (houseNum ? ", House " + houseNum : "") + " — ";
+        return head + '<span style="color:#b08a8a">[AJ to write combined meaning]</span>';
+      }
+
+      function rowHTML(p, showTemplate) {
+        var card = p.id ? L.getCard(p.id) : null;
+        var status = card
+          ? (L.isCardEmpty(card) ? '<span class="ir-status empty">○ not written</span>' : '<span class="ir-status written">● written</span>')
+          : '<span class="ir-status empty">—</span>';
+        var sub = "";
+        if (p.constellation && p.constellation !== "—") {
+          sub = esc(p.constellation) + (p.houseName ? " · " + esc(p.houseName) : "");
+        }
+        return '<div class="interp-row" ' + (p.id ? 'data-card="' + esc(p.id) + '"' : '') + '>' +
+          '<div><div class="ir-main">' + esc(p.key) + '</div>' +
+          (sub ? '<div class="ir-sub">' + sub + '</div>' : '') +
+          (showTemplate ? '<div class="ir-template">' + templateLine(p) + '</div>' : '') +
+          '</div>' + status + '</div>';
+      }
+
+      function renderPanel() {
+        var P = readPlacementsFromDOM();
+        var host = $("interpPlacements");
+        if (!P) { host.innerHTML = ""; return; }
+        var html = "";
+        html += '<div class="interp-group-head">Cycles</div>' + P.cycles.map(function (p) { return rowHTML(p, false); }).join("");
+        html += '<div class="interp-group-head">Angles</div>' + P.angles.map(function (p) { return rowHTML(p, true); }).join("");
+        html += '<div class="interp-group-head">Points</div>' + P.points.map(function (p) { return rowHTML(p, true); }).join("");
+        html += '<div class="interp-group-head">Bodies</div>' + P.bodies.map(function (p) { return rowHTML(p, true); }).join("");
+
+        // Houses occupied in this chart (unique), linking to the house library.
+        var houseIds = {};
+        P.bodies.concat(P.angles, P.points).forEach(function (p) { if (p.houseId) houseIds[p.houseId] = true; });
+        var hids = Object.keys(houseIds).sort(function (a, b) {
+          return parseInt(a.split(":")[1], 10) - parseInt(b.split(":")[1], 10);
+        });
+        if (hids.length) {
+          html += '<div class="interp-group-head">SBA Houses in this chart</div>';
+          html += hids.map(function (id) {
+            var c = L.getCard(id);
+            return rowHTML({ key: c.title, id: id, constellation: "", houseName: "" }, false);
+          }).join("");
+        }
+        host.innerHTML = html;
+      }
+
+      function refreshPanelStatuses() {
+        if ($("interpPanel") && !$("interpPanel").hidden) renderPanel();
+      }
+
+      // Show/hide the panel alongside the existing results (observe DOM only).
+      function watchForResults() {
+        var r = $("resultsSection");
+        if (!r) return;
+        var update = function () {
+          var panel = $("interpPanel");
+          if (!panel) return;
+          var ready = r && !r.hidden && r.innerHTML.trim().length > 0;
+          var onCalc = !$("screenCalculator").hidden;
+          if (ready && onCalc) { panel.hidden = false; renderPanel(); }
+          else panel.hidden = true;
+        };
+        new MutationObserver(update).observe(r, { childList: true, subtree: true, attributes: true });
+        update();
+      }
+
+      // ── Wiring ───────────────────────────────────────────────────────────────
+      function wire() {
+        $("navLibrary").addEventListener("click", function () {
+          renderLibrary($("librarySearch").value);
+          // reuse the shell's screen switching by toggling hidden directly
+          ["screenDashboard","screenClient","screenSession","screenCalculator","screenLibrary"].forEach(function (s) {
+            var el = $(s); if (el) el.hidden = (s !== "screenLibrary");
+          });
+          var bar = $("saveSessionBar"); if (bar) bar.hidden = true;
+          var panel = $("interpPanel"); if (panel) panel.hidden = true;
+          window.scrollTo({ top: 0 });
+        });
+        $("librarySearch").addEventListener("input", function () { renderLibrary(this.value); });
+
+        // delegated open from library + panel
+        document.addEventListener("click", function (e) {
+          var card = e.target.closest("[data-card]");
+          if (card && (card.classList.contains("lib-card") || card.classList.contains("interp-row"))) {
+            openCard(card.getAttribute("data-card"));
+          }
+        });
+
+        $("interpClose").addEventListener("click", closeCard);
+        $("interpEdit").addEventListener("click", startEdit);
+        $("interpSave").addEventListener("click", saveEdit);
+        $("interpModal").addEventListener("click", function (e) {
+          if (e.target === $("interpModal")) closeCard();
+        });
+
+        // Inside the card: toggle link chips (edit mode), filter the picker,
+        // and navigate to a related page (view mode).
+        $("interpBody").addEventListener("click", function (e) {
+          var pick = e.target.closest(".link-chip.pick");
+          if (pick) { pick.classList.toggle("on"); return; }
+          var goto = e.target.closest("[data-goto]");
+          if (goto) { openCard(goto.getAttribute("data-goto")); return; }
+        });
+        $("interpBody").addEventListener("input", function (e) {
+          if (e.target && e.target.id === "linkFilter") {
+            var q = e.target.value.trim().toLowerCase();
+            Array.prototype.forEach.call($("interpBody").querySelectorAll(".link-chip.pick"), function (b) {
+              var t = b.getAttribute("data-title") || "";
+              b.style.display = (!q || t.indexOf(q) !== -1) ? "" : "none";
+            });
+          }
+        });
+
+        watchForResults();
+      }
+
+      function boot() {
+        L = window.SBALibrary;
+        if (!L) { console.error("[Step4] SBALibrary missing"); return; }
+        wire();
+      }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+      else boot();
+    })();
+  </script>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════════════
+       STEP 4 — SBA INTERPRETATION LIBRARY (structure only)
+
+       CRITICAL: This layer contains NO interpretation meanings. Every meaning
+       field is an empty placeholder for AJ to fill in. It uses no astrology of
+       any kind. It does not read, call, or modify the calculation engine — it
+       only links calculated placement KEYS (constellation / body name / point
+       label) to editable library entries.
+
+       Two parts:
+         • SBALibraryDefaults — the fixed catalogue of cards (houses, bodies,
+           angles, points) with empty fields.
+         • SBALibrary (window) — localStorage overlay holding AJ's own written
+           content, so edits persist and travel with the JSON backup.
+
+       Field set per card:
+         meaning, coreTheme, shadow, growth, clientQuestions, practitionerNote
+       (Houses additionally carry: name, phrase, theme, coreLesson, integration —
+        name/phrase/theme are echoed from the engine's own house table for
+        reference only and are NOT interpretation.)
+       ═══════════════════════════════════════════════════════════════════════ */
+    (function () {
+      "use strict";
+
+      var LIB_KEY = "sba_interpretation_library_v1";
+
+      var EMPTY = "Interpretation not written yet.";
+      var PLACEHOLDER = "[AJ to write meaning here]";
+
+      // The blank field template every interpretation card uses.
+      function blankFields() {
+        return {
+          meaning: "",
+          coreTheme: "",
+          shadow: "",
+          growth: "",
+          clientQuestions: "",
+          practitionerNote: ""
+        };
+      }
+
+      // ── House reference (names/phrases/themes echoed from the engine's own
+      //    SBA_HOUSES table, purely as labels). Interpretation fields are blank. ──
+      var HOUSE_REF = [
+        { house: 1,  constellation: "Aries",       name: "Emergence",     phrase: "I exist" },
+        { house: 2,  constellation: "Taurus",      name: "Stabilization", phrase: "I need to sustain myself" },
+        { house: 3,  constellation: "Gemini",      name: "Awareness",     phrase: "I understand" },
+        { house: 4,  constellation: "Cancer",      name: "Foundation",    phrase: "I belong somewhere" },
+        { house: 5,  constellation: "Leo",         name: "Expression",    phrase: "I create" },
+        { house: 6,  constellation: "Virgo",       name: "Refinement",    phrase: "I optimize" },
+        { house: 7,  constellation: "Libra",       name: "Reflection",    phrase: "I meet you" },
+        { house: 8,  constellation: "Scorpius",    name: "Descent",       phrase: "I am stripped" },
+        { house: 9,  constellation: "Ophiuchus",   name: "Alchemy",       phrase: "I transform what I survived" },
+        { house: 10, constellation: "Sagittarius", name: "Expansion",     phrase: "I rise with purpose" },
+        { house: 11, constellation: "Capricornus", name: "Contribution",  phrase: "I give to the world" },
+        { house: 12, constellation: "Aquarius",    name: "Dissolution",   phrase: "I release" },
+        { house: 13, constellation: "Pisces",      name: "Return",        phrase: "I return to begin again" }
+      ];
+
+      var BODY_KEYS = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+      var ANGLE_KEYS = ["Ascendant (AC)","Midheaven (MC)"];
+      var POINT_KEYS = ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"];
+      var CYCLE_KEYS = ["SBA Year","SBA Lunar Month"];
+
+      // Build the default catalogue: a flat map keyed by stable ids.
+      // id formats:  house:1 … house:13 | body:Sun | angle:Ascendant (AC) |
+      //              point:North Node | cycle:SBA Year
+      function buildDefaults() {
+        var cards = {};
+
+        function slugify(s) {
+          return String(s).toLowerCase()
+            .replace(/\(.*?\)/g, " ")        // drop parentheticals e.g. (Mean BML)
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        }
+
+        HOUSE_REF.forEach(function (h) {
+          cards["house:" + h.house] = {
+            id: "house:" + h.house,
+            slug: "house-" + h.house,
+            kind: "house",
+            title: "House " + h.house + " · " + h.name + " (" + h.constellation + ")",
+            ref: { house: h.house, constellation: h.constellation, name: h.name, phrase: h.phrase },
+            fields: blankFields(),
+            // House-specific extra structure requested for the House Library:
+            extra: { coreLesson: "", integration: "" }
+          };
+        });
+
+        CYCLE_KEYS.forEach(function (k) {
+          cards["cycle:" + k] = { id: "cycle:" + k, slug: slugify(k), kind: "cycle", title: k, fields: blankFields() };
+        });
+        BODY_KEYS.forEach(function (k) {
+          cards["body:" + k] = { id: "body:" + k, slug: slugify(k), kind: "body", title: k, fields: blankFields() };
+        });
+        ANGLE_KEYS.forEach(function (k) {
+          cards["angle:" + k] = { id: "angle:" + k, slug: slugify(k), kind: "angle", title: k, fields: blankFields() };
+        });
+        POINT_KEYS.forEach(function (k) {
+          cards["point:" + k] = { id: "point:" + k, slug: slugify(k), kind: "point", title: k, fields: blankFields() };
+        });
+
+        return cards;
+      }
+
+      var DEFAULTS = buildDefaults();
+
+      // ── localStorage overlay (AJ's written content) ──────────────────────────
+      function loadOverlay() {
+        try {
+          var raw = localStorage.getItem(LIB_KEY);
+          if (!raw) return {};
+          var parsed = JSON.parse(raw);
+          return (parsed && typeof parsed === "object") ? parsed : {};
+        } catch (e) { console.error("[SBALibrary] load failed", e); return {}; }
+      }
+      function saveOverlay(overlay) {
+        try { localStorage.setItem(LIB_KEY, JSON.stringify(overlay)); return true; }
+        catch (e) { console.error("[SBALibrary] save failed", e); return false; }
+      }
+
+      // Merge a default card with any saved overlay content for the same id.
+      function getCard(id) {
+        var base = DEFAULTS[id];
+        if (!base) return null;
+        var overlay = loadOverlay()[id] || {};
+        var merged = JSON.parse(JSON.stringify(base));
+        if (overlay.fields) {
+          Object.keys(merged.fields).forEach(function (k) {
+            if (typeof overlay.fields[k] === "string") merged.fields[k] = overlay.fields[k];
+          });
+        }
+        if (merged.extra && overlay.extra) {
+          Object.keys(merged.extra).forEach(function (k) {
+            if (typeof overlay.extra[k] === "string") merged.extra[k] = overlay.extra[k];
+          });
+        }
+        // Internal links: array of target ids stored in the overlay.
+        merged.links = Array.isArray(overlay.links) ? overlay.links.slice() : [];
+        return merged;
+      }
+
+      function saveCard(id, fields, extra) {
+        if (!DEFAULTS[id]) return false;
+        var overlay = loadOverlay();
+        overlay[id] = overlay[id] || {};
+        overlay[id].fields = Object.assign({}, overlay[id].fields || {}, fields || {});
+        if (extra) overlay[id].extra = Object.assign({}, overlay[id].extra || {}, extra);
+        return saveOverlay(overlay);
+      }
+
+      // ── Internal links ───────────────────────────────────────────────────────
+      // Links are stored as arrays of target ids (e.g. "house:9","body:Sun").
+      // Storing ids (not titles) is what makes links rename-safe.
+      function getLinks(id) {
+        var overlay = loadOverlay()[id];
+        return overlay && Array.isArray(overlay.links) ? overlay.links.slice() : [];
+      }
+
+      function setLinks(id, linkIds) {
+        if (!DEFAULTS[id]) return false;
+        var overlay = loadOverlay();
+        overlay[id] = overlay[id] || {};
+        // keep only ids that exist in the default catalogue; de-duplicate
+        var clean = [];
+        (linkIds || []).forEach(function (t) {
+          if (DEFAULTS[t] && t !== id && clean.indexOf(t) === -1) clean.push(t);
+        });
+        overlay[id].links = clean;
+        return saveOverlay(overlay);
+      }
+
+      // Resolve a link id to a small descriptor; never throw on missing targets.
+      function resolveLink(targetId) {
+        var t = DEFAULTS[targetId];
+        if (!t) return { id: targetId, missing: true, title: "Missing linked page" };
+        return { id: targetId, missing: false, title: t.title, slug: t.slug, kind: t.kind };
+      }
+
+      // Look up a card id from a slug or id (used by search / deep navigation).
+      function idFromSlugOrId(key) {
+        if (DEFAULTS[key]) return key;
+        var found = null;
+        Object.keys(DEFAULTS).forEach(function (id) {
+          if (DEFAULTS[id].slug === key) found = id;
+        });
+        return found;
+      }
+
+      function allCards() {
+        return Object.keys(DEFAULTS).map(function (id) { return getCard(id); });
+      }
+
+      // ── Linking calculated placements → card ids (KEY MATCH ONLY) ─────────────
+      // These map the engine's exact output strings to library ids. No logic,
+      // no astrology — just string routing.
+      function houseIdForConstellation(constellation) {
+        var h = HOUSE_REF.find(function (x) { return x.constellation === constellation; });
+        return h ? "house:" + h.house : null;
+      }
+      function bodyId(name) { return DEFAULTS["body:" + name] ? "body:" + name : null; }
+      function angleId(name) { return DEFAULTS["angle:" + name] ? "angle:" + name : null; }
+      function pointId(name) { return DEFAULTS["point:" + name] ? "point:" + name : null; }
+      function cycleId(name) { return DEFAULTS["cycle:" + name] ? "cycle:" + name : null; }
+
+      // Is a given (merged) card empty across all interpretation fields?
+      function isCardEmpty(card) {
+        if (!card) return true;
+        var anyField = Object.keys(card.fields).some(function (k) { return (card.fields[k] || "").trim(); });
+        var anyExtra = card.extra ? Object.keys(card.extra).some(function (k) { return (card.extra[k] || "").trim(); }) : false;
+        return !anyField && !anyExtra;
+      }
+
+      window.SBALibrary = {
+        LIB_KEY: LIB_KEY,
+        EMPTY: EMPTY,
+        PLACEHOLDER: PLACEHOLDER,
+        FIELD_LABELS: {
+          meaning: "Meaning",
+          coreTheme: "Core theme",
+          shadow: "Shadow expression",
+          growth: "Growth direction",
+          clientQuestions: "Client questions",
+          practitionerNote: "Practitioner notes / reminders"
+        },
+        EXTRA_LABELS: { coreLesson: "Core lesson", integration: "Integration" },
+        getCard: getCard,
+        saveCard: saveCard,
+        allCards: allCards,
+        isCardEmpty: isCardEmpty,
+        getLinks: getLinks,
+        setLinks: setLinks,
+        resolveLink: resolveLink,
+        idFromSlugOrId: idFromSlugOrId,
+        houseIdForConstellation: houseIdForConstellation,
+        bodyId: bodyId, angleId: angleId, pointId: pointId, cycleId: cycleId,
+        houseRef: function () { return HOUSE_REF.slice(); },
+        _defaults: function () { return DEFAULTS; }
+      };
+    })();
+  </script>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════════════
+       STEP 3b — PRACTITIONER UI CONTROLLER
+
+       Builds the dashboard / client / session navigation and wires the existing
+       Calculate button into "save as dated session".
+
+       ISOLATION GUARANTEE: this layer never calls, reads, or modifies any
+       calculation / astronomy / SBA / wheel function. It captures readings by
+       reading the already-rendered DOM of #resultsSection (Option A: immutable
+       HTML snapshot), and persists via window.SBAStore (Step 3a).
+       ═══════════════════════════════════════════════════════════════════════ */
+    (function () {
+      "use strict";
+
+      function $(id) { return document.getElementById(id); }
+      var S = null; // resolved at boot (SBAStore script runs after this one)
+      var QUICK_TAGS = ["First Session", "Follow-up", "Family", "VIP"];
+
+      // Navigation / save context state (UI only).
+      var ctx = {
+        screen: "dashboard",
+        clientId: null,        // client currently being viewed
+        sessionId: null,       // session currently being viewed
+        saveClientId: null,    // client the next save attaches to (null = identify/create)
+      };
+
+      var screens = {
+        dashboard: "screenDashboard",
+        client: "screenClient",
+        session: "screenSession",
+        calculator: "screenCalculator",
+        library: "screenLibrary",
+      };
+
+      function esc(str) {
+        return String(str == null ? "" : str)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function showScreen(name) {
+        ctx.screen = name;
+        Object.keys(screens).forEach(function (k) {
+          var el = $(screens[k]);
+          if (el) el.hidden = (k !== name);
+        });
+        // The Save bar only belongs on the calculator screen.
+        var bar = $("saveSessionBar");
+        if (bar && name !== "calculator") bar.hidden = true;
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        return String(iso).slice(0, 10);
+      }
+
+      function tagChipsHTML(tags) {
+        if (!tags || !tags.length) return "";
+        return '<span class="tag-chips">' + tags.map(function (t) {
+          return '<span class="chip static">' + esc(t) + '</span>';
+        }).join("") + '</span>';
+      }
+
+      // ── Dashboard ──────────────────────────────────────────────────────────
+
+      function renderDashboard() {
+        var st = S.stats();
+        $("dashStats").innerHTML =
+          '<div class="stat-card"><div class="stat-num">' + st.clients + '</div>' +
+          '<div class="stat-label">Clients</div></div>' +
+          '<div class="stat-card"><div class="stat-num">' + st.sessions + '</div>' +
+          '<div class="stat-label">Sessions</div></div>';
+
+        renderRecent();
+        renderClientList(S.getClients());
+      }
+
+      function renderRecent() {
+        var recent = S.recentClients(5);
+        var el = $("recentList");
+        if (!recent.length) { el.innerHTML = '<div class="empty-note">No clients yet. Create your first client to begin.</div>'; return; }
+        el.innerHTML = recent.map(clientCardHTML).join("");
+      }
+
+      function renderClientList(clients) {
+        var el = $("clientList");
+        if (!clients.length) { el.innerHTML = '<div class="empty-note">No matching clients.</div>'; return; }
+        var sorted = clients.slice().sort(function (a, b) {
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+        el.innerHTML = sorted.map(clientCardHTML).join("");
+      }
+
+      function clientCardHTML(c) {
+        var sessions = (c.sessions || []).length;
+        var last = (c.sessions || []).reduce(function (m, s) {
+          return (!m || (s.consultationDate || "") > m) ? (s.consultationDate || "") : m;
+        }, "");
+        return '<div class="client-card" data-client="' + esc(c.id) + '">' +
+          '<div><div class="cc-name">' + esc(c.name || "(unnamed)") + '</div>' +
+          '<div class="cc-meta">' + esc(c.birthDate || "—") +
+          (c.birthPlace ? ' · ' + esc(c.birthPlace) : '') +
+          (c.tags && c.tags.length ? ' · ' + esc(c.tags.join(", ")) : '') + '</div></div>' +
+          '<div class="cc-right">' + sessions + ' session' + (sessions === 1 ? '' : 's') +
+          (last ? '<br>last ' + esc(last) : '') + '</div>' +
+          '</div>';
+      }
+
+      // ── Client view ──────────────────────────────────────────────────────────
+
+      function openClient(id) {
+        var c = S.getClient(id);
+        if (!c) { showScreen("dashboard"); return; }
+        ctx.clientId = id;
+
+        $("clientHeader").innerHTML =
+          '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
+          '<p class="subtitle">Client ID: ' + esc(c.id) + '</p>' +
+          birthDataCardHTML(c) +
+          (c.tags && c.tags.length ? tagChipsHTML(c.tags) : '');
+
+        $("clientActions").innerHTML =
+          '<button class="btn-prac primary" data-act="new-session">+ New Session</button>' +
+          '<button class="btn-prac" data-act="edit-birth">Edit Birth Data</button>' +
+          '<button class="btn-prac danger" data-act="delete-client">Delete Client</button>';
+
+        $("clientBirthEdit").hidden = true;
+        $("clientBirthEdit").innerHTML = "";
+
+        renderSessionHistory(c);
+        renderTimeline(c);
+        showScreen("client");
+      }
+
+      function birthDataCardHTML(c) {
+        function row(label, val) {
+          return '<div class="bd-row"><span class="bd-label">' + label + '</span>' +
+            '<span class="bd-val">' + esc(val || "—") + '</span></div>';
+        }
+        return '<div class="birth-data-card">' +
+          row("Date of birth", c.birthDate) +
+          row("Time of birth", c.birthTime) +
+          row("Birth place", c.birthPlace) +
+          row("Latitude", c.latitude) +
+          row("Longitude", c.longitude) +
+          row("Timezone offset", c.tzOffset) +
+          '</div>';
+      }
+
+      function renderSessionHistory(c) {
+        var sessions = (c.sessions || []).slice().sort(function (a, b) {
+          return (b.consultationDate || "").localeCompare(a.consultationDate || "") ||
+                 (b.createdAt || "").localeCompare(a.createdAt || "");
+        });
+        $("sessionCount").textContent = sessions.length ? "(" + sessions.length + ")" : "";
+        var el = $("sessionHistory");
+        if (!sessions.length) { el.innerHTML = '<div class="empty-note">No sessions yet. Use “New Session” to run and save a reading.</div>'; return; }
+        el.innerHTML = sessions.map(function (s, i) {
+          return '<div class="session-card" data-session="' + esc(s.id) + '">' +
+            '<div class="sc-top"><span class="sc-date">' + esc(s.consultationDate || "—") + '</span>' +
+            (i === 0 ? '<span class="sc-latest">Latest</span>' : '') + '</div>' +
+            (s.readingSummary ? '<div class="sc-summary">' + esc(s.readingSummary) + '</div>' : '') +
+            (s.followUpDate ? '<div class="sc-summary">Follow-up: ' + esc(s.followUpDate) + '</div>' : '') +
+            (s.tags && s.tags.length ? '<div class="sc-tags">' + tagChipsHTML(s.tags) + '</div>' : '') +
+            '</div>';
+        }).join("");
+      }
+
+      function renderTimeline(c) {
+        var items = (c.sessions || []).slice().sort(function (a, b) {
+          return (a.consultationDate || "").localeCompare(b.consultationDate || "");
+        });
+        var el = $("clientTimeline");
+        if (!items.length) { el.innerHTML = '<div class="empty-note">No timeline yet.</div>'; return; }
+        el.innerHTML = items.map(function (s) {
+          return '<div class="timeline-item">' +
+            '<span class="tl-date">' + esc(s.consultationDate || "—") + '</span>' +
+            (s.readingSummary ? ' — ' + esc(s.readingSummary) : '') +
+            (s.followUpDate ? ' <span class="tl-follow">(follow-up ' + esc(s.followUpDate) + ')</span>' : '') +
+            '</div>';
+        }).join("");
+      }
+
+      // ── Session view (inject immutable snapshot verbatim) ────────────────────
+
+      function openSession(clientId, sessionId) {
+        var c = S.getClient(clientId);
+        if (!c) { showScreen("dashboard"); return; }
+        var s = (c.sessions || []).find(function (x) { return x.id === sessionId; });
+        if (!s) { openClient(clientId); return; }
+        ctx.clientId = clientId; ctx.sessionId = sessionId;
+
+        $("sessionHeader").innerHTML =
+          '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
+          '<p class="subtitle">Consultation · ' + esc(s.consultationDate || "—") + '</p>';
+
+        $("sessionActions").innerHTML =
+          '<button class="btn-prac" data-act="print-session">🖨 Print / Save PDF</button>' +
+          '<button class="btn-prac danger" data-act="delete-session">Delete Session</button>';
+
+        var meta = "";
+        function block(label, text) {
+          if (!text) return "";
+          return '<div class="sm-block"><div class="sm-label">' + label + '</div>' +
+            '<div class="sm-text">' + esc(text) + '</div></div>';
+        }
+        meta += block("Date of consultation", s.consultationDate);
+        if (s.tags && s.tags.length) meta += '<div class="sm-block"><div class="sm-label">Tags</div>' + tagChipsHTML(s.tags) + '</div>';
+        meta += block("Practitioner notes", s.notes);
+        meta += block("Reading summary", s.readingSummary);
+        meta += block("Client-facing notes", s.clientFacingNotes);
+        meta += block("Follow-up date", s.followUpDate);
+        $("sessionMeta").innerHTML = meta || '<div class="empty-note">No notes recorded for this session.</div>';
+
+        // Inject the saved immutable HTML snapshot exactly as it was saved.
+        $("sessionSnapshot").innerHTML = s.snapshotHTML || '<div class="empty-note">No rendered snapshot stored for this session.</div>';
+
+        showScreen("session");
+      }
+
+      // ── Save-as-session flow ────────────────────────────────────────────────
+
+      // Read birth-data inputs from the calculator form (does not touch engine).
+      function readFormBirthData() {
+        return {
+          name: ($("clientName") || {}).value || "",
+          birthDate: ($("birthDate") || {}).value || "",
+          birthTime: ($("birthTime") || {}).value || "",
+          birthPlace: ($("birthPlace") || {}).value || "",
+          latitude: ($("latitude") || {}).value || "",
+          longitude: ($("longitude") || {}).value || "",
+          tzOffset: ($("tzOffset") || {}).value || "",
+        };
+      }
+
+      function resultsReady() {
+        var r = $("resultsSection");
+        return r && !r.hidden && r.innerHTML.trim().length > 0;
+      }
+
+      // Observe the engine's output area; show the Save bar when a reading exists.
+      function watchResults() {
+        var r = $("resultsSection");
+        if (!r) return;
+        var update = function () {
+          var bar = $("saveSessionBar");
+          if (!bar) return;
+          if (ctx.screen === "calculator" && resultsReady()) {
+            bar.hidden = false;
+            var labelEl = $("saveSessionContext");
+            if (ctx.saveClientId) {
+              var c = S.getClient(ctx.saveClientId);
+              labelEl.textContent = c ? "Will save under existing client: " + c.name : "";
+            } else {
+              labelEl.textContent = "New reading — will create or match a client on save.";
+            }
+          } else {
+            bar.hidden = true;
+          }
+        };
+        new MutationObserver(update).observe(r, { childList: true, subtree: true, attributes: true });
+        update();
+      }
+
+      var pendingSave = null; // { snapshotHTML, birth }
+
+      function openSaveModal() {
+        if (!resultsReady()) { alert("Please calculate a reading first."); return; }
+        pendingSave = {
+          snapshotHTML: $("resultsSection").innerHTML,
+          birth: readFormBirthData(),
+        };
+        $("saveConsultDate").value = new Date().toISOString().slice(0, 10);
+        $("saveTags").value = "";
+        $("saveNotes").value = "";
+        $("saveReadingSummary").value = "";
+        $("saveClientNotes").value = "";
+        $("saveFollowUp").value = "";
+        // quick tag chips
+        $("saveTagChips").innerHTML = QUICK_TAGS.map(function (t) {
+          return '<span class="chip" data-tag="' + esc(t) + '">' + esc(t) + '</span>';
+        }).join("");
+        $("saveModal").hidden = false;
+      }
+
+      function closeSaveModal() { $("saveModal").hidden = true; pendingSave = null; }
+
+      function collectTags() {
+        var typed = ($("saveTags").value || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+        var chosen = [];
+        Array.prototype.forEach.call($("saveTagChips").querySelectorAll(".chip.on"), function (el) {
+          chosen.push(el.getAttribute("data-tag"));
+        });
+        // unique, preserve order: chips first, then typed
+        var all = chosen.concat(typed);
+        return all.filter(function (v, i) { return all.indexOf(v) === i; });
+      }
+
+      function confirmSave() {
+        if (!pendingSave) { closeSaveModal(); return; }
+        var birth = pendingSave.birth;
+        var sessionData = {
+          consultationDate: $("saveConsultDate").value || new Date().toISOString().slice(0, 10),
+          snapshotHTML: pendingSave.snapshotHTML,
+          input: birth,
+          notes: $("saveNotes").value || "",
+          readingSummary: $("saveReadingSummary").value || "",
+          clientFacingNotes: $("saveClientNotes").value || "",
+          followUpDate: $("saveFollowUp").value || "",
+          tags: collectTags(),
+        };
+
+        var clientId = ctx.saveClientId;
+
+        if (!clientId) {
+          // Identify by name + DOB + time.
+          var existing = S.findClientByIdentity(birth.name, birth.birthDate, birth.birthTime);
+          if (existing) {
+            var hasSessions = (existing.sessions || []).length > 0;
+            if (hasSessions) {
+              // Default = new dated session; offer "update current".
+              var updateCurrent = !window.confirm(
+                "“" + existing.name + "” already exists.\n\n" +
+                "OK = Create a NEW dated session (recommended)\n" +
+                "Cancel = Update the CURRENT (latest) session"
+              );
+              if (updateCurrent) {
+                var latest = existing.sessions.slice().sort(function (a, b) {
+                  return (b.consultationDate || "").localeCompare(a.consultationDate || "") ||
+                         (b.createdAt || "").localeCompare(a.createdAt || "");
+                })[0];
+                S.updateSession(existing.id, latest.id, {
+                  consultationDate: sessionData.consultationDate,
+                  notes: sessionData.notes,
+                  readingSummary: sessionData.readingSummary,
+                  clientFacingNotes: sessionData.clientFacingNotes,
+                  followUpDate: sessionData.followUpDate,
+                  tags: sessionData.tags,
+                  allowResultReplace: true,
+                  snapshotHTML: sessionData.snapshotHTML,
+                  input: sessionData.input,
+                });
+                closeSaveModal();
+                openSession(existing.id, latest.id);
+                return;
+              }
+            }
+            clientId = existing.id;
+          } else {
+            var created = S.createClient(birth);
+            clientId = created.id;
+          }
+        }
+
+        var saved = S.addSession(clientId, sessionData);
+        closeSaveModal();
+        if (saved) openSession(clientId, saved.id);
+        else openClient(clientId);
+      }
+
+      // ── New client / new session entry points ────────────────────────────────
+
+      function setFormValue(id, val) { var el = $(id); if (el) el.value = (val == null ? "" : val); }
+
+      function clearCalculatorForReading() {
+        // Clears the previous rendered result so a stale snapshot can't be saved.
+        var r = $("resultsSection");
+        if (r) { r.innerHTML = ""; r.hidden = true; }
+        var bar = $("saveSessionBar"); if (bar) bar.hidden = true;
+      }
+
+      function startNewClient() {
+        ctx.saveClientId = null;
+        ["clientName", "birthDate", "birthTime", "birthPlace", "latitude", "longitude"].forEach(function (id) { setFormValue(id, ""); });
+        setFormValue("tzOffset", "0");
+        var pr = $("placeResolved"); if (pr) pr.hidden = true;
+        clearCalculatorForReading();
+        showScreen("calculator");
+      }
+
+      function startNewSession(clientId) {
+        var c = S.getClient(clientId);
+        if (!c) return;
+        ctx.saveClientId = clientId;
+        setFormValue("clientName", c.name);
+        setFormValue("birthDate", c.birthDate);
+        setFormValue("birthTime", c.birthTime);
+        setFormValue("birthPlace", c.birthPlace);
+        setFormValue("latitude", c.latitude);
+        setFormValue("longitude", c.longitude);
+        setFormValue("tzOffset", c.tzOffset);
+        clearCalculatorForReading();
+        showScreen("calculator");
+      }
+
+      // ── Edit birth data ──────────────────────────────────────────────────────
+
+      function renderBirthEdit(c) {
+        var box = $("clientBirthEdit");
+        box.hidden = false;
+        box.innerHTML =
+          '<div class="birth-data-card">' +
+          field("eb_name", "Client name", c.name) +
+          field("eb_birthDate", "Date of birth", c.birthDate, "date") +
+          field("eb_birthTime", "Time of birth", c.birthTime, "time") +
+          field("eb_birthPlace", "Birth place", c.birthPlace) +
+          field("eb_latitude", "Latitude", c.latitude, "number") +
+          field("eb_longitude", "Longitude", c.longitude, "number") +
+          field("eb_tzOffset", "Timezone offset", c.tzOffset, "number") +
+          field("eb_tags", "Tags (comma-separated)", (c.tags || []).join(", ")) +
+          '<div class="prac-actions-row" style="margin-top:0.75rem;">' +
+          '<button class="btn-prac primary" data-act="save-birth">Save Birth Data</button>' +
+          '<button class="btn-prac" data-act="cancel-birth">Cancel</button>' +
+          '</div></div>';
+        function _f() {}
+      }
+      function field(id, label, val, type) {
+        return '<div class="prac-field"><label for="' + id + '">' + label + '</label>' +
+          '<input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val == null ? "" : val) + '" /></div>';
+      }
+      function saveBirthEdit(clientId) {
+        var tags = ($("eb_tags").value || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+        S.updateClient(clientId, {
+          name: $("eb_name").value,
+          birthDate: $("eb_birthDate").value,
+          birthTime: $("eb_birthTime").value,
+          birthPlace: $("eb_birthPlace").value,
+          latitude: $("eb_latitude").value,
+          longitude: $("eb_longitude").value,
+          tzOffset: $("eb_tzOffset").value,
+          tags: tags,
+        });
+        openClient(clientId);
+      }
+
+      // ── Backup ───────────────────────────────────────────────────────────────
+
+      function exportBackup() { S.downloadBackup(); }
+      function importBackup(file) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var mode = window.confirm(
+            "Import backup:\n\nOK = MERGE into current clients (recommended)\nCancel = REPLACE everything"
+          ) ? "merge" : "replace";
+          var res = S.importJSON(String(reader.result), mode);
+          if (!res.ok) { alert("Import failed: " + res.error); return; }
+          alert("Import complete (" + res.mode + ").\nClients added " + res.added + ", merged " + res.merged + ".\nLibrary: " + (res.library || "not included") + ".");
+          renderDashboard();
+          if (window.SBALibrary && document.getElementById("screenLibrary") && !document.getElementById("screenLibrary").hidden) {
+            // refresh library view if it's open
+            var ev = new Event("input"); var ls = document.getElementById("librarySearch"); if (ls) ls.dispatchEvent(ev);
+          }
+        };
+        reader.onerror = function () { alert("Could not read that file."); };
+        reader.readAsText(file);
+      }
+
+      // ── Event wiring (delegated) ─────────────────────────────────────────────
+
+      function wire() {
+        $("navDashboard").addEventListener("click", function () { renderDashboard(); showScreen("dashboard"); });
+        $("navNewCalc").addEventListener("click", startNewClient);
+
+        $("clientSearch").addEventListener("input", function () {
+          renderClientList(S.searchClients(this.value));
+        });
+        $("btnNewClient").addEventListener("click", startNewClient);
+        $("btnExportBackup").addEventListener("click", exportBackup);
+        $("btnImportBackup").addEventListener("click", function () { $("importFile").click(); });
+        $("importFile").addEventListener("change", function () {
+          if (this.files && this.files[0]) importBackup(this.files[0]);
+          this.value = "";
+        });
+
+        // Delegated clicks for client cards
+        $("recentList").addEventListener("click", cardClick);
+        $("clientList").addEventListener("click", cardClick);
+        function cardClick(e) {
+          var card = e.target.closest("[data-client]");
+          if (card) openClient(card.getAttribute("data-client"));
+        }
+
+        $("clientBack").addEventListener("click", function () { renderDashboard(); showScreen("dashboard"); });
+        $("clientActions").addEventListener("click", function (e) {
+          var b = e.target.closest("[data-act]"); if (!b) return;
+          var act = b.getAttribute("data-act");
+          if (act === "new-session") startNewSession(ctx.clientId);
+          else if (act === "edit-birth") renderBirthEdit(S.getClient(ctx.clientId));
+          else if (act === "delete-client") {
+            var c = S.getClient(ctx.clientId);
+            if (c && window.confirm("Delete client “" + c.name + "” and ALL their sessions?\nThis cannot be undone.")) {
+              S.deleteClient(ctx.clientId); renderDashboard(); showScreen("dashboard");
+            }
+          }
+        });
+        $("clientBirthEdit").addEventListener("click", function (e) {
+          var b = e.target.closest("[data-act]"); if (!b) return;
+          var act = b.getAttribute("data-act");
+          if (act === "save-birth") saveBirthEdit(ctx.clientId);
+          else if (act === "cancel-birth") { $("clientBirthEdit").hidden = true; }
+        });
+
+        $("sessionHistory").addEventListener("click", function (e) {
+          var card = e.target.closest("[data-session]");
+          if (card) openSession(ctx.clientId, card.getAttribute("data-session"));
+        });
+
+        $("sessionBack").addEventListener("click", function () { openClient(ctx.clientId); });
+        $("sessionActions").addEventListener("click", function (e) {
+          var b = e.target.closest("[data-act]"); if (!b) return;
+          var act = b.getAttribute("data-act");
+          if (act === "print-session") window.print();
+          else if (act === "delete-session") {
+            if (window.confirm("Delete this session? This cannot be undone.")) {
+              S.deleteSession(ctx.clientId, ctx.sessionId);
+              openClient(ctx.clientId);
+            }
+          }
+        });
+
+        // Save flow
+        $("btnSaveSession").addEventListener("click", openSaveModal);
+        $("saveCancel").addEventListener("click", closeSaveModal);
+        $("saveConfirm").addEventListener("click", confirmSave);
+        $("saveTagChips").addEventListener("click", function (e) {
+          var chip = e.target.closest(".chip"); if (!chip) return;
+          chip.classList.toggle("on");
+        });
+        $("saveModal").addEventListener("click", function (e) {
+          if (e.target === $("saveModal")) closeSaveModal();
+        });
+
+        watchResults();
+      }
+
+      // Boot: open on the dashboard.
+      function boot() {
+        S = window.SBAStore;
+        if (!S) { console.error("[3b] SBAStore missing"); return; }
+        wire();
+        renderDashboard();
+        showScreen("dashboard");
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+      } else {
+        boot();
+      }
+    })();
+  </script>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════════════
        STEP 3a — STORAGE LAYER (SBAStore)
 
        This block is COMPLETELY INDEPENDENT of the calculation engine above.
@@ -1874,11 +3488,13 @@
         var session = {
           id: uid("session"),
           consultationDate: sessionData.consultationDate || (nowISO().slice(0, 10)),
-          result: sessionData.result || null,           // immutable snapshot
+          result: sessionData.result || null,           // immutable snapshot (structured)
+          snapshotHTML: sessionData.snapshotHTML || "",  // immutable rendered HTML snapshot
           input: sessionData.input || null,             // original input data
           notes: sessionData.notes || "",
           readingSummary: sessionData.readingSummary || "",
           clientFacingNotes: sessionData.clientFacingNotes || "",
+          followUpDate: sessionData.followUpDate || "",
           tags: Array.isArray(sessionData.tags) ? sessionData.tags.slice() : [],
           createdAt: nowISO(),
           updatedAt: nowISO()
@@ -1898,14 +3514,15 @@
         if (!c) return null;
         var s = c.sessions.find(function (x) { return x.id === sessionId; });
         if (!s) return null;
-        ["consultationDate", "notes", "readingSummary", "clientFacingNotes"]
+        ["consultationDate", "notes", "readingSummary", "clientFacingNotes", "followUpDate"]
           .forEach(function (k) {
             if (patch[k] !== undefined) s[k] = patch[k];
           });
         if (patch.tags !== undefined && Array.isArray(patch.tags)) s.tags = patch.tags.slice();
-        // Only replace the snapshot if explicitly asked (deliberate recalc).
-        if (patch.result !== undefined && patch.allowResultReplace === true) {
-          s.result = patch.result;
+        // Only replace the immutable snapshot if explicitly asked (deliberate recalc).
+        if (patch.allowResultReplace === true) {
+          if (patch.result !== undefined) s.result = patch.result;
+          if (patch.snapshotHTML !== undefined) s.snapshotHTML = patch.snapshotHTML;
           if (patch.input !== undefined) s.input = patch.input;
         }
         s.updatedAt = nowISO();
@@ -1958,9 +3575,31 @@
       }
 
       // ── Backup: export / import JSON ─────────────────────────────────────────
+      // The backup bundles BOTH the client/session DB and the interpretation
+      // library overlay (text + internal links), so a single file is a complete
+      // restore point. Older client-only files still import correctly.
+      var LIBRARY_KEY = "sba_interpretation_library_v1";
+
+      function readLibraryOverlay() {
+        try {
+          var raw = localStorage.getItem(LIBRARY_KEY);
+          return raw ? JSON.parse(raw) : {};
+        } catch (e) { return {}; }
+      }
+      function writeLibraryOverlay(obj) {
+        try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(obj || {})); return true; }
+        catch (e) { return false; }
+      }
 
       function exportJSON() {
-        return JSON.stringify(load(), null, 2);
+        var bundle = {
+          format: "sba-practice-backup",
+          version: DB_VERSION,
+          exportedAt: nowISO(),
+          clientsDB: load(),                 // { version, clients:[...] }
+          library: readLibraryOverlay()      // interpretation text + internal links
+        };
+        return JSON.stringify(bundle, null, 2);
       }
 
       function downloadBackup() {
@@ -1970,56 +3609,71 @@
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = "sba-clients-backup-" + stamp + ".json";
+        a.download = "sba-practice-backup-" + stamp + ".json";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       }
 
-      // mode: "merge" (default, keep existing + add new by id) or "replace".
+      // Accepts either the new bundle {clientsDB, library} or a legacy
+      // client-only object {clients:[...]}.  mode: "merge" | "replace".
       function importJSON(jsonText, mode) {
         var incoming;
-        try {
-          incoming = JSON.parse(jsonText);
-        } catch (err) {
-          return { ok: false, error: "The file is not valid JSON." };
-        }
-        if (!incoming || !Array.isArray(incoming.clients)) {
+        try { incoming = JSON.parse(jsonText); }
+        catch (err) { return { ok: false, error: "The file is not valid JSON." }; }
+        if (!incoming || typeof incoming !== "object") {
           return { ok: false, error: "This does not look like an SBA backup file." };
         }
-        if (mode === "replace") {
-          var replaced = { version: DB_VERSION, clients: incoming.clients };
-          save(replaced);
-          return { ok: true, added: incoming.clients.length, merged: 0, mode: "replace" };
+
+        // Normalise to { clients:[...] } + optional library overlay.
+        var clientsObj, libraryObj = null;
+        if (Array.isArray(incoming.clients)) {
+          clientsObj = incoming;                          // legacy format
+        } else if (incoming.clientsDB && Array.isArray(incoming.clientsDB.clients)) {
+          clientsObj = incoming.clientsDB;                // new bundle
+          libraryObj = (incoming.library && typeof incoming.library === "object") ? incoming.library : null;
+        } else {
+          return { ok: false, error: "This does not look like an SBA backup file." };
         }
-        // merge
+
+        var libResult = "not included";
+
+        if (mode === "replace") {
+          save({ version: DB_VERSION, clients: clientsObj.clients });
+          if (libraryObj) { writeLibraryOverlay(libraryObj); libResult = "replaced"; }
+          return { ok: true, added: clientsObj.clients.length, merged: 0, mode: "replace", library: libResult };
+        }
+
+        // merge clients
         var db = load();
         var existingIds = {};
         db.clients.forEach(function (c) { existingIds[c.id] = c; });
         var added = 0, merged = 0;
-        incoming.clients.forEach(function (inc) {
-          if (!inc || !inc.id) {
-            inc.id = uid("client");
-          }
+        clientsObj.clients.forEach(function (inc) {
+          if (!inc || !inc.id) inc.id = uid("client");
           if (existingIds[inc.id]) {
-            // Merge sessions by id into the existing client (no overwrite of data).
             var ex = existingIds[inc.id];
             var exSessionIds = {};
             (ex.sessions || []).forEach(function (s) { exSessionIds[s.id] = true; });
-            (inc.sessions || []).forEach(function (s) {
-              if (!exSessionIds[s.id]) ex.sessions.push(s);
-            });
+            (inc.sessions || []).forEach(function (s) { if (!exSessionIds[s.id]) ex.sessions.push(s); });
             ex.updatedAt = nowISO();
             merged++;
           } else {
-            db.clients.push(inc);
-            existingIds[inc.id] = inc;
-            added++;
+            db.clients.push(inc); existingIds[inc.id] = inc; added++;
           }
         });
         save(db);
-        return { ok: true, added: added, merged: merged, mode: "merge" };
+
+        // merge library overlay (incoming entries win per id; existing kept otherwise)
+        if (libraryObj) {
+          var cur = readLibraryOverlay();
+          Object.keys(libraryObj).forEach(function (id) { cur[id] = libraryObj[id]; });
+          writeLibraryOverlay(cur);
+          libResult = "merged";
+        }
+
+        return { ok: true, added: added, merged: merged, mode: "merge", library: libResult };
       }
 
       // ── Expose API (read/write only; no calculation involvement) ─────────────
