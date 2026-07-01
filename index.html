@@ -2332,22 +2332,39 @@
         }
 
         if (card.kind === "house") {
-          // Three knowledge levels (Houses only).
+          var x = card.extra || {};
+
           html += levelHead("Level 1 · Archetype");
-          html += viewField(L.EXTRA_LABELS.archetypalEnergy, (card.extra || {}).archetypalEnergy);
-          html += viewField(L.EXTRA_LABELS.entryTheme, (card.extra || {}).entryTheme);
+          html += viewField(L.EXTRA_LABELS.archetypalEnergy, x.archetypalEnergy);
+          html += viewField(L.EXTRA_LABELS.entryTheme, x.entryTheme);
 
           html += levelHead("Level 2 · Development");
           html += viewField(L.FIELD_LABELS.meaning, card.fields.meaning);
           html += viewField(L.FIELD_LABELS.coreTheme, card.fields.coreTheme);
           html += viewField(L.FIELD_LABELS.shadow, card.fields.shadow);
           html += viewField(L.FIELD_LABELS.growth, card.fields.growth);
-          html += viewField(L.EXTRA_LABELS.coreLesson, (card.extra || {}).coreLesson);
-          html += viewField(L.EXTRA_LABELS.integration, (card.extra || {}).integration);
+          html += viewField(L.EXTRA_LABELS.coreLesson, x.coreLesson);
+          html += viewField(L.EXTRA_LABELS.integration, x.integration);
 
           html += levelHead("Level 3 · Interpretation");
+          html += viewField(L.EXTRA_LABELS.strengths, x.strengths);
+          html += viewField(L.EXTRA_LABELS.watchFor, x.watchFor);
+          html += viewField(L.EXTRA_LABELS.commonPatterns, x.commonPatterns);
           html += viewField(L.FIELD_LABELS.clientQuestions, card.fields.clientQuestions);
           html += viewField(L.FIELD_LABELS.practitionerNote, card.fields.practitionerNote);
+
+          html += levelHead("Level 4 · Manifestation");
+          html += viewField(L.EXTRA_LABELS.childhood, x.childhood);
+          html += viewField(L.EXTRA_LABELS.adultExpression, x.adultExpression);
+          html += viewField(L.EXTRA_LABELS.relationships, x.relationships);
+          html += viewField(L.EXTRA_LABELS.career, x.career);
+          html += viewField(L.EXTRA_LABELS.money, x.money);
+          html += viewField(L.EXTRA_LABELS.health, x.health);
+          html += viewField(L.EXTRA_LABELS.spiritualDevelopment, x.spiritualDevelopment);
+          html += viewField(L.EXTRA_LABELS.underStress, x.underStress);
+          html += viewField(L.EXTRA_LABELS.matureExpression, x.matureExpression);
+          html += viewField(L.EXTRA_LABELS.giftsToOthers, x.giftsToOthers);
+
           html += linksViewHTML();
 
           $("interpBody").innerHTML = html;
@@ -2399,23 +2416,39 @@
         }
 
         if (card.kind === "house") {
+          var xe = card.extra || {};
+
           html += levelHead("Level 1 · Archetype");
-          html += editField("extra:archetypalEnergy", L.EXTRA_LABELS.archetypalEnergy,
-                            (card.extra || {}).archetypalEnergy, L.ARCH_PLACEHOLDER);
-          html += editField("extra:entryTheme", L.EXTRA_LABELS.entryTheme,
-                            (card.extra || {}).entryTheme, L.ENTRY_PLACEHOLDER);
+          html += editField("extra:archetypalEnergy", L.EXTRA_LABELS.archetypalEnergy, xe.archetypalEnergy, L.ARCH_PLACEHOLDER);
+          html += editField("extra:entryTheme", L.EXTRA_LABELS.entryTheme, xe.entryTheme, L.ENTRY_PLACEHOLDER);
 
           html += levelHead("Level 2 · Development");
           html += editField("meaning", L.FIELD_LABELS.meaning, card.fields.meaning);
           html += editField("coreTheme", L.FIELD_LABELS.coreTheme, card.fields.coreTheme);
           html += editField("shadow", L.FIELD_LABELS.shadow, card.fields.shadow);
           html += editField("growth", L.FIELD_LABELS.growth, card.fields.growth);
-          html += editField("extra:coreLesson", L.EXTRA_LABELS.coreLesson, (card.extra || {}).coreLesson);
-          html += editField("extra:integration", L.EXTRA_LABELS.integration, (card.extra || {}).integration);
+          html += editField("extra:coreLesson", L.EXTRA_LABELS.coreLesson, xe.coreLesson);
+          html += editField("extra:integration", L.EXTRA_LABELS.integration, xe.integration);
 
           html += levelHead("Level 3 · Interpretation");
+          html += editField("extra:strengths", L.EXTRA_LABELS.strengths, xe.strengths);
+          html += editField("extra:watchFor", L.EXTRA_LABELS.watchFor, xe.watchFor);
+          html += editField("extra:commonPatterns", L.EXTRA_LABELS.commonPatterns, xe.commonPatterns);
           html += editField("clientQuestions", L.FIELD_LABELS.clientQuestions, card.fields.clientQuestions);
           html += editField("practitionerNote", L.FIELD_LABELS.practitionerNote, card.fields.practitionerNote);
+
+          html += levelHead("Level 4 · Manifestation");
+          html += editField("extra:childhood", L.EXTRA_LABELS.childhood, xe.childhood);
+          html += editField("extra:adultExpression", L.EXTRA_LABELS.adultExpression, xe.adultExpression);
+          html += editField("extra:relationships", L.EXTRA_LABELS.relationships, xe.relationships);
+          html += editField("extra:career", L.EXTRA_LABELS.career, xe.career);
+          html += editField("extra:money", L.EXTRA_LABELS.money, xe.money);
+          html += editField("extra:health", L.EXTRA_LABELS.health, xe.health);
+          html += editField("extra:spiritualDevelopment", L.EXTRA_LABELS.spiritualDevelopment, xe.spiritualDevelopment);
+          html += editField("extra:underStress", L.EXTRA_LABELS.underStress, xe.underStress);
+          html += editField("extra:matureExpression", L.EXTRA_LABELS.matureExpression, xe.matureExpression);
+          html += editField("extra:giftsToOthers", L.EXTRA_LABELS.giftsToOthers, xe.giftsToOthers);
+
           html += linksPickerHTML();
 
           $("interpBody").innerHTML = html;
@@ -2933,10 +2966,16 @@
             title: "House " + h.house + " · " + h.name + " (" + h.constellation + ")",
             ref: { house: h.house, constellation: h.constellation, name: h.name, phrase: h.phrase },
             fields: blankFields(),
-            // House-specific extra structure. archetypalEnergy and entryTheme are
-            // house-only and render at Level 1 (before Meaning). Older saved
-            // houses without these inherit "" from this default on load.
-            extra: { archetypalEnergy: "", entryTheme: "", coreLesson: "", integration: "" }
+            // House-specific extra structure across 4 levels. All house-only.
+            // Older saved houses without any of these inherit "" on load.
+            extra: {
+              archetypalEnergy: "", entryTheme: "",
+              coreLesson: "", integration: "",
+              strengths: "", watchFor: "", commonPatterns: "",
+              childhood: "", adultExpression: "", relationships: "", career: "", money: "",
+              health: "", spiritualDevelopment: "", underStress: "", matureExpression: "",
+              giftsToOthers: ""
+            }
           };
         });
 
@@ -3175,7 +3214,16 @@
           clientQuestions: "Client questions",
           practitionerNote: "Practitioner notes / reminders"
         },
-        EXTRA_LABELS: { archetypalEnergy: "Archetypal energy", entryTheme: "Entry theme", coreLesson: "Core lesson", integration: "Integration" },
+        EXTRA_LABELS: {
+          archetypalEnergy: "Archetypal energy", entryTheme: "Entry theme",
+          coreLesson: "Core lesson", integration: "Integration",
+          strengths: "Strengths", watchFor: "Watch for", commonPatterns: "Common patterns",
+          childhood: "Childhood", adultExpression: "Adult expression",
+          relationships: "Relationships", career: "Career & calling", money: "Money",
+          health: "Health & body", spiritualDevelopment: "Spiritual development",
+          underStress: "Under stress", matureExpression: "Mature expression",
+          giftsToOthers: "Gifts to others"
+        },
         ARCH_PLACEHOLDER: "[AJ to write archetypal energy here]",
         ENTRY_PLACEHOLDER: "[AJ to write entry theme here]",
         getCard: getCard,
