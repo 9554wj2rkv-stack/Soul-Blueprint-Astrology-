@@ -790,6 +790,11 @@
     .lc-status.empty { color: #b08a8a; }
     .lc-status.written { color: #5a8a5a; }
 
+    /* Interpretation Matrix folder cards */
+    .matrix-folder { border-left: 3px solid #c9b896; }
+    .matrix-folder .lc-title { color: #3a3530; }
+    #libMatrixItems .prac-back { margin-top: 0.25rem; }
+
     .interp-panel {
       margin-top: 1.5rem; background: #fff; border: 1px solid #e0dbd3;
       border-radius: 6px; padding: 1rem 1.1rem;
@@ -831,6 +836,15 @@
       border-radius: 4px; padding: 0.5rem 0.7rem; margin-bottom: 0.9rem;
     }
 
+    /* House three-level section headers */
+    .interp-level-head {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #8a7f6c; font-weight: 700;
+      margin: 1.1rem 0 0.5rem; padding-bottom: 0.3rem;
+      border-bottom: 1px solid #e6ddca;
+    }
+    .interp-level-head:first-child { margin-top: 0; }
+
     /* Internal links */
     .link-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .link-chip {
@@ -851,6 +865,16 @@
     }
     .link-chip.pick { border-color: #d8cfc0; background: #fff; color: #6a5f4c; }
     .link-chip.pick.on { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; }
+
+    /* Save feedback / disabled save */
+    .prac-modal-actions { align-items: center; }
+    .interp-saved-feedback {
+      margin-right: auto; font-size: 0.8rem; color: #5a8a5a;
+    }
+    .interp-saved-feedback.dirty { color: #9a6a30; }
+    #interpSave:disabled {
+      background: #cfc8be; border-color: #cfc8be; color: #f5f3ef; cursor: default;
+    }
 
     /* ───────────────────────────────────────────────────────────────────────
        STEP 2 — App polish (additive only; no existing rule above is modified).
@@ -1107,6 +1131,11 @@
       <div class="prac-section-head">Cycles</div>
       <div id="libCycles" class="card-grid"></div>
     </div>
+    <div class="prac-section" id="matrixSection">
+      <div class="prac-section-head">Interpretation Matrix <span class="muted">applied combinations</span></div>
+      <div id="libMatrixFolders" class="card-grid"></div>
+      <div id="libMatrixItems"></div>
+    </div>
     <div class="prac-section">
       <div class="prac-section-head">Bodies</div>
       <div id="libBodies" class="card-grid"></div>
@@ -1121,12 +1150,28 @@
     </div>
   </div>
 
+  <!-- ── UNSAVED-CHANGES GUARD DIALOG ── -->
+  <div class="prac-modal-overlay" id="unsavedModal" hidden style="z-index:80;">
+    <div class="prac-modal" style="max-width:420px;">
+      <div class="prac-modal-title">Unsaved changes</div>
+      <div class="prac-modal-body">
+        <div style="font-size:0.92rem;color:#2c2820;">You have unsaved changes. Save before leaving?</div>
+      </div>
+      <div class="prac-modal-actions" style="flex-wrap:wrap;">
+        <button class="btn-prac" id="unsavedCancel" type="button">Cancel</button>
+        <button class="btn-prac danger" id="unsavedLeave" type="button">Leave without saving</button>
+        <button class="btn-prac primary" id="unsavedSave" type="button">Save and leave</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── INTERPRETATION CARD MODAL ── -->
   <div class="prac-modal-overlay" id="interpModal" hidden>
     <div class="prac-modal interp-modal">
       <div class="prac-modal-title" id="interpTitle">Interpretation</div>
       <div class="prac-modal-body" id="interpBody"></div>
-      <div class="prac-modal-actions">
+      <div class="prac-modal-actions" id="interpActions">
+        <span class="interp-saved-feedback" id="interpSaved" hidden></span>
         <button class="btn-prac" id="interpClose" type="button">Close</button>
         <button class="btn-prac" id="interpEdit" type="button">Edit</button>
         <button class="btn-prac primary" id="interpSave" type="button" hidden>Save Interpretation</button>
@@ -2183,14 +2228,68 @@
       // ── Card modal ───────────────────────────────────────────────────────────
       var currentCardId = null;
       var editing = false;
+      var dirty = false;            // unsaved changes in the current edit
+      var baseline = null;          // snapshot of field/link state when edit began
+      var lastSavedAt = null;       // Date of last successful save (this card)
+
+      // Snapshot the current edit form (fields + toggled links) as a string.
+      function snapshotEditState() {
+        var parts = [];
+        Array.prototype.forEach.call($("interpBody").querySelectorAll("[data-field]"), function (ta) {
+          parts.push(ta.getAttribute("data-field") + "=" + ta.value);
+        });
+        var links = [];
+        Array.prototype.forEach.call($("interpBody").querySelectorAll(".link-chip.pick.on"), function (b) {
+          links.push(b.getAttribute("data-link"));
+        });
+        parts.push("__links__=" + links.sort().join(","));
+        return parts.join("\u0001");
+      }
+
+      function setDirty(v) {
+        dirty = v;
+        var saveBtn = $("interpSave");
+        var fb = $("interpSaved");
+        if (editing) {
+          saveBtn.disabled = !dirty;
+          if (dirty) {
+            fb.hidden = false; fb.classList.add("dirty"); fb.textContent = "Unsaved changes";
+          } else if (lastSavedAt) {
+            fb.hidden = false; fb.classList.remove("dirty");
+            fb.textContent = "✓ Saved · Last saved " + fmtTime(lastSavedAt);
+          } else {
+            fb.hidden = true;
+          }
+        }
+      }
+
+      function fmtTime(d) {
+        try {
+          return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        } catch (e) {
+          return d.toTimeString().slice(0, 5);
+        }
+      }
+
+      function isDirty() { return editing && dirty; }
+
+      // Central guard: if dirty, ask; run onProceed only if it's safe to leave.
+      var pendingProceed = null;
+      function guardLeave(onProceed) {
+        if (!isDirty()) { onProceed(); return; }
+        pendingProceed = onProceed;
+        $("unsavedModal").hidden = false;
+      }
 
       function openCard(id) {
         var card = L.getCard(id);
         if (!card) return;
-        currentCardId = id; editing = false;
+        currentCardId = id; editing = false; dirty = false; baseline = null; lastSavedAt = null;
         renderCardView(card);
         $("interpSave").hidden = true;
+        $("interpSave").disabled = false;
         $("interpEdit").hidden = false;
+        var fb = $("interpSaved"); if (fb) { fb.hidden = true; fb.classList.remove("dirty"); }
         $("interpModal").hidden = false;
       }
 
@@ -2215,31 +2314,57 @@
             (empty ? L.EMPTY : esc(val)) + '</div></div>';
         }
 
+        function levelHead(t) { return '<div class="interp-level-head">' + esc(t) + '</div>'; }
+
+        function linksViewHTML() {
+          var links = card.links || [];
+          var out = '<div class="interp-field"><div class="if-label">Related SBA pages</div>';
+          if (!links.length) {
+            out += '<div class="if-value empty">No linked pages yet.</div>';
+          } else {
+            out += '<div class="link-chips">' + links.map(function (tid) {
+              var r = L.resolveLink(tid);
+              if (r.missing) return '<span class="link-chip missing" title="This linked page no longer exists">⚠ Missing linked page</span>';
+              return '<button class="link-chip" data-goto="' + esc(r.id) + '">' + esc(r.title) + '</button>';
+            }).join("") + '</div>';
+          }
+          return out + '</div>';
+        }
+
+        if (card.kind === "house") {
+          // Three knowledge levels (Houses only).
+          html += levelHead("Level 1 · Archetype");
+          html += viewField(L.EXTRA_LABELS.archetypalEnergy, (card.extra || {}).archetypalEnergy);
+          html += viewField(L.EXTRA_LABELS.entryTheme, (card.extra || {}).entryTheme);
+
+          html += levelHead("Level 2 · Development");
+          html += viewField(L.FIELD_LABELS.meaning, card.fields.meaning);
+          html += viewField(L.FIELD_LABELS.coreTheme, card.fields.coreTheme);
+          html += viewField(L.FIELD_LABELS.shadow, card.fields.shadow);
+          html += viewField(L.FIELD_LABELS.growth, card.fields.growth);
+          html += viewField(L.EXTRA_LABELS.coreLesson, (card.extra || {}).coreLesson);
+          html += viewField(L.EXTRA_LABELS.integration, (card.extra || {}).integration);
+
+          html += levelHead("Level 3 · Interpretation");
+          html += viewField(L.FIELD_LABELS.clientQuestions, card.fields.clientQuestions);
+          html += viewField(L.FIELD_LABELS.practitionerNote, card.fields.practitionerNote);
+          html += linksViewHTML();
+
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
+        // Non-house cards: unchanged generic layout.
         fieldOrder().forEach(function (k) {
           html += viewField(L.FIELD_LABELS[k], card.fields[k]);
         });
         if (card.extra) {
           Object.keys(card.extra).forEach(function (k) {
+            if (k === "archetypalEnergy") return;
             html += viewField(L.EXTRA_LABELS[k] || k, card.extra[k]);
           });
         }
-
-        // Related SBA Pages (internal links) — clickable, missing-safe.
-        var links = card.links || [];
-        html += '<div class="interp-field"><div class="if-label">Related SBA pages</div>';
-        if (!links.length) {
-          html += '<div class="if-value empty">No linked pages yet.</div>';
-        } else {
-          html += '<div class="link-chips">' + links.map(function (tid) {
-            var r = L.resolveLink(tid);
-            if (r.missing) {
-              return '<span class="link-chip missing" title="This linked page no longer exists">⚠ Missing linked page</span>';
-            }
-            return '<button class="link-chip" data-goto="' + esc(r.id) + '">' + esc(r.title) + '</button>';
-          }).join("") + '</div>';
-        }
-        html += '</div>';
-
+        html += linksViewHTML();
         $("interpBody").innerHTML = html;
       }
 
@@ -2251,30 +2376,61 @@
             ' · “' + esc(card.ref.phrase) + '” · ' + esc(card.ref.constellation) +
             '<br><span style="color:#aaa">Reference labels above come from your engine and are not editable here.</span></div>';
         }
-        function editField(key, label, val) {
+        function editField(key, label, val, placeholder) {
           return '<div class="interp-field"><div class="if-label">' + esc(label) + '</div>' +
-            '<textarea rows="3" data-field="' + key + '" placeholder="' + esc(L.PLACEHOLDER) + '">' +
+            '<textarea rows="3" data-field="' + key + '" placeholder="' + esc(placeholder || L.PLACEHOLDER) + '">' +
             esc(val || "") + '</textarea></div>';
         }
+
+        function levelHead(t) { return '<div class="interp-level-head">' + esc(t) + '</div>'; }
+
+        function linksPickerHTML() {
+          var current = card.links || [];
+          var all = L.coreCards().filter(function (c) { return c.id !== card.id; })
+            .sort(function (a, b) { return a.title.localeCompare(b.title); });
+          var out = '<div class="interp-field"><div class="if-label">Internal links (tap to toggle)</div>';
+          out += '<input id="linkFilter" type="text" placeholder="Filter items…" style="margin-bottom:0.5rem;width:100%;border:1px solid #ccc7bc;border-radius:4px;padding:0.4rem 0.55rem;font-family:inherit;font-size:16px;box-sizing:border-box;" />';
+          out += '<div class="link-picker" id="linkPicker">' + all.map(function (c) {
+            var on = current.indexOf(c.id) !== -1;
+            return '<button class="link-chip pick' + (on ? ' on' : '') + '" data-link="' + esc(c.id) +
+              '" data-title="' + esc(c.title.toLowerCase()) + '">' + esc(c.title) + '</button>';
+          }).join("") + '</div></div>';
+          return out;
+        }
+
+        if (card.kind === "house") {
+          html += levelHead("Level 1 · Archetype");
+          html += editField("extra:archetypalEnergy", L.EXTRA_LABELS.archetypalEnergy,
+                            (card.extra || {}).archetypalEnergy, L.ARCH_PLACEHOLDER);
+          html += editField("extra:entryTheme", L.EXTRA_LABELS.entryTheme,
+                            (card.extra || {}).entryTheme, L.ENTRY_PLACEHOLDER);
+
+          html += levelHead("Level 2 · Development");
+          html += editField("meaning", L.FIELD_LABELS.meaning, card.fields.meaning);
+          html += editField("coreTheme", L.FIELD_LABELS.coreTheme, card.fields.coreTheme);
+          html += editField("shadow", L.FIELD_LABELS.shadow, card.fields.shadow);
+          html += editField("growth", L.FIELD_LABELS.growth, card.fields.growth);
+          html += editField("extra:coreLesson", L.EXTRA_LABELS.coreLesson, (card.extra || {}).coreLesson);
+          html += editField("extra:integration", L.EXTRA_LABELS.integration, (card.extra || {}).integration);
+
+          html += levelHead("Level 3 · Interpretation");
+          html += editField("clientQuestions", L.FIELD_LABELS.clientQuestions, card.fields.clientQuestions);
+          html += editField("practitionerNote", L.FIELD_LABELS.practitionerNote, card.fields.practitionerNote);
+          html += linksPickerHTML();
+
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
+        // Non-house cards: unchanged generic layout.
         fieldOrder().forEach(function (k) { html += editField(k, L.FIELD_LABELS[k], card.fields[k]); });
         if (card.extra) {
           Object.keys(card.extra).forEach(function (k) {
+            if (k === "archetypalEnergy") return;
             html += editField("extra:" + k, L.EXTRA_LABELS[k] || k, card.extra[k]);
           });
         }
-
-        // Internal-links picker: every other library item as a toggle chip.
-        var current = card.links || [];
-        var all = L.allCards().filter(function (c) { return c.id !== card.id; })
-          .sort(function (a, b) { return a.title.localeCompare(b.title); });
-        html += '<div class="interp-field"><div class="if-label">Internal links (tap to toggle)</div>';
-        html += '<input id="linkFilter" type="text" placeholder="Filter items…" style="margin-bottom:0.5rem;width:100%;border:1px solid #ccc7bc;border-radius:4px;padding:0.4rem 0.55rem;font-family:inherit;font-size:16px;box-sizing:border-box;" />';
-        html += '<div class="link-picker" id="linkPicker">' + all.map(function (c) {
-          var on = current.indexOf(c.id) !== -1;
-          return '<button class="link-chip pick' + (on ? ' on' : '') + '" data-link="' + esc(c.id) +
-            '" data-title="' + esc(c.title.toLowerCase()) + '">' + esc(c.title) + '</button>';
-        }).join("") + '</div></div>';
-
+        html += linksPickerHTML();
         $("interpBody").innerHTML = html;
       }
 
@@ -2285,6 +2441,8 @@
         renderCardEdit(card);
         $("interpEdit").hidden = true;
         $("interpSave").hidden = false;
+        baseline = snapshotEditState();   // capture starting state
+        setDirty(false);                  // no changes yet → Save disabled
       }
 
       function saveEdit() {
@@ -2303,17 +2461,33 @@
         });
         L.setLinks(currentCardId, picked);
 
-        var card = L.getCard(currentCardId);
-        editing = false;
-        renderCardView(card);
-        $("interpSave").hidden = true;
-        $("interpEdit").hidden = false;
+        // Mark clean: new baseline = current form, record save time, show feedback.
+        baseline = snapshotEditState();
+        lastSavedAt = new Date();
+        setDirty(false);
+
         // refresh library + panel statuses if visible
-        if (!$("screenLibrary").hidden) renderLibrary();
+        if (!$("screenLibrary").hidden) renderLibrary($("librarySearch") ? $("librarySearch").value : "");
         refreshPanelStatuses();
+        return true;
       }
 
-      function closeCard() { $("interpModal").hidden = true; currentCardId = null; editing = false; }
+      // Leave edit mode and return to read view (used after a guarded leave/save).
+      function exitEditToView() {
+        editing = false; dirty = false; baseline = null;
+        var card = L.getCard(currentCardId);
+        if (card) renderCardView(card);
+        $("interpSave").hidden = true;
+        $("interpEdit").hidden = false;
+        var fb = $("interpSaved"); if (fb) { fb.hidden = true; fb.classList.remove("dirty"); }
+      }
+
+      function closeCard() {
+        guardLeave(function () {
+          $("interpModal").hidden = true;
+          currentCardId = null; editing = false; dirty = false; baseline = null;
+        });
+      }
 
       // ── Library screen ───────────────────────────────────────────────────────
       function statusBadge(card) {
@@ -2332,7 +2506,7 @@
       function renderLibrary(filter) {
         var q = (filter || "").trim().toLowerCase();
         var groups = { house: [], cycle: [], body: [], angle: [], point: [] };
-        L.allCards().forEach(function (c) {
+        L.coreCards().forEach(function (c) {
           if (q) {
             var hay = (c.title + " " + (c.slug || "") + " " + c.id).toLowerCase();
             if (hay.indexOf(q) === -1) return;
@@ -2346,6 +2520,63 @@
         $("libBodies").innerHTML = groups.body.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libAngles").innerHTML = groups.angle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libPoints").innerHTML = groups.point.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+
+        renderMatrix(q);
+      }
+
+      // ── Interpretation Matrix (folders → drill-in → item cards) ──────────────
+      var matrixOpenCat = null;
+
+      function matrixItemCardHTML(it) {
+        return '<button class="lib-card" data-card="' + esc(it.id) + '">' +
+          '<div class="lc-title">' + esc(it.title) + '</div>' +
+          (it.written ? '<div class="lc-status written">● written</div>'
+                      : '<div class="lc-status empty">○ not written yet</div>') +
+          '</button>';
+      }
+
+      function renderMatrixFolders() {
+        matrixOpenCat = null;
+        var counts = L.matrixCounts();
+        $("libMatrixFolders").innerHTML = L.matrixCats().map(function (c) {
+          var ct = counts[c.key] || { total: 0, written: 0 };
+          return '<button class="lib-card matrix-folder" data-matrixcat="' + esc(c.key) + '">' +
+            '<div class="lc-title">' + esc(c.label) + '</div>' +
+            '<div class="lc-sub">' + ct.written + ' / ' + ct.total + ' written</div></button>';
+        }).join("");
+        $("libMatrixFolders").hidden = false;
+        $("libMatrixItems").innerHTML = "";
+      }
+
+      function openMatrixCat(catKey) {
+        matrixOpenCat = catKey;
+        var cats = L.matrixCats();
+        var label = (cats.filter(function (c) { return c.key === catKey; })[0] || {}).label || catKey;
+        var items = L.matrixList(catKey);
+        var grid = items.length
+          ? items.map(matrixItemCardHTML).join("")
+          : '<div class="empty-note">No items in this category yet.</div>';
+        $("libMatrixFolders").hidden = true;
+        $("libMatrixItems").innerHTML =
+          '<button class="prac-back" id="matrixBack">‹ All matrix categories</button>' +
+          '<div class="prac-section-head">' + esc(label) + ' <span class="muted">' + items.length + '</span></div>' +
+          '<div class="card-grid">' + grid + '</div>';
+      }
+
+      function renderMatrixSearch(q) {
+        var res = L.searchMatrix(q);
+        $("libMatrixFolders").hidden = true;
+        var grid = res.length
+          ? res.map(matrixItemCardHTML).join("")
+          : '<div class="empty-note">No matrix matches.</div>';
+        $("libMatrixItems").innerHTML =
+          '<div class="prac-section-head">Matrix results <span class="muted">' + res.length + '</span></div>' +
+          '<div class="card-grid">' + grid + '</div>';
+      }
+
+      function renderMatrix(query) {
+        if ((query || "").trim()) renderMatrixSearch(query);
+        else renderMatrixFolders();
       }
 
       // ── Post-calculation Interpretation panel ────────────────────────────────
@@ -2473,24 +2704,47 @@
       }
 
       // ── Wiring ───────────────────────────────────────────────────────────────
+      function gotoLibraryScreen() {
+        renderLibrary($("librarySearch").value);
+        ["screenDashboard","screenClient","screenSession","screenCalculator","screenLibrary"].forEach(function (s) {
+          var el = $(s); if (el) el.hidden = (s !== "screenLibrary");
+        });
+        var bar = $("saveSessionBar"); if (bar) bar.hidden = true;
+        var panel = $("interpPanel"); if (panel) panel.hidden = true;
+        window.scrollTo({ top: 0 });
+      }
+
+      function recomputeDirty() {
+        if (!editing || baseline === null) return;
+        setDirty(snapshotEditState() !== baseline);
+      }
+
       function wire() {
+        // Library nav — if the card modal is open & dirty, guard first.
         $("navLibrary").addEventListener("click", function () {
-          renderLibrary($("librarySearch").value);
-          // reuse the shell's screen switching by toggling hidden directly
-          ["screenDashboard","screenClient","screenSession","screenCalculator","screenLibrary"].forEach(function (s) {
-            var el = $(s); if (el) el.hidden = (s !== "screenLibrary");
+          guardLeave(function () {
+            $("interpModal").hidden = true; currentCardId = null; editing = false; dirty = false;
+            gotoLibraryScreen();
           });
-          var bar = $("saveSessionBar"); if (bar) bar.hidden = true;
-          var panel = $("interpPanel"); if (panel) panel.hidden = true;
-          window.scrollTo({ top: 0 });
         });
         $("librarySearch").addEventListener("input", function () { renderLibrary(this.value); });
 
-        // delegated open from library + panel
+        // Interpretation Matrix: open a category folder, or go back to folders.
+        // (Item cards use .lib-card[data-card] and are opened by the global
+        // click handler below, exactly like every other library page.)
+        $("matrixSection").addEventListener("click", function (e) {
+          var folder = e.target.closest(".matrix-folder");
+          if (folder) { openMatrixCat(folder.getAttribute("data-matrixcat")); return; }
+          var back = e.target.closest("#matrixBack");
+          if (back) { renderMatrixFolders(); return; }
+        });
+
+        // delegated open from library + panel (guard if leaving a dirty edit)
         document.addEventListener("click", function (e) {
           var card = e.target.closest("[data-card]");
           if (card && (card.classList.contains("lib-card") || card.classList.contains("interp-row"))) {
-            openCard(card.getAttribute("data-card"));
+            var targetId = card.getAttribute("data-card");
+            guardLeave(function () { editing = false; dirty = false; openCard(targetId); });
           }
         });
 
@@ -2502,12 +2756,16 @@
         });
 
         // Inside the card: toggle link chips (edit mode), filter the picker,
-        // and navigate to a related page (view mode).
+        // navigate to a related page (view mode), and track dirtiness.
         $("interpBody").addEventListener("click", function (e) {
           var pick = e.target.closest(".link-chip.pick");
-          if (pick) { pick.classList.toggle("on"); return; }
+          if (pick) { pick.classList.toggle("on"); recomputeDirty(); return; }
           var goto = e.target.closest("[data-goto]");
-          if (goto) { openCard(goto.getAttribute("data-goto")); return; }
+          if (goto) {
+            var targetId = goto.getAttribute("data-goto");
+            guardLeave(function () { editing = false; dirty = false; openCard(targetId); });
+            return;
+          }
         });
         $("interpBody").addEventListener("input", function (e) {
           if (e.target && e.target.id === "linkFilter") {
@@ -2516,8 +2774,46 @@
               var t = b.getAttribute("data-title") || "";
               b.style.display = (!q || t.indexOf(q) !== -1) ? "" : "none";
             });
+            return; // filtering is not an edit
           }
+          // any other input inside the card body = a field edit
+          recomputeDirty();
         });
+
+        // ── Unsaved-changes dialog buttons ──────────────────────────────────────
+        $("unsavedSave").addEventListener("click", function () {
+          var ok = saveEdit();              // persist
+          $("unsavedModal").hidden = true;
+          if (ok && pendingProceed) { var p = pendingProceed; pendingProceed = null; editing = false; dirty = false; p(); }
+        });
+        $("unsavedLeave").addEventListener("click", function () {
+          $("unsavedModal").hidden = true;
+          dirty = false; editing = false;   // discard
+          if (pendingProceed) { var p = pendingProceed; pendingProceed = null; p(); }
+        });
+        $("unsavedCancel").addEventListener("click", function () {
+          $("unsavedModal").hidden = true;
+          pendingProceed = null;            // stay where we are
+        });
+
+        // Browser back / refresh / tab close — native prompt where supported.
+        window.addEventListener("beforeunload", function (e) {
+          if (isDirty()) { e.preventDefault(); e.returnValue = ""; return ""; }
+        });
+
+        // Expose the guard so the shell (Step 3b) can consult it before
+        // switching screens / starting a new reading.
+        window.SBAGuard = {
+          isDirty: isDirty,
+          confirmLeave: function (onProceed) {
+            guardLeave(function () {
+              // Leaving the library context entirely: close the card modal.
+              $("interpModal").hidden = true;
+              currentCardId = null; editing = false; dirty = false;
+              onProceed();
+            });
+          }
+        };
 
         watchForResults();
       }
@@ -2597,6 +2893,25 @@
       var POINT_KEYS = ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"];
       var CYCLE_KEYS = ["SBA Year","SBA Lunar Month"];
 
+      // ── Interpretation Matrix (applied combinations, separate from doctrine) ──
+      // The 13 SBA signs, and the angle/point labels used for matrix combinations.
+      var SIGN_KEYS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpius","Ophiuchus","Sagittarius","Capricornus","Aquarius","Pisces"];
+      var MATRIX_ANGLES = ["Ascendant","Descendant","Midheaven","IC"];
+      var MATRIX_POINTS = ["Chiron","North Node","South Node","Vertex","Part of Fortune","Black Moon Lilith"];
+      var HOUSE_NUMS = [1,2,3,4,5,6,7,8,9,10,11,12,13];
+
+      var MATRIX_CATS = [
+        { key: "house-sign",       label: "House + Sign" },
+        { key: "house-planet",     label: "House + Planet" },
+        { key: "empty-houses",     label: "Empty Houses" },
+        { key: "house-rulers",     label: "House Rulers" },
+        { key: "planet-sign",      label: "Planet + Sign" },
+        { key: "planet-house",     label: "Planet + House" },
+        { key: "angle-cases",      label: "Angle Cases" },
+        { key: "point-cases",      label: "Point Cases" },
+        { key: "complex-examples", label: "Complex Examples" }
+      ];
+
       // Build the default catalogue: a flat map keyed by stable ids.
       // id formats:  house:1 … house:13 | body:Sun | angle:Ascendant (AC) |
       //              point:North Node | cycle:SBA Year
@@ -2618,8 +2933,10 @@
             title: "House " + h.house + " · " + h.name + " (" + h.constellation + ")",
             ref: { house: h.house, constellation: h.constellation, name: h.name, phrase: h.phrase },
             fields: blankFields(),
-            // House-specific extra structure requested for the House Library:
-            extra: { coreLesson: "", integration: "" }
+            // House-specific extra structure. archetypalEnergy and entryTheme are
+            // house-only and render at Level 1 (before Meaning). Older saved
+            // houses without these inherit "" from this default on load.
+            extra: { archetypalEnergy: "", entryTheme: "", coreLesson: "", integration: "" }
           };
         });
 
@@ -2635,6 +2952,41 @@
         POINT_KEYS.forEach(function (k) {
           cards["point:" + k] = { id: "point:" + k, slug: slugify(k), kind: "point", title: k, fields: blankFields() };
         });
+
+        // ── Interpretation Matrix placeholder items (empty; AJ writes meanings) ──
+        function addMatrix(catKey, title) {
+          var id = "matrix:" + catKey + ":" + slugify(title);
+          cards[id] = {
+            id: id,
+            slug: slugify(catKey + " " + title),
+            kind: "matrix",
+            matrixCat: catKey,
+            title: title,
+            fields: blankFields()
+          };
+        }
+
+        HOUSE_NUMS.forEach(function (h) {
+          SIGN_KEYS.forEach(function (s) { addMatrix("house-sign", "House " + h + " + " + s); });
+        });
+        HOUSE_NUMS.forEach(function (h) {
+          BODY_KEYS.forEach(function (p) { addMatrix("house-planet", "House " + h + " + " + p); });
+        });
+        HOUSE_NUMS.forEach(function (h) { addMatrix("empty-houses", "Empty House " + h); });
+        HOUSE_NUMS.forEach(function (h) { addMatrix("house-rulers", "House " + h + " Ruler in House " + h); });
+        BODY_KEYS.forEach(function (p) {
+          SIGN_KEYS.forEach(function (s) { addMatrix("planet-sign", p + " + " + s); });
+        });
+        BODY_KEYS.forEach(function (p) {
+          HOUSE_NUMS.forEach(function (h) { addMatrix("planet-house", p + " + House " + h); });
+        });
+        MATRIX_ANGLES.forEach(function (a) {
+          SIGN_KEYS.forEach(function (s) { addMatrix("angle-cases", a + " + " + s); });
+        });
+        MATRIX_POINTS.forEach(function (pt) {
+          HOUSE_NUMS.forEach(function (h) { addMatrix("point-cases", pt + " + House " + h); });
+        });
+        // complex-examples: category exists but has no placeholder items yet.
 
         return cards;
       }
@@ -2655,25 +3007,28 @@
         catch (e) { console.error("[SBALibrary] save failed", e); return false; }
       }
 
-      // Merge a default card with any saved overlay content for the same id.
+      // Merge a default card with an overlay entry. Single, reusable.
+      function mergeCard(base, overlayEntry) {
+        var merged = JSON.parse(JSON.stringify(base));
+        var ov = overlayEntry || {};
+        if (ov.fields) {
+          Object.keys(merged.fields).forEach(function (k) {
+            if (typeof ov.fields[k] === "string") merged.fields[k] = ov.fields[k];
+          });
+        }
+        if (merged.extra && ov.extra) {
+          Object.keys(merged.extra).forEach(function (k) {
+            if (typeof ov.extra[k] === "string") merged.extra[k] = ov.extra[k];
+          });
+        }
+        merged.links = Array.isArray(ov.links) ? ov.links.slice() : [];
+        return merged;
+      }
+
       function getCard(id) {
         var base = DEFAULTS[id];
         if (!base) return null;
-        var overlay = loadOverlay()[id] || {};
-        var merged = JSON.parse(JSON.stringify(base));
-        if (overlay.fields) {
-          Object.keys(merged.fields).forEach(function (k) {
-            if (typeof overlay.fields[k] === "string") merged.fields[k] = overlay.fields[k];
-          });
-        }
-        if (merged.extra && overlay.extra) {
-          Object.keys(merged.extra).forEach(function (k) {
-            if (typeof overlay.extra[k] === "string") merged.extra[k] = overlay.extra[k];
-          });
-        }
-        // Internal links: array of target ids stored in the overlay.
-        merged.links = Array.isArray(overlay.links) ? overlay.links.slice() : [];
-        return merged;
+        return mergeCard(base, loadOverlay()[id] || {});
       }
 
       function saveCard(id, fields, extra) {
@@ -2724,7 +3079,68 @@
       }
 
       function allCards() {
-        return Object.keys(DEFAULTS).map(function (id) { return getCard(id); });
+        var ov = loadOverlay();
+        return Object.keys(DEFAULTS).map(function (id) { return mergeCard(DEFAULTS[id], ov[id] || {}); });
+      }
+
+      // Core (doctrine) cards only — excludes the Interpretation Matrix.
+      // Used by the main library groups and the internal-links picker so those
+      // stay fast and focused on the ~33 doctrine pages.
+      function coreCards() {
+        var ov = loadOverlay();
+        var out = [];
+        Object.keys(DEFAULTS).forEach(function (id) {
+          if (DEFAULTS[id].kind !== "matrix") out.push(mergeCard(DEFAULTS[id], ov[id] || {}));
+        });
+        return out;
+      }
+
+      // Does an overlay entry hold any written content? (empty defaults => empty)
+      function overlayEntryWritten(e) {
+        if (!e) return false;
+        if (e.fields && Object.keys(e.fields).some(function (k) { return (e.fields[k] || "").trim(); })) return true;
+        if (e.extra && Object.keys(e.extra).some(function (k) { return (e.extra[k] || "").trim(); })) return true;
+        if (Array.isArray(e.links) && e.links.length) return true;
+        return false;
+      }
+
+      // ── Matrix listing helpers (lightweight; no deep-clone) ───────────────────
+      function matrixCats() { return MATRIX_CATS.map(function (c) { return { key: c.key, label: c.label }; }); }
+
+      function matrixList(catKey) {
+        var ov = loadOverlay(); var out = [];
+        Object.keys(DEFAULTS).forEach(function (id) {
+          var d = DEFAULTS[id];
+          if (d.kind === "matrix" && d.matrixCat === catKey) {
+            out.push({ id: id, title: d.title, slug: d.slug, written: overlayEntryWritten(ov[id]) });
+          }
+        });
+        return out;
+      }
+
+      function matrixCounts() {
+        var ov = loadOverlay(); var counts = {};
+        MATRIX_CATS.forEach(function (c) { counts[c.key] = { total: 0, written: 0 }; });
+        Object.keys(DEFAULTS).forEach(function (id) {
+          var d = DEFAULTS[id];
+          if (d.kind === "matrix") {
+            var c = counts[d.matrixCat];
+            if (c) { c.total++; if (overlayEntryWritten(ov[id])) c.written++; }
+          }
+        });
+        return counts;
+      }
+
+      function searchMatrix(query) {
+        var q = (query || "").trim().toLowerCase(); if (!q) return [];
+        var ov = loadOverlay(); var out = [];
+        Object.keys(DEFAULTS).forEach(function (id) {
+          var d = DEFAULTS[id];
+          if (d.kind !== "matrix") return;
+          var hay = (d.title + " " + (d.slug || "")).toLowerCase();
+          if (hay.indexOf(q) !== -1) out.push({ id: id, title: d.title, cat: d.matrixCat, written: overlayEntryWritten(ov[id]) });
+        });
+        return out;
       }
 
       // ── Linking calculated placements → card ids (KEY MATCH ONLY) ─────────────
@@ -2759,10 +3175,17 @@
           clientQuestions: "Client questions",
           practitionerNote: "Practitioner notes / reminders"
         },
-        EXTRA_LABELS: { coreLesson: "Core lesson", integration: "Integration" },
+        EXTRA_LABELS: { archetypalEnergy: "Archetypal energy", entryTheme: "Entry theme", coreLesson: "Core lesson", integration: "Integration" },
+        ARCH_PLACEHOLDER: "[AJ to write archetypal energy here]",
+        ENTRY_PLACEHOLDER: "[AJ to write entry theme here]",
         getCard: getCard,
         saveCard: saveCard,
         allCards: allCards,
+        coreCards: coreCards,
+        matrixCats: matrixCats,
+        matrixList: matrixList,
+        matrixCounts: matrixCounts,
+        searchMatrix: searchMatrix,
         isCardEmpty: isCardEmpty,
         getLinks: getLinks,
         setLinks: setLinks,
@@ -3237,9 +3660,17 @@
 
       // ── Event wiring (delegated) ─────────────────────────────────────────────
 
+      function guarded(fn) {
+        return function () {
+          if (window.SBAGuard && window.SBAGuard.isDirty && window.SBAGuard.isDirty()) {
+            window.SBAGuard.confirmLeave(fn);
+          } else { fn(); }
+        };
+      }
+
       function wire() {
-        $("navDashboard").addEventListener("click", function () { renderDashboard(); showScreen("dashboard"); });
-        $("navNewCalc").addEventListener("click", startNewClient);
+        $("navDashboard").addEventListener("click", guarded(function () { renderDashboard(); showScreen("dashboard"); }));
+        $("navNewCalc").addEventListener("click", guarded(startNewClient));
 
         $("clientSearch").addEventListener("input", function () {
           renderClientList(S.searchClients(this.value));
