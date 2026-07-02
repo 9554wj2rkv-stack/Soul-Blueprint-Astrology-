@@ -2306,6 +2306,9 @@
             ' · ' + esc(card.ref.name) + ' · “' + esc(card.ref.phrase) + '” · ' +
             esc(card.ref.constellation) + '</div>';
         }
+        if (card.kind === "body" && card.banner) {
+          html += '<div class="interp-ref">' + esc(card.banner) + '</div>';
+        }
 
         function viewField(label, val) {
           var empty = !(val || "").trim();
@@ -2392,6 +2395,10 @@
           html += '<div class="interp-ref">House ' + card.ref.house + ' · ' + esc(card.ref.name) +
             ' · “' + esc(card.ref.phrase) + '” · ' + esc(card.ref.constellation) +
             '<br><span style="color:#aaa">Reference labels above come from your engine and are not editable here.</span></div>';
+        }
+        if (card.kind === "body" && card.banner) {
+          html += '<div class="interp-ref">' + esc(card.banner) +
+            '<br><span style="color:#aaa">Reference banner · not editable.</span></div>';
         }
         function editField(key, label, val, placeholder) {
           return '<div class="interp-field"><div class="if-label">' + esc(label) + '</div>' +
@@ -2922,6 +2929,21 @@
       ];
 
       var BODY_KEYS = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+
+      // Non-editable reference banners shown under each Body title (like the
+      // House reference line). Supplied text; not interpretation content.
+      var BODY_BANNERS = {
+        "Sun":     "Identity • Conscious Self • “Who am I becoming?”",
+        "Moon":    "Emotional Nature • Inner Security • “What do I need to feel safe?”",
+        "Mercury": "Mind • Communication • “How do I understand?”",
+        "Venus":   "Values • Love • “What do I value?”",
+        "Mars":    "Action • Drive • “How do I pursue?”",
+        "Jupiter": "Expansion • Wisdom • “How do I grow?”",
+        "Saturn":  "Structure • Responsibility • “What must I master?”",
+        "Uranus":  "Liberation • Innovation • “What must change?”",
+        "Neptune": "Imagination • Spirituality • “What calls me beyond the visible?”",
+        "Pluto":   "Transformation • Power • “What must die so I can evolve?”"
+      };
       var ANGLE_KEYS = ["Ascendant (AC)","Midheaven (MC)"];
       var POINT_KEYS = ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"];
       var CYCLE_KEYS = ["SBA Year","SBA Lunar Month"];
@@ -2983,7 +3005,7 @@
           cards["cycle:" + k] = { id: "cycle:" + k, slug: slugify(k), kind: "cycle", title: k, fields: blankFields() };
         });
         BODY_KEYS.forEach(function (k) {
-          cards["body:" + k] = { id: "body:" + k, slug: slugify(k), kind: "body", title: k, fields: blankFields() };
+          cards["body:" + k] = { id: "body:" + k, slug: slugify(k), kind: "body", title: k, banner: BODY_BANNERS[k] || "", fields: blankFields() };
         });
         ANGLE_KEYS.forEach(function (k) {
           cards["angle:" + k] = { id: "angle:" + k, slug: slugify(k), kind: "angle", title: k, fields: blankFields() };
