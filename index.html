@@ -278,6 +278,12 @@
       font-weight: 500;
       color: #3a3530;
     }
+    .rx-badge {
+      font-size: 0.7rem; font-weight: 700; color: #8b2020;
+      background: #fbeaea; border: 1px solid #e5b8b8;
+      border-radius: 3px; padding: 0 0.25rem; margin-left: 0.25rem;
+      letter-spacing: 0.02em;
+    }
 
     td.constellation {
       color: #555;
@@ -1290,6 +1296,16 @@
 
     const SBA_HOUSES_ORDERED = Object.values(SBA_HOUSES).sort((a, b) => a.house - b.house);
 
+    // ── SBA sign → element mapping (metadata only; edit here to change) ──────────
+    // Ophiuchus is assigned to Water by default. Change any assignment freely.
+    const SIGN_ELEMENTS = {
+      Aries: "Fire",       Leo: "Fire",         Sagittarius: "Fire",
+      Taurus: "Earth",     Virgo: "Earth",      Capricornus: "Earth",
+      Gemini: "Air",       Libra: "Air",        Aquarius: "Air",
+      Cancer: "Water",     Scorpius: "Water",   Pisces: "Water",
+      Ophiuchus: "Water",
+    };
+
     function getSBAHouse(constellation) {
       return SBA_HOUSES[constellation] ?? null;
     }
@@ -1490,16 +1506,36 @@
       const eps = meanObliquity(jd);
 
       // ── Planets ──────────────────────────────────────────────────────────────
+      // Retrograde detection: sample the body's ecliptic longitude one day later
+      // (same pipeline as above) and check whether longitude is decreasing.
+      // Per SBA, the Sun and Moon are always treated as Direct.
+      function eclLonAtTime(body, when) {
+        const eq = Astronomy.Equator(body, when, observer, false, true);
+        return equatorialToEclipticLon(eq.ra, eq.dec, eps);
+      }
+      function isRetrograde(name, body) {
+        if (name === "Sun" || name === "Moon") return false;
+        const lon1 = eclLonAtTime(body, utcDate);
+        const lon2 = eclLonAtTime(body, new Date(utcDate.getTime() + 86400000));
+        let d = lon2 - lon1;
+        while (d > 180) d -= 360;
+        while (d < -180) d += 360;
+        return d < 0;
+      }
+
       const planets = BODIES.map(({ name, body }) => {
         const equatorial = Astronomy.Equator(body, utcDate, observer, false, true);
         const con = Astronomy.Constellation(equatorial.ra, equatorial.dec);
         const eclLon = equatorialToEclipticLon(equatorial.ra, equatorial.dec, eps);
+        const retro = isRetrograde(name, body);
         return {
           body: name,
           constellation: con.name,
           ra: formatRA(equatorial.ra),
           dec: formatDec(equatorial.dec),
           eclipticLon: eclLon,
+          retrograde: retro,
+          motion: retro ? "Retrograde" : "Direct",
           ...withHouse(con.name),
         };
       });
@@ -1511,6 +1547,12 @@
 
       const mcLon = calcMC(ramcDeg, eps);
       const acLon = calcAscendant(ramcDeg, eps, latitude);
+
+      // SBA uses all four primary angles. DC and IC are derived from the
+      // already-computed AC and MC as their exact opposite points, normalized
+      // to 0–360°. AC and MC calculations above are unchanged.
+      const dcLon = normalize360(acLon + 180);
+      const icLon = normalize360(mcLon + 180);
 
       function makeAngle(name, lon) {
         const con = constellationForEclipticLon(lon, eps);
@@ -1525,7 +1567,9 @@
 
       const angles = [
         makeAngle("Ascendant (AC)", acLon),
+        makeAngle("Descendant (DC)", dcLon),
         makeAngle("Midheaven (MC)", mcLon),
+        makeAngle("Imum Coeli (IC)", icLon),
       ];
 
       // ── Additional points (each independently guarded) ───────────────────────
@@ -1647,6 +1691,20 @@
         }
       }
 
+      // ── Element balance across the 10 main bodies (metadata only) ────────────
+      const elementBalance = { Fire: 0, Earth: 0, Air: 0, Water: 0 };
+      planets.forEach((p) => {
+        const el = SIGN_ELEMENTS[p.constellation];
+        if (el && elementBalance.hasOwnProperty(el)) elementBalance[el]++;
+      });
+      const elemTotal = elementBalance.Fire + elementBalance.Earth + elementBalance.Air + elementBalance.Water;
+      const elementBalancePercent = {
+        Fire:  elemTotal ? Math.round((elementBalance.Fire  / elemTotal) * 100) : 0,
+        Earth: elemTotal ? Math.round((elementBalance.Earth / elemTotal) * 100) : 0,
+        Air:   elemTotal ? Math.round((elementBalance.Air   / elemTotal) * 100) : 0,
+        Water: elemTotal ? Math.round((elementBalance.Water / elemTotal) * 100) : 0,
+      };
+
       return {
         sbaYear: year,
         sbaYearStart: formatDateShort(sbaYearStart),
@@ -1654,6 +1712,8 @@
         planets,
         angles,
         additionalPoints,
+        elementBalance,
+        elementBalancePercent,
         utcDateTime: formatDate(utcDate),
       };
     }
@@ -2062,12 +2122,13 @@
     function renderResults(result, submittedName, submittedBirth) {
       const planetRows = result.planets.map(p => `
         <tr>
-          <td class="body-name">${esc(p.body)}</td>
+          <td class="body-name">${esc(p.body)}${p.retrograde ? ' <span class="rx-badge">Rx</span>' : ''}</td>
           <td class="constellation">${esc(p.constellation)}</td>
           <td class="sba-house-num">${p.sbaHouseNumber ?? "—"}</td>
           <td class="sba-house-name">${esc(p.sbaHouseName)}</td>
           <td class="ra-dec">${esc(p.ra)}</td>
           <td class="ra-dec">${esc(p.dec)}</td>
+          <td class="constellation">${esc(p.motion ?? "Direct")}</td>
         </tr>`).join("");
 
       const angleRows = result.angles.map(a => `
@@ -2119,6 +2180,18 @@
           </div>
         </div>
 
+        ${result.elementBalance ? `
+        <div class="sba-summary element-balance">
+          <div class="sba-item">
+            <span class="sba-label">Element Balance</span>
+            <span class="sba-value">Fire: ${result.elementBalance.Fire} &nbsp; Earth: ${result.elementBalance.Earth} &nbsp; Air: ${result.elementBalance.Air} &nbsp; Water: ${result.elementBalance.Water}</span>
+          </div>
+          <div class="sba-item">
+            <span class="sba-label">Element Balance (%)</span>
+            <span class="sba-value">Fire: ${result.elementBalancePercent.Fire}% &nbsp; Earth: ${result.elementBalancePercent.Earth}% &nbsp; Air: ${result.elementBalancePercent.Air}% &nbsp; Water: ${result.elementBalancePercent.Water}%</span>
+          </div>
+        </div>` : ``}
+
         <div class="section-divider"></div>
 
         <div class="angles-section">
@@ -2166,7 +2239,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>Body</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Right Ascension</th><th>Declination</th></tr>
+              <tr><th>Body</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Right Ascension</th><th>Declination</th><th>Motion</th></tr>
             </thead>
             <tbody>${planetRows}</tbody>
           </table>
@@ -2944,7 +3017,7 @@
         "Neptune": "Imagination • Spirituality • “What calls me beyond the visible?”",
         "Pluto":   "Transformation • Power • “What must die so I can evolve?”"
       };
-      var ANGLE_KEYS = ["Ascendant (AC)","Midheaven (MC)"];
+      var ANGLE_KEYS = ["Ascendant (AC)","Descendant (DC)","Midheaven (MC)","Imum Coeli (IC)"];
       var POINT_KEYS = ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"];
       var CYCLE_KEYS = ["SBA Year","SBA Lunar Month"];
 
