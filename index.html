@@ -285,6 +285,22 @@
       letter-spacing: 0.02em;
     }
 
+    /* Collapsible SBA House Reference */
+    .house-ref-fold { }
+    .house-ref-summary {
+      cursor: pointer; list-style: none; user-select: none;
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.35rem 0; margin-bottom: 0 !important;
+    }
+    .house-ref-summary::-webkit-details-marker { display: none; }
+    .house-ref-summary::after {
+      content: "▸ Show"; margin-left: auto;
+      font-size: 0.72rem; letter-spacing: 0.04em; color: #8a7f6c;
+      text-transform: none; font-weight: normal;
+    }
+    details[open] > .house-ref-summary::after { content: "▾ Hide"; }
+    .house-ref-fold .table-container { margin-top: 0.6rem; }
+
     td.constellation {
       color: #555;
     }
@@ -1154,6 +1170,14 @@
       <div class="prac-section-head">Points</div>
       <div id="libPoints" class="card-grid"></div>
     </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Elements</div>
+      <div id="libElements" class="card-grid"></div>
+    </div>
+    <div class="prac-section">
+      <div class="prac-section-head">Retrogrades</div>
+      <div id="libRetros" class="card-grid"></div>
+    </div>
   </div>
 
   <!-- ── UNSAVED-CHANGES GUARD DIALOG ── -->
@@ -1507,20 +1531,29 @@
 
       // ── Planets ──────────────────────────────────────────────────────────────
       // Retrograde detection: sample the body's ecliptic longitude one day later
-      // (same pipeline as above) and check whether longitude is decreasing.
-      // Per SBA, the Sun and Moon are always treated as Direct.
-      function eclLonAtTime(body, when) {
-        const eq = Astronomy.Equator(body, when, observer, false, true);
-        return equatorialToEclipticLon(eq.ra, eq.dec, eps);
+      // Retrograde detection using TRUE GEOCENTRIC apparent ecliptic longitude
+      // from the ephemeris (Earth's centre — no observer/diurnal parallax, which
+      // would otherwise swamp the small daily motion of the outer planets).
+      // We sample symmetrically ±12h around the birth moment and take the sign
+      // of the centred change in longitude. Per SBA, Sun and Moon are Direct.
+      function geoEclipticLon(body, when) {
+        // Preferred: documented geocentric apparent ecliptic longitude (degrees).
+        if (typeof Astronomy.EclipticLongitude === "function") {
+          return Astronomy.EclipticLongitude(body, when);
+        }
+        // Fallback: geocentric vector → ecliptic longitude (also geocentric).
+        var vec = Astronomy.GeoVector(body, when, true);
+        return Astronomy.Ecliptic(vec).elon;
       }
       function isRetrograde(name, body) {
         if (name === "Sun" || name === "Moon") return false;
-        const lon1 = eclLonAtTime(body, utcDate);
-        const lon2 = eclLonAtTime(body, new Date(utcDate.getTime() + 86400000));
-        let d = lon2 - lon1;
+        var half = 43200000; // 12 hours in ms
+        var lonBefore = geoEclipticLon(body, new Date(utcDate.getTime() - half));
+        var lonAfter  = geoEclipticLon(body, new Date(utcDate.getTime() + half));
+        var d = lonAfter - lonBefore;
         while (d > 180) d -= 360;
         while (d < -180) d += 360;
-        return d < 0;
+        return d < 0; // longitude decreasing => retrograde
       }
 
       const planets = BODIES.map(({ name, body }) => {
@@ -1528,15 +1561,28 @@
         const con = Astronomy.Constellation(equatorial.ra, equatorial.dec);
         const eclLon = equatorialToEclipticLon(equatorial.ra, equatorial.dec, eps);
         const retro = isRetrograde(name, body);
+        // Canonical SBA body placement fields (additive; existing keys kept).
+        const degree = Math.floor(eclLon);
+        const minute = Math.floor((eclLon - degree) * 60);
+        const element = SIGN_ELEMENTS[con.name] || null;
         return {
+          // canonical schema
+          name: name,
+          sign: con.name,
+          degree: degree,
+          minute: minute,
+          longitude: eclLon,
+          motion: retro ? "Retrograde" : "Direct",
+          retrograde: retro,
+          element: element,
+          // existing keys preserved for all current consumers
           body: name,
           constellation: con.name,
           ra: formatRA(equatorial.ra),
           dec: formatDec(equatorial.dec),
           eclipticLon: eclLon,
-          retrograde: retro,
-          motion: retro ? "Retrograde" : "Direct",
           ...withHouse(con.name),
+          house: (withHouse(con.name).sbaHouseNumber) ?? null,
         };
       });
 
@@ -1859,7 +1905,7 @@
     function buildWheelSVG(result) {
       const rawPlanetBand = [
         ...result.planets.map(p => ({
-          label: abbrev(p.body),
+          label: abbrev(p.body) + (p.retrograde ? " R" : ""),
           eclipticLon: p.eclipticLon,
           houseNum: p.sbaHouseNumber,
           type: "planet",
@@ -2248,15 +2294,17 @@
         <div class="section-divider"></div>
 
         <div class="angles-section">
-          <div class="angles-heading">SBA House Reference</div>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr><th>House</th><th>Constellation</th><th>Name</th><th>Theme</th><th>Phrase</th></tr>
-              </thead>
-              <tbody>${houseRefRows}</tbody>
-            </table>
-          </div>
+          <details class="house-ref-fold">
+            <summary class="angles-heading house-ref-summary">SBA House Reference<span class="fold-hint"></span></summary>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr><th>House</th><th>Constellation</th><th>Name</th><th>Theme</th><th>Phrase</th></tr>
+                </thead>
+                <tbody>${houseRefRows}</tbody>
+              </table>
+            </div>
+          </details>
         </div>
       `;
       resultsEl.hidden = false;
@@ -2354,10 +2402,13 @@
         $("unsavedModal").hidden = false;
       }
 
-      function openCard(id) {
+      var currentChartContext = null; // e.g. { retrograde: true } for this reading
+
+      function openCard(id, chartContext) {
         var card = L.getCard(id);
         if (!card) return;
         currentCardId = id; editing = false; dirty = false; baseline = null; lastSavedAt = null;
+        currentChartContext = chartContext || null;
         renderCardView(card);
         $("interpSave").hidden = true;
         $("interpSave").disabled = false;
@@ -2381,6 +2432,15 @@
         }
         if (card.kind === "body" && card.banner) {
           html += '<div class="interp-ref">' + esc(card.banner) + '</div>';
+        }
+        // Chart-context note: shown when a body page is opened from a calculated
+        // placement, reflecting that reading's retrograde status.
+        if (card.kind === "body" && currentChartContext && typeof currentChartContext.retrograde === "boolean") {
+          html += '<div class="interp-ref" style="background:#fbf4ef;">In this chart · Motion: ' +
+            (currentChartContext.retrograde ? "Retrograde (Rx)" : "Direct") +
+            (currentChartContext.sign ? ' · ' + esc(currentChartContext.sign) : '') +
+            (currentChartContext.element ? ' · ' + esc(currentChartContext.element) : '') +
+            '</div>';
         }
 
         function viewField(label, val) {
@@ -2618,7 +2678,7 @@
 
       function renderLibrary(filter) {
         var q = (filter || "").trim().toLowerCase();
-        var groups = { house: [], cycle: [], body: [], angle: [], point: [] };
+        var groups = { house: [], cycle: [], body: [], angle: [], point: [], element: [], retro: [] };
         L.coreCards().forEach(function (c) {
           if (q) {
             var hay = (c.title + " " + (c.slug || "") + " " + c.id).toLowerCase();
@@ -2633,6 +2693,8 @@
         $("libBodies").innerHTML = groups.body.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libAngles").innerHTML = groups.angle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libPoints").innerHTML = groups.point.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libElements").innerHTML = groups.element.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libRetros").innerHTML = groups.retro.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
 
         renderMatrix(q);
       }
@@ -2722,7 +2784,11 @@
             var houseId = L.houseIdForConstellation(constellation);
 
             if (firstHead === "body") {
-              placements.bodies.push({ key: name, id: L.bodyId(name), constellation: constellation, houseId: houseId, houseName: houseName });
+              // The body cell may contain an "Rx" badge; the last cell is Motion.
+              var cleanName = name.replace(/\s*Rx\s*$/, "").trim();
+              var motionCell = cells[cells.length - 1] ? cells[cells.length - 1].textContent.trim() : "";
+              var isRetro = /rx/i.test(name) || /retro/i.test(motionCell);
+              placements.bodies.push({ key: cleanName, id: L.bodyId(cleanName), constellation: constellation, houseId: houseId, houseName: houseName, retrograde: isRetro, element: L.elementForSign ? L.elementForSign(constellation) : null });
             } else if (firstHead === "angle") {
               placements.angles.push({ key: name, id: L.angleId(name), constellation: constellation, houseId: houseId, houseName: houseName });
             } else if (firstHead === "point") {
@@ -2749,7 +2815,7 @@
         if (!p.constellation || p.constellation === "—") return "";
         var houseCard = p.houseId ? L.getCard(p.houseId) : null;
         var houseNum = houseCard && houseCard.ref ? houseCard.ref.house : "";
-        var head = esc(p.key) + " in " + esc(p.constellation) +
+        var head = esc(p.key) + (p.retrograde ? " (Retrograde)" : "") + " in " + esc(p.constellation) +
           (houseNum ? ", House " + houseNum : "") + " — ";
         return head + '<span style="color:#b08a8a">[AJ to write combined meaning]</span>';
       }
@@ -2763,8 +2829,12 @@
         if (p.constellation && p.constellation !== "—") {
           sub = esc(p.constellation) + (p.houseName ? " · " + esc(p.houseName) : "");
         }
-        return '<div class="interp-row" ' + (p.id ? 'data-card="' + esc(p.id) + '"' : '') + '>' +
-          '<div><div class="ir-main">' + esc(p.key) + '</div>' +
+        var rxTag = p.retrograde ? ' <span class="rx-badge">Rx</span>' : '';
+        return '<div class="interp-row" ' + (p.id ? 'data-card="' + esc(p.id) + '"' : '') +
+          (p.retrograde ? ' data-retro="1"' : '') +
+          (p.constellation && p.constellation !== "—" ? ' data-sign="' + esc(p.constellation) + '"' : '') +
+          (p.element ? ' data-element="' + esc(p.element) + '"' : '') + '>' +
+          '<div><div class="ir-main">' + esc(p.key) + rxTag + '</div>' +
           (sub ? '<div class="ir-sub">' + sub + '</div>' : '') +
           (showTemplate ? '<div class="ir-template">' + templateLine(p) + '</div>' : '') +
           '</div>' + status + '</div>';
@@ -2857,7 +2927,15 @@
           var card = e.target.closest("[data-card]");
           if (card && (card.classList.contains("lib-card") || card.classList.contains("interp-row"))) {
             var targetId = card.getAttribute("data-card");
-            guardLeave(function () { editing = false; dirty = false; openCard(targetId); });
+            var ctx = null;
+            if (card.classList.contains("interp-row") && targetId.indexOf("body:") === 0) {
+              ctx = {
+                retrograde: card.getAttribute("data-retro") === "1",
+                sign: card.getAttribute("data-sign") || "",
+                element: card.getAttribute("data-element") || ""
+              };
+            }
+            guardLeave(function () { editing = false; dirty = false; openCard(targetId, ctx); });
           }
         });
 
@@ -3020,6 +3098,12 @@
       var ANGLE_KEYS = ["Ascendant (AC)","Descendant (DC)","Midheaven (MC)","Imum Coeli (IC)"];
       var POINT_KEYS = ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"];
       var CYCLE_KEYS = ["SBA Year","SBA Lunar Month"];
+      var ELEMENT_KEYS = ["Fire","Earth","Air","Water","Element Balance"];
+      var RETRO_KEYS = [
+        "What is Retrograde?",
+        "Mercury Retrograde","Venus Retrograde","Mars Retrograde","Jupiter Retrograde",
+        "Saturn Retrograde","Uranus Retrograde","Neptune Retrograde","Pluto Retrograde"
+      ];
 
       // ── Interpretation Matrix (applied combinations, separate from doctrine) ──
       // The 13 SBA signs, and the angle/point labels used for matrix combinations.
@@ -3085,6 +3169,12 @@
         });
         POINT_KEYS.forEach(function (k) {
           cards["point:" + k] = { id: "point:" + k, slug: slugify(k), kind: "point", title: k, fields: blankFields() };
+        });
+        ELEMENT_KEYS.forEach(function (k) {
+          cards["element:" + k] = { id: "element:" + k, slug: slugify(k), kind: "element", title: k, fields: blankFields() };
+        });
+        RETRO_KEYS.forEach(function (k) {
+          cards["retro:" + k] = { id: "retro:" + k, slug: slugify(k), kind: "retro", title: k, fields: blankFields() };
         });
 
         // ── Interpretation Matrix placeholder items (empty; AJ writes meanings) ──
@@ -3297,6 +3387,17 @@
         return !anyField && !anyExtra;
       }
 
+      // Sign → element (mirrors the engine's SIGN_ELEMENTS; used by the
+      // interpretation layer so placements can reference element consistently).
+      var SIGN_ELEMENTS_LIB = {
+        Aries: "Fire", Leo: "Fire", Sagittarius: "Fire",
+        Taurus: "Earth", Virgo: "Earth", Capricornus: "Earth",
+        Gemini: "Air", Libra: "Air", Aquarius: "Air",
+        Cancer: "Water", Scorpius: "Water", Pisces: "Water",
+        Ophiuchus: "Water"
+      };
+      function elementForSign(sign) { return SIGN_ELEMENTS_LIB[sign] || null; }
+
       window.SBALibrary = {
         LIB_KEY: LIB_KEY,
         EMPTY: EMPTY,
@@ -3330,6 +3431,7 @@
         matrixCounts: matrixCounts,
         searchMatrix: searchMatrix,
         isCardEmpty: isCardEmpty,
+        elementForSign: elementForSign,
         getLinks: getLinks,
         setLinks: setLinks,
         resolveLink: resolveLink,
