@@ -284,6 +284,21 @@
       border-radius: 3px; padding: 0 0.25rem; margin-left: 0.25rem;
       letter-spacing: 0.02em;
     }
+    td.motion-cell { font-size: 0.85rem; color: #555; white-space: nowrap; }
+    td.motion-cell.is-retro { color: #8b2020; font-weight: 600; }
+
+    .motion-debug {
+      margin-top: 1.25rem; background: #f7f4ee; border: 1px dashed #cdbf9f;
+      border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.82rem; color: #4a4438;
+    }
+    .motion-debug .md-title {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: #8a7f6c; margin-bottom: 0.5rem; font-weight: 700;
+    }
+    .motion-debug .md-cols {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; line-height: 1.6;
+    }
+    @media (max-width: 640px) { .motion-debug .md-cols { grid-template-columns: 1fr; } }
 
     /* Collapsible SBA House Reference */
     .house-ref-fold { }
@@ -1330,6 +1345,22 @@
       Ophiuchus: "Water",
     };
 
+    // ── Universal motion display pipeline (single source of truth) ──────────────
+    // Used by every rendered surface: wheel, tables, panel, detail cards.
+    function displayPlacementName(p) {
+      if (!p) return "";
+      return p.retrograde === true ? (p.name + " Rx") : p.name;
+    }
+    function displayMotion(p) {
+      if (!p) return "—";
+      if (p.motion === "Retrograde") return "Retrograde Rx";
+      if (p.motion === "Direct") return "Direct";
+      return "—";
+    }
+    if (typeof window !== "undefined") {
+      window.SBAMotion = { displayPlacementName: displayPlacementName, displayMotion: displayMotion };
+    }
+
     function getSBAHouse(constellation) {
       return SBA_HOUSES[constellation] ?? null;
     }
@@ -1568,6 +1599,7 @@
         return {
           // canonical schema
           name: name,
+          kind: "body",
           sign: con.name,
           degree: degree,
           minute: minute,
@@ -1602,12 +1634,19 @@
 
       function makeAngle(name, lon) {
         const con = constellationForEclipticLon(lon, eps);
+        const houseData = withHouse(con);
         return {
           name,
+          kind: "angle",
           eclipticLon: lon,
           eclipticLonFormatted: formatEclipticLon(lon),
           constellation: con,
-          ...withHouse(con),
+          ...houseData,
+          sign: con,
+          house: houseData.sbaHouseNumber ?? null,
+          longitude: lon,
+          motion: "Not applicable",
+          retrograde: null,
         };
       }
 
@@ -1624,6 +1663,7 @@
 
       const unavailable = {
         name: "",
+        kind: "point",
         eclipticLon: 0,
         eclipticLonFormatted: "Not available yet",
         constellation: "—",
@@ -1653,6 +1693,7 @@
           const mi = motionInfo || { motion: "Not applicable", retrograde: null };
           return {
             name: label,
+            kind: "point",
             eclipticLon: lon,
             eclipticLonFormatted: formatEclipticLon(lon),
             constellation: con,
@@ -1944,7 +1985,7 @@
     function buildWheelSVG(result) {
       const rawPlanetBand = [
         ...result.planets.map(p => ({
-          label: abbrev(p.body) + (p.retrograde ? " R" : ""),
+          label: abbrev(p.body) + (p.retrograde === true ? " Rx" : ""),
           eclipticLon: p.eclipticLon,
           houseNum: p.sbaHouseNumber,
           type: "planet",
@@ -1960,7 +2001,7 @@
       const rawPointsBand = result.additionalPoints
         .filter(pt => pt.eclipticLonFormatted !== "Not available yet")
         .map(pt => ({
-          label: abbrev(pt.name) + (pt.retrograde === true ? " R" : ""),
+          label: abbrev(pt.name) + (pt.retrograde === true ? " Rx" : ""),
           eclipticLon: pt.eclipticLon,
           houseNum: pt.sbaHouseNumber,
           type: "point",
@@ -2207,37 +2248,33 @@
     function renderResults(result, submittedName, submittedBirth) {
       const planetRows = result.planets.map(p => `
         <tr>
-          <td class="body-name">${esc(p.body)}${p.retrograde ? ' <span class="rx-badge">Rx</span>' : ''}</td>
+          <td class="body-name">${esc(displayPlacementName(p))}</td>
+          <td class="motion-cell${p.retrograde === true ? ' is-retro' : ''}">${esc(displayMotion(p))}</td>
           <td class="constellation">${esc(p.constellation)}</td>
           <td class="sba-house-num">${p.sbaHouseNumber ?? "—"}</td>
           <td class="sba-house-name">${esc(p.sbaHouseName)}</td>
-          <td class="ra-dec">${esc(p.ra)}</td>
-          <td class="ra-dec">${esc(p.dec)}</td>
-          <td class="constellation">${esc(p.motion ?? "Direct")}</td>
+          <td class="ra-dec">${esc(formatEclipticLon(p.eclipticLon))}</td>
         </tr>`).join("");
 
       const angleRows = result.angles.map(a => `
         <tr>
-          <td class="body-name">${esc(a.name)}</td>
+          <td class="body-name">${esc(displayPlacementName(a))}</td>
+          <td class="motion-cell">${esc(displayMotion(a))}</td>
           <td class="constellation">${esc(a.constellation)}</td>
           <td class="sba-house-num">${a.sbaHouseNumber ?? "—"}</td>
           <td class="sba-house-name">${esc(a.sbaHouseName)}</td>
           <td class="ra-dec">${esc(a.eclipticLonFormatted)}</td>
         </tr>`).join("");
 
-      const pointRows = (result.additionalPoints ?? []).map(pt => {
-        const motionText = pt.motion === "Direct" || pt.motion === "Retrograde" ? pt.motion : "—";
-        const rx = pt.retrograde === true ? ' <span class="rx-badge">Rx</span>' : '';
-        return `
+      const pointRows = (result.additionalPoints ?? []).map(pt => `
         <tr>
-          <td class="body-name">${esc(pt.name)}${rx}</td>
+          <td class="body-name">${esc(displayPlacementName(pt))}</td>
+          <td class="motion-cell${pt.retrograde === true ? ' is-retro' : ''}">${esc(displayMotion(pt))}</td>
           <td class="constellation">${esc(pt.constellation)}</td>
           <td class="sba-house-num">${pt.sbaHouseNumber ?? "—"}</td>
           <td class="sba-house-name">${esc(pt.sbaHouseName)}</td>
           <td class="ra-dec">${esc(pt.eclipticLonFormatted)}</td>
-          <td class="constellation">${esc(motionText)}</td>
-        </tr>`;
-      }).join("");
+        </tr>`).join("");
 
       const houseRefRows = SBA_HOUSES_ORDERED.map(h => `
         <tr>
@@ -2292,6 +2329,15 @@
           ${buildWheelSVG(result)}
         </div>
 
+        <div class="motion-debug">
+          <div class="md-title">Motion Debug (temporary)</div>
+          <div class="md-cols">
+            <div><strong>Bodies</strong><br>${result.planets.map(p => `${esc(p.name)} = ${esc(displayMotion(p))}`).join("<br>")}</div>
+            <div><strong>Points</strong><br>${(result.additionalPoints ?? []).filter(pt => pt.eclipticLonFormatted !== "Not available yet").map(pt => `${esc(pt.name)} = ${esc(displayMotion(pt))}`).join("<br>")}</div>
+            <div><strong>Angles</strong><br>${result.angles.map(a => `${esc(a.name)} = ${esc(displayMotion(a))}`).join("<br>")}</div>
+          </div>
+        </div>
+
         <div class="section-divider"></div>
 
         <div class="angles-section">
@@ -2299,7 +2345,7 @@
           <div class="table-container">
             <table>
               <thead>
-                <tr><th>Angle</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
+                <tr><th>Angle</th><th>Motion</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
               </thead>
               <tbody>${angleRows}</tbody>
             </table>
@@ -2314,7 +2360,7 @@
           <div class="table-container">
             <table>
               <thead>
-                <tr><th>Point</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th><th>Motion</th></tr>
+                <tr><th>Point</th><th>Motion</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
               </thead>
               <tbody>${pointRows}</tbody>
             </table>
@@ -2329,7 +2375,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>Body</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Right Ascension</th><th>Declination</th><th>Motion</th></tr>
+              <tr><th>Body</th><th>Motion</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
             </thead>
             <tbody>${planetRows}</tbody>
           </table>
@@ -2813,51 +2859,52 @@
         placements.cycles.push({ key: "SBA Year", id: L.cycleId("SBA Year") });
         placements.cycles.push({ key: "SBA Lunar Month", id: L.cycleId("SBA Lunar Month") });
 
-        // Walk every results table; classify rows by their first cell.
+        // Walk every results table; read cells BY HEADER NAME (robust to any
+        // column ordering) rather than by fixed index.
         var tables = root.querySelectorAll("table");
         tables.forEach(function (tbl) {
           var headers = Array.prototype.map.call(tbl.querySelectorAll("thead th"), function (th) {
             return th.textContent.trim().toLowerCase();
           });
-          // Skip the House Reference table (first header is "House").
-          if (headers[0] === "house") return;
+          if (headers[0] === "house") return; // skip House Reference table
           var firstHead = headers[0] || "";
+          var idx = {};
+          headers.forEach(function (h, i) { idx[h] = i; });
+
           var rows = tbl.querySelectorAll("tbody tr");
           rows.forEach(function (tr) {
             var cells = tr.querySelectorAll("td");
             if (cells.length < 2) return;
-            var name = cells[0].textContent.trim();
-            var constellation = cells[1] ? cells[1].textContent.trim() : "";
-            var houseName = cells[3] ? cells[3].textContent.trim() : "";
+            function cellByHeader(h) {
+              var i = idx[h];
+              return (i != null && cells[i]) ? cells[i].textContent.trim() : "";
+            }
+            var rawName = cells[0].textContent.trim();
+            var name = rawName.replace(/\s*Rx\s*$/i, "").trim();
+            var constellation = cellByHeader("constellation");
+            var houseName = cellByHeader("house name");
             var houseId = L.houseIdForConstellation(constellation);
+            var motionText = cellByHeader("motion");
+            var isRetro = /rx/i.test(rawName) || /retro/i.test(motionText);
+            var motion = /retro/i.test(motionText) ? "Retrograde"
+                       : /direct/i.test(motionText) ? "Direct"
+                       : "Not applicable";
 
             if (firstHead === "body") {
-              // The body cell may contain an "Rx" badge; the last cell is Motion.
-              var cleanName = name.replace(/\s*Rx\s*$/, "").trim();
-              var motionCell = cells[cells.length - 1] ? cells[cells.length - 1].textContent.trim() : "";
-              var isRetro = /rx/i.test(name) || /retro/i.test(motionCell);
-              placements.bodies.push({ key: cleanName, id: L.bodyId(cleanName), constellation: constellation, houseId: houseId, houseName: houseName, retrograde: isRetro, element: L.elementForSign ? L.elementForSign(constellation) : null });
+              placements.bodies.push({ key: name, id: L.bodyId(name), constellation: constellation, houseId: houseId, houseName: houseName, retrograde: isRetro, motion: motion, element: L.elementForSign ? L.elementForSign(constellation) : null });
             } else if (firstHead === "angle") {
-              placements.angles.push({ key: name, id: L.angleId(name), constellation: constellation, houseId: houseId, houseName: houseName });
+              placements.angles.push({ key: name, id: L.angleId(name), constellation: constellation, houseId: houseId, houseName: houseName, retrograde: false, motion: "Not applicable" });
             } else if (firstHead === "point") {
-              // Point names may carry suffixes e.g. "Part of Fortune (day)"; map by prefix.
               var pid = L.pointId(name);
               if (!pid) {
-                ["North Node","South Node","Chiron","Lilith (Mean BML)","Part of Fortune","Vertex (VX)"].forEach(function (base) {
-                  if (!pid && name.indexOf(base.replace(" (Mean BML)","").replace(" (VX)","")) === 0) pid = L.pointId(base);
-                });
-                if (!pid && name.indexOf("Part of Fortune") === 0) pid = L.pointId("Part of Fortune");
+                if (name.indexOf("Part of Fortune") === 0) pid = L.pointId("Part of Fortune");
                 if (!pid && name.indexOf("Lilith") === 0) pid = L.pointId("Lilith (Mean BML)");
                 if (!pid && name.indexOf("Vertex") === 0) pid = L.pointId("Vertex (VX)");
+                if (!pid && name.indexOf("North Node") === 0) pid = L.pointId("North Node");
+                if (!pid && name.indexOf("South Node") === 0) pid = L.pointId("South Node");
+                if (!pid && name.indexOf("Chiron") === 0) pid = L.pointId("Chiron");
               }
-              // Point cell may carry an "Rx" badge; last cell is Motion.
-              var cleanPointName = name.replace(/\s*Rx\s*$/, "").trim();
-              var pMotionCell = cells[cells.length - 1] ? cells[cells.length - 1].textContent.trim() : "";
-              var pRetro = /rx/i.test(name) || /^retro/i.test(pMotionCell);
-              var pMotion = /retro/i.test(pMotionCell) ? "Retrograde"
-                          : /direct/i.test(pMotionCell) ? "Direct"
-                          : "Not applicable";
-              placements.points.push({ key: cleanPointName, id: pid, constellation: constellation, houseId: houseId, houseName: houseName, retrograde: pRetro, motion: pMotion });
+              placements.points.push({ key: name, id: pid, constellation: constellation, houseId: houseId, houseName: houseName, retrograde: isRetro, motion: motion });
             }
           });
         });
@@ -2883,6 +2930,12 @@
         var sub = "";
         if (p.constellation && p.constellation !== "—") {
           sub = esc(p.constellation) + (p.houseName ? " · " + esc(p.houseName) : "");
+        }
+        // Motion tag via the universal helper (only when meaningful).
+        var M = window.SBAMotion;
+        var motionStr = M ? M.displayMotion(p) : (p.motion || "");
+        if (motionStr && motionStr !== "—") {
+          sub += (sub ? " · " : "") + '<span' + (p.retrograde ? ' style="color:#8b2020;font-weight:600;"' : '') + '>' + esc(motionStr) + '</span>';
         }
         var rxTag = p.retrograde ? ' <span class="rx-badge">Rx</span>' : '';
         return '<div class="interp-row" ' + (p.id ? 'data-card="' + esc(p.id) + '"' : '') +
