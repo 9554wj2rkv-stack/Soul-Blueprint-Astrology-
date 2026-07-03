@@ -1631,18 +1631,40 @@
         sbaHouseName: "—",
         sbaHouseTheme: "—",
         sbaHousePhrase: "—",
+        sign: "—",
+        house: null,
+        degree: null,
+        minute: null,
+        longitude: null,
+        motion: "Not applicable",
+        retrograde: null,
       };
 
-      function tryPoint(label, compute) {
+      // motionInfo is optional: { motion: "Direct"|"Retrograde"|"Not applicable",
+      //                           retrograde: true|false|null }
+      // Default (omitted) = Not applicable / null (calculated chart points).
+      function tryPoint(label, compute, motionInfo) {
         try {
           const lon = compute();
           const con = constellationForEclipticLon(lon, eps);
+          const degree = Math.floor(lon);
+          const minute = Math.floor((lon - degree) * 60);
+          const houseData = withHouse(con);
+          const mi = motionInfo || { motion: "Not applicable", retrograde: null };
           return {
             name: label,
             eclipticLon: lon,
             eclipticLonFormatted: formatEclipticLon(lon),
             constellation: con,
-            ...withHouse(con),
+            ...houseData,
+            // canonical fields (parallel to bodies)
+            sign: con,
+            house: houseData.sbaHouseNumber ?? null,
+            degree: degree,
+            minute: minute,
+            longitude: lon,
+            motion: mi.motion,
+            retrograde: mi.retrograde,
           };
         } catch (err) {
           console.error(`[SBA] Additional point "${label}" failed:`, err);
@@ -1650,39 +1672,56 @@
         }
       }
 
+      // Generic motion from any longitude(t) function, symmetric ±12h, same
+      // robust centred-derivative approach used for planetary bodies.
+      function motionFromLonFn(lonFn) {
+        const half = 43200000;
+        const before = lonFn(new Date(utcDate.getTime() - half));
+        const after = lonFn(new Date(utcDate.getTime() + half));
+        let dd = after - before;
+        while (dd > 180) dd -= 360;
+        while (dd < -180) dd += 360;
+        const retro = dd < 0;
+        return { motion: retro ? "Retrograde" : "Direct", retrograde: retro };
+      }
+
       // 1. Mean North Node: Ω = 125.0445479 − 0.0529539297·d
+      // Motion computed from the same formula over time (mean node moves steadily).
+      const nodeMotion = motionFromLonFn(function (when) {
+        const dd = julianDate(when) - 2451545.0;
+        return normalize360(125.0445479 - 0.0529539297 * dd);
+      });
       const northNodePoint = tryPoint("North Node", () =>
         normalize360(125.0445479 - 0.0529539297 * d)
-      );
+      , nodeMotion);
 
-      // 2. South Node: opposite of North Node
+      // 2. South Node: opposite of North Node — inherits the same motion.
       const southNodePoint = tryPoint("South Node", () =>
         normalize360(northNodePoint.eclipticLon + 180)
-      );
+      , nodeMotion);
 
-      // 3. Chiron (Keplerian geocentric ecliptic longitude)
-      const chironPoint = tryPoint("Chiron", () => {
-        const chironElements = {
-          epochJD: 2452195.5,
-          e: 0.38303,
-          a: 13.6253,
-          i: 6.9218,
-          Omega: 339.1968,
-          omega: 338.7706,
-          M0: 350.6744,
-          n: 0.019549,
-        };
-        const chironHelio = helioEclipticFromElements(jd, chironElements);
-        const earthVec = Astronomy.HelioVector(Astronomy.Body.Earth, utcDate);
-        return geocentricEclipticLon(chironHelio, earthVec);
-      });
+      // 3. Chiron (Keplerian geocentric ecliptic longitude) — real geocentric
+      //    motion via the same longitude pipeline sampled over time.
+      const chironElements = {
+        epochJD: 2452195.5, e: 0.38303, a: 13.6253, i: 6.9218,
+        Omega: 339.1968, omega: 338.7706, M0: 350.6744, n: 0.019549,
+      };
+      function chironLonAt(when) {
+        const helio = helioEclipticFromElements(julianDate(when), chironElements);
+        const earthVec = Astronomy.HelioVector(Astronomy.Body.Earth, when);
+        return geocentricEclipticLon(helio, earthVec);
+      }
+      const chironMotion = motionFromLonFn(chironLonAt);
+      const chironPoint = tryPoint("Chiron", () => chironLonAt(utcDate), chironMotion);
 
-      // 4. Mean Black Moon Lilith (mean lunar apogee)
+      // 4. Mean Black Moon Lilith (mean lunar apogee) — a MEAN point; its steady
+      //    drift is not a meaningful Direct/Retrograde status, so per the rules
+      //    motion is Not applicable.
       const lilithPoint = tryPoint("Lilith (Mean BML)", () =>
         normalize360(83.3532465 + 0.11140353 * d)
-      );
+      , { motion: "Not applicable", retrograde: null });
 
-      // 5. Part of Fortune (day/night aware)
+      // 5. Part of Fortune (day/night aware) — calculated chart point: N/A.
       let isDayBirth = false;
       const pofPoint = tryPoint("Part of Fortune", () => {
         const sunLon = Astronomy.SunPosition(utcDate).elon;
@@ -1693,7 +1732,7 @@
         return isDayBirth
           ? normalize360(acLon + moonLon - sunLon)
           : normalize360(acLon - moonLon + sunLon);
-      });
+      }, { motion: "Not applicable", retrograde: null });
       if (pofPoint.eclipticLonFormatted !== "Not available yet") {
         pofPoint.name = `Part of Fortune (${isDayBirth ? "day" : "night"})`;
       }
@@ -1921,7 +1960,7 @@
       const rawPointsBand = result.additionalPoints
         .filter(pt => pt.eclipticLonFormatted !== "Not available yet")
         .map(pt => ({
-          label: abbrev(pt.name),
+          label: abbrev(pt.name) + (pt.retrograde === true ? " R" : ""),
           eclipticLon: pt.eclipticLon,
           houseNum: pt.sbaHouseNumber,
           type: "point",
@@ -2186,14 +2225,19 @@
           <td class="ra-dec">${esc(a.eclipticLonFormatted)}</td>
         </tr>`).join("");
 
-      const pointRows = (result.additionalPoints ?? []).map(pt => `
+      const pointRows = (result.additionalPoints ?? []).map(pt => {
+        const motionText = pt.motion === "Direct" || pt.motion === "Retrograde" ? pt.motion : "—";
+        const rx = pt.retrograde === true ? ' <span class="rx-badge">Rx</span>' : '';
+        return `
         <tr>
-          <td class="body-name">${esc(pt.name)}</td>
+          <td class="body-name">${esc(pt.name)}${rx}</td>
           <td class="constellation">${esc(pt.constellation)}</td>
           <td class="sba-house-num">${pt.sbaHouseNumber ?? "—"}</td>
           <td class="sba-house-name">${esc(pt.sbaHouseName)}</td>
           <td class="ra-dec">${esc(pt.eclipticLonFormatted)}</td>
-        </tr>`).join("");
+          <td class="constellation">${esc(motionText)}</td>
+        </tr>`;
+      }).join("");
 
       const houseRefRows = SBA_HOUSES_ORDERED.map(h => `
         <tr>
@@ -2270,7 +2314,7 @@
           <div class="table-container">
             <table>
               <thead>
-                <tr><th>Point</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th></tr>
+                <tr><th>Point</th><th>Constellation</th><th>SBA House</th><th>House Name</th><th>Ecliptic Longitude</th><th>Motion</th></tr>
               </thead>
               <tbody>${pointRows}</tbody>
             </table>
@@ -2441,6 +2485,10 @@
             (currentChartContext.sign ? ' · ' + esc(currentChartContext.sign) : '') +
             (currentChartContext.element ? ' · ' + esc(currentChartContext.element) : '') +
             '</div>';
+        }
+        if (card.kind === "point" && currentChartContext && currentChartContext.pointMotion) {
+          html += '<div class="interp-ref" style="background:#fbf4ef;">In this chart · Motion: ' +
+            esc(currentChartContext.pointMotion) + '</div>';
         }
 
         function viewField(label, val) {
@@ -2802,7 +2850,14 @@
                 if (!pid && name.indexOf("Lilith") === 0) pid = L.pointId("Lilith (Mean BML)");
                 if (!pid && name.indexOf("Vertex") === 0) pid = L.pointId("Vertex (VX)");
               }
-              placements.points.push({ key: name, id: pid, constellation: constellation, houseId: houseId, houseName: houseName });
+              // Point cell may carry an "Rx" badge; last cell is Motion.
+              var cleanPointName = name.replace(/\s*Rx\s*$/, "").trim();
+              var pMotionCell = cells[cells.length - 1] ? cells[cells.length - 1].textContent.trim() : "";
+              var pRetro = /rx/i.test(name) || /^retro/i.test(pMotionCell);
+              var pMotion = /retro/i.test(pMotionCell) ? "Retrograde"
+                          : /direct/i.test(pMotionCell) ? "Direct"
+                          : "Not applicable";
+              placements.points.push({ key: cleanPointName, id: pid, constellation: constellation, houseId: houseId, houseName: houseName, retrograde: pRetro, motion: pMotion });
             }
           });
         });
@@ -2833,7 +2888,8 @@
         return '<div class="interp-row" ' + (p.id ? 'data-card="' + esc(p.id) + '"' : '') +
           (p.retrograde ? ' data-retro="1"' : '') +
           (p.constellation && p.constellation !== "—" ? ' data-sign="' + esc(p.constellation) + '"' : '') +
-          (p.element ? ' data-element="' + esc(p.element) + '"' : '') + '>' +
+          (p.element ? ' data-element="' + esc(p.element) + '"' : '') +
+          (p.motion ? ' data-motion="' + esc(p.motion) + '"' : '') + '>' +
           '<div><div class="ir-main">' + esc(p.key) + rxTag + '</div>' +
           (sub ? '<div class="ir-sub">' + sub + '</div>' : '') +
           (showTemplate ? '<div class="ir-template">' + templateLine(p) + '</div>' : '') +
@@ -2934,6 +2990,9 @@
                 sign: card.getAttribute("data-sign") || "",
                 element: card.getAttribute("data-element") || ""
               };
+            }
+            if (card.classList.contains("interp-row") && targetId.indexOf("point:") === 0) {
+              ctx = { pointMotion: card.getAttribute("data-motion") || "Not applicable" };
             }
             guardLeave(function () { editing = false; dirty = false; openCard(targetId, ctx); });
           }
