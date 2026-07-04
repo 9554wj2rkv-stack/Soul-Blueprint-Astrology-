@@ -4526,30 +4526,34 @@
       // Future: eris, sedna, orcus, quaoar, haumea, makemake, gonggong … (one row each)
     ];
 
-    // ── JPL Horizons adapter (real, live, generic) ─────────────────────────────
-    // Requests geocentric apparent ecliptic longitude for an object at three
-    // epochs (birth −12h, birth, birth +12h) so motion is derived by the same
-    // ±12h rule the SBA engine uses. No chart values are hard-coded.
+    // JPL object map: SBA object → Horizons COMMAND. Planets use major-body
+    // ids; Chiron uses the small-body designation. Nodes/Vertex/PoF have no JPL
+    // body (they're derived/chart points) and are validated differently.
+    var JPL_COMMAND = {
+      "Sun": "10", "Moon": "301",
+      "Mercury": "199", "Venus": "299", "Mars": "499",
+      "Jupiter": "599", "Saturn": "699", "Uranus": "799", "Neptune": "899", "Pluto": "999",
+      "Chiron": "2060;"
+    };
+
     var HORIZONS = "https://ssd.jpl.nasa.gov/api/horizons.api";
 
     function pad(n) { return String(n).padStart(2, "0"); }
     function horizonsTime(d) {
-      // "YYYY-MM-DD HH:MM" in UTC, the format Horizons expects.
       return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) +
              " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
     }
 
-    function buildHorizonsURL(spkId, startUTC, stopUTC) {
-      // QUANTITIES='31' → Observer ecliptic longitude & latitude (apparent).
-      // CENTER='500@399' → geocentric (Earth centre). STEP_SIZE='12 h' → 3 rows.
+    // QUANTITIES: 29 = constellation ID; 31 = observer ecliptic lon/lat (apparent).
+    function buildHorizonsURL(command, startUTC, stopUTC) {
       var p = {
         format: "json",
-        COMMAND: "'" + spkId + ";'",           // small-body designation
+        COMMAND: "'" + command + "'",
         OBJ_DATA: "'NO'",
         MAKE_EPHEM: "'YES'",
         EPHEM_TYPE: "'OBSERVER'",
         CENTER: "'500@399'",
-        QUANTITIES: "'31'",
+        QUANTITIES: "'29,31'",
         ANG_FORMAT: "'DEG'",
         CAL_FORMAT: "'CAL'",
         START_TIME: "'" + horizonsTime(startUTC) + "'",
@@ -4562,72 +4566,65 @@
       return HORIZONS + "?" + q;
     }
 
-    // Parse Horizons OBSERVER text: pull ObsEcLon (deg) from each $$SOE…$$EOE row.
-    // Returns an array of numbers in row order. Pure + testable.
-    function parseObsEcLon(resultText) {
-      var lons = [];
-      if (!resultText) return lons;
-      var soe = resultText.indexOf("$$SOE");
-      var eoe = resultText.indexOf("$$EOE");
-      if (soe === -1 || eoe === -1) return lons;
+    // Parse Horizons OBSERVER rows → array of { lon, lat, constellation }.
+    // Column layout (QUANTITIES 29,31): date  time  Cnst  ObsEcLon  ObsEcLat
+    function parseHorizonsRows(resultText) {
+      var rows = [];
+      if (!resultText) return rows;
+      var soe = resultText.indexOf("$$SOE"), eoe = resultText.indexOf("$$EOE");
+      if (soe === -1 || eoe === -1) return rows;
       var body = resultText.substring(soe + 5, eoe).trim();
-      var lines = body.split("\n");
-      lines.forEach(function (line) {
+      body.split("\n").forEach(function (line) {
         if (!line.trim()) return;
-        // Rows look like: " 1982-Nov-01 05:35   158.1037  ... "
-        // ObsEcLon is the first floating-point column after the date/time.
-        // Strip the leading date/time token(s), then read the first number.
         var m = line.match(/\d{4}-[A-Za-z]{3}-\d{2}\s+\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s+(.*)$/);
         var rest = m ? m[1] : line;
-        var nums = rest.match(/-?\d+\.\d+/g);
-        if (nums && nums.length) lons.push(parseFloat(nums[0]));
+        // Constellation is a 3-letter IAU abbreviation token; longitudes/lats are floats.
+        var con = (rest.match(/\b([A-Z][a-z]{2})\b/) || [])[1] || "";
+        var nums = rest.match(/-?\d+\.\d+/g) || [];
+        if (nums.length >= 2) rows.push({ constellation: con, lon: parseFloat(nums[0]), lat: parseFloat(nums[1]) });
       });
-      return lons;
+      return rows;
     }
 
     function normalize360(d) { return ((d % 360) + 360) % 360; }
+    function angularDelta(a, b) { var d = b - a; while (d > 180) d -= 360; while (d < -180) d += 360; return d; }
     function motionFromLons(before, after) {
-      var d = after - before;
-      while (d > 180) d -= 360;
-      while (d < -180) d += 360;
+      var d = angularDelta(before, after);
       return { retrograde: d < 0, motion: d < 0 ? "Retrograde" : "Direct", dailyDelta: d };
     }
 
-    // Live fetch for one JPL object at a birth instant → placement fragment.
-    async function jplGetPlacement(spkId, birthUTC) {
-      var half = 43200000; // 12h
+    // Full IAU abbreviation → constellation name, to compare with SBA's names.
+    var IAU = { Ari:"Aries", Tau:"Taurus", Gem:"Gemini", Cnc:"Cancer", Leo:"Leo", Vir:"Virgo",
+      Lib:"Libra", Sco:"Scorpius", Oph:"Ophiuchus", Sgr:"Sagittarius", Cap:"Capricornus",
+      Aqr:"Aquarius", Psc:"Pisces", Cet:"Cetus", Ori:"Orion", Sex:"Sextans", Crt:"Crater",
+      Hya:"Hydra", Ser:"Serpens", Sco2:"Scorpius" };
+
+    async function jplQuery(command, birthUTC) {
+      var half = 43200000;
       var start = new Date(birthUTC.getTime() - half);
       var stop = new Date(birthUTC.getTime() + half);
-      var url = buildHorizonsURL(spkId, start, stop);
+      var url = buildHorizonsURL(command, start, stop);
       var res = await fetch(url, { method: "GET" });
-      if (!res.ok) throw new Error("Horizons HTTP " + res.status);
+      if (!res.ok) throw new Error("HTTP " + res.status);
       var data = await res.json();
-      var lons = parseObsEcLon(data && data.result ? data.result : "");
-      if (lons.length < 3) {
-        throw new Error("Horizons returned " + lons.length + " longitude rows (expected 3). Raw head: " +
-          ((data && data.result) ? data.result.substring(0, 160) : "no result field"));
-      }
-      var before = lons[0], mid = lons[1], after = lons[2];
-      var mo = motionFromLons(before, after);
+      var rows = parseHorizonsRows(data && data.result ? data.result : "");
+      if (rows.length < 3) throw new Error("got " + rows.length + " rows (need 3)");
+      var mo = motionFromLons(rows[0].lon, rows[2].lon);
       return {
-        objectId: "chiron",
-        longitude: normalize360(mid),
-        longitudeBefore: normalize360(before),
-        longitudeAfter: normalize360(after),
-        motion: mo.motion,
-        retrograde: mo.retrograde,
-        dailyDelta: mo.dailyDelta,
-        source: { engine: "jpl:live", label: "JPL Horizons (live)", authoritative: true }
+        longitude: normalize360(rows[1].lon),
+        latitude: rows[1].lat,
+        constellationAbbr: rows[1].constellation,
+        constellation: IAU[rows[1].constellation] || rows[1].constellation,
+        motion: mo.motion, retrograde: mo.retrograde, dailyDelta: mo.dailyDelta
       };
     }
 
-    // ── Expose provider surface (per spec §6) — dormant until called ───────────
     window.SBAProvider = {
-      registry: function () { return REGISTRY.slice(); },
-      _parseObsEcLon: parseObsEcLon,          // exposed for validation/testing
+      _parseHorizonsRows: parseHorizonsRows,
       _buildHorizonsURL: buildHorizonsURL,
       _motionFromLons: motionFromLons,
-      jplGetPlacement: jplGetPlacement
+      jplQuery: jplQuery,
+      JPL_COMMAND: JPL_COMMAND
     };
 
     // ── Comparison / validation layer (renders only when toggled) ──────────────
@@ -4652,15 +4649,31 @@
       return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
     }
 
-    function currentChiron(result) {
-      var pts = (result && result.additionalPoints) || [];
-      for (var i = 0; i < pts.length; i++) {
-        if (pts[i].name && pts[i].name.indexOf("Chiron") === 0) return pts[i];
-      }
-      return null;
+    var lastResult = null;
+
+    // Gather SBA's own values for every object from the computed result.
+    function sbaObjects(result) {
+      var out = [];
+      (result.planets || []).forEach(function (p) {
+        out.push({ name: p.body, group: "body",
+          longitude: p.eclipticLon, latitude: null, // latitude not stored by engine
+          motion: p.motion, retrograde: p.retrograde, constellation: p.constellation });
+      });
+      (result.additionalPoints || []).forEach(function (pt) {
+        if (pt.eclipticLonFormatted === "Not available yet") return;
+        out.push({ name: pt.name, group: "point",
+          longitude: pt.eclipticLon, latitude: null,
+          motion: pt.motion, retrograde: pt.retrograde, constellation: pt.constellation });
+      });
+      return out;
     }
 
-    var lastResult = null;
+    // Which SBA object maps to which JPL command (null = no JPL body to compare).
+    function jplCommandFor(name) {
+      if (JPL_COMMAND[name]) return JPL_COMMAND[name];
+      if (name.indexOf("Chiron") === 0) return JPL_COMMAND["Chiron"];
+      return null; // North/South Node, Vertex, Part of Fortune: no JPL body
+    }
 
     async function runComparison() {
       var panel = $("sbaComparePanel");
@@ -4668,73 +4681,116 @@
       if (!lastResult) { panel.hidden = false; panel.innerHTML = note("Calculate a chart first, then tick this box."); return; }
 
       var birthUTC = birthInstantFromResult(lastResult);
-      var cur = currentChiron(lastResult);
+      var objs = sbaObjects(lastResult);
       panel.hidden = false;
-      panel.innerHTML = note("Querying JPL Horizons for Chiron at " +
-        esc(lastResult.utcDateTime) + " … (requires internet; may be blocked by CORS on some hosts)");
+      panel.innerHTML = note("Querying JPL Horizons for " + objs.filter(function (o) { return jplCommandFor(o.name); }).length +
+        " objects at " + esc(lastResult.utcDateTime) + " … (live; needs internet; may be blocked by CORS on some hosts)");
 
-      var jpl;
-      try {
-        jpl = await jplGetPlacement("2060", birthUTC);
-      } catch (err) {
-        panel.innerHTML = box(
-          "JPL Horizons request failed",
-          "<p style='margin:.3rem 0'>" + esc(err.message) + "</p>" +
-          "<p style='margin:.3rem 0;color:#8a7f6c'>This is expected if the browser blocks cross-origin " +
-          "requests to JPL (CORS). The provider code is correct and generic; the live fetch is the part " +
-          "that depends on the host. If this persists we can add a tiny proxy or a bundled-data path — " +
-          "the architecture supports both without changing anything else.</p>" +
-          "<p style='margin:.3rem 0'><strong>Current-engine Chiron (unchanged):</strong> " +
-          (cur ? fmtLon(cur.eclipticLon) + " · " + esc(cur.constellation) + " · " + esc(cur.motion || "—") : "—") + "</p>",
-          "#8b2020", "#fff3f3");
-        return;
+      var rows = [];
+      var hadNetworkError = false;
+      for (var i = 0; i < objs.length; i++) {
+        var o = objs[i];
+        var cmd = jplCommandFor(o.name);
+        if (!cmd) { rows.push({ o: o, jpl: null, skip: "no JPL body (derived/chart point)" }); continue; }
+        try {
+          var jpl = await jplQuery(cmd, birthUTC);
+          rows.push({ o: o, jpl: jpl });
+        } catch (err) {
+          hadNetworkError = true;
+          rows.push({ o: o, jpl: null, error: err.message });
+        }
       }
 
-      // Build the diff (Chiron is the intentional-improvement case).
-      var dLon = cur ? angularDelta(cur.eclipticLon, jpl.longitude) : null;
-      var motionMatch = cur ? (String(cur.motion) === String(jpl.motion)) : false;
-
-      panel.innerHTML =
-        box("Engine comparison — Chiron (first live validation)",
-          "<table class='cmp'>" +
-          "<tr><th></th><th>Current engine<br><span class='muted'>Keplerian (approx.)</span></th>" +
-          "<th>New provider<br><span class='muted'>JPL Horizons (live)</span></th><th>Δ / match</th></tr>" +
-          row("Ecliptic longitude", cur ? fmtLon(cur.eclipticLon) : "—", fmtLon(jpl.longitude),
-              dLon == null ? "—" : (Math.abs(dLon).toFixed(4) + "°")) +
-          row("Motion", cur ? esc(cur.motion || "—") : "—", esc(jpl.motion),
-              motionMatch ? "✓ match" : "✗ differ") +
-          row("Retrograde flag", cur ? String(cur.retrograde) : "—", String(jpl.retrograde),
-              (cur && cur.retrograde === jpl.retrograde) ? "✓" : "✗") +
-          "</table>" +
-          "<p class='muted' style='margin:.6rem 0 0'>Chiron is the one placement expected to change " +
-          "(current fixed-Keplerian → JPL ephemeris-grade). A small longitude Δ is the improvement. " +
-          "All other bodies are produced by the unchanged current engine and are not altered by this panel. " +
-          "Frame note: JPL ObsEcLon is compared directly to the engine's ecliptic longitude; a fraction-of-a-degree " +
-          "offset can reflect ecliptic-of-date vs frame conventions and will be reconciled before any default switch.</p>",
-          "#5a4e3c", "#faf7f1");
+      panel.innerHTML = renderReport(rows, lastResult, hadNetworkError);
     }
 
-    function angularDelta(a, b) {
-      var d = b - a; while (d > 180) d -= 360; while (d < -180) d += 360; return d;
+    function fmtLon(x) {
+      if (x == null || isNaN(x)) return "—";
+      var d = Math.floor(x), m = Math.floor((x - d) * 60);
+      return x.toFixed(4) + "°<span class='muted'> (" + d + "°" + pad(m) + "′)</span>";
     }
-    function row(label, a, b, delta) {
-      return "<tr><td class='lbl'>" + esc(label) + "</td><td>" + a + "</td><td>" + b + "</td><td>" + delta + "</td></tr>";
+    function fmtLat(x) { return (x == null || isNaN(x)) ? "<span class='muted'>n/a</span>" : x.toFixed(4) + "°"; }
+    function conMatch(a, b) {
+      if (!a || !b || a === "—") return null;
+      return a.toLowerCase() === b.toLowerCase();
     }
+
+    function renderReport(rows, result, hadNetworkError) {
+      var head =
+        "<div class='cmp-box' style='border-color:#5a4e3c;background:#faf7f1'>" +
+        "<div class='cmp-title' style='color:#5a4e3c'>SBA vs JPL Horizons — verification report</div>" +
+        "<p class='muted' style='margin:.2rem 0 .6rem'>Instant: " + esc(result.utcDateTime) +
+        ". SBA values are read directly from the current engine's output (unchanged). JPL values are fetched live " +
+        "from Horizons (geocentric, apparent, ecliptic of date). Δlon is the shortest angular difference.</p>";
+
+      if (hadNetworkError) {
+        head += "<p class='muted' style='color:#8b2020;margin:.2rem 0 .6rem'>Some JPL requests failed — likely " +
+          "cross-origin (CORS) blocking from this host. Rows show what was retrieved; blanks are failed fetches.</p>";
+      }
+
+      var table = "<table class='cmp'><tr>" +
+        "<th>Object</th><th>Source</th><th>Ecliptic longitude</th><th>Ecl. latitude</th>" +
+        "<th>Motion</th><th>Constellation</th></tr>";
+
+      rows.forEach(function (r) {
+        var o = r.o, j = r.jpl;
+        // SBA row
+        table += "<tr class='sba-row'><td rowspan='2' class='lbl'>" + esc(o.name) + "</td>" +
+          "<td>SBA</td><td>" + fmtLon(o.longitude) + "</td><td>" + fmtLat(o.latitude) + "</td>" +
+          "<td>" + esc(o.motion || "—") + "</td><td>" + esc(o.constellation || "—") + "</td></tr>";
+        // JPL row (or skip/error)
+        if (j) {
+          var dLon = angularDelta(o.longitude, j.longitude);
+          var cm = conMatch(o.constellation, j.constellation);
+          var moMatch = o.motion && (String(o.motion).toLowerCase() === String(j.motion).toLowerCase());
+          table += "<tr class='jpl-row'><td>JPL</td>" +
+            "<td>" + fmtLon(j.longitude) + diffTag(Math.abs(dLon), "°", 0.02) + "</td>" +
+            "<td>" + fmtLat(j.latitude) + "</td>" +
+            "<td>" + esc(j.motion) + (o.motion ? (moMatch ? ok("✓") : bad("✗ differ")) : "") + "</td>" +
+            "<td>" + esc(j.constellation) + (cm === null ? "" : (cm ? ok("✓") : bad("✗ differ"))) + "</td></tr>";
+        } else if (r.skip) {
+          table += "<tr class='jpl-row'><td>JPL</td><td colspan='4' class='muted'>" + esc(r.skip) + "</td></tr>";
+        } else {
+          table += "<tr class='jpl-row'><td>JPL</td><td colspan='4' class='muted' style='color:#8b2020'>fetch failed: " +
+            esc(r.error || "unknown") + "</td></tr>";
+        }
+      });
+      table += "</table>";
+
+      var legend = "<p class='muted' style='margin:.6rem 0 0'>Notes: ecliptic <em>latitude</em> and numeric " +
+        "<em>speed</em> are not stored by the current engine, so SBA latitude shows “n/a” (JPL latitude is still shown " +
+        "for reference). Δlon flagged when &gt; 0.02°. North/South Node, Vertex, and Part of Fortune have no JPL body " +
+        "(they are derived or chart-geometry points) and are not fetched. A persistent longitude offset across all " +
+        "planets would indicate a frame/epoch convention difference (ecliptic of date vs J2000), not a position error " +
+        "— worth checking before drawing conclusions.</p></div>";
+
+      return head + table + legend;
+    }
+
+    function diffTag(v, unit, thresh) {
+      var big = v > thresh;
+      return "<div class='" + (big ? "d-big" : "d-ok") + "'>Δ " + v.toFixed(4) + unit + "</div>";
+    }
+    function ok(t) { return " <span class='mk ok'>" + t + "</span>"; }
+    function bad(t) { return " <span class='mk bad'>" + t + "</span>"; }
     function note(t) { return "<div class='cmp-note'>" + esc(t) + "</div>"; }
-    function box(title, inner, color, bg) {
-      return "<div class='cmp-box' style='border-color:" + color + ";background:" + bg + "'>" +
-        "<div class='cmp-title' style='color:" + color + "'>" + esc(title) + "</div>" + inner + "</div>";
-    }
 
     // Styles for the comparison panel (scoped names, no impact elsewhere).
     var style = document.createElement("style");
     style.textContent =
       "#sbaComparePanel .cmp-box{border:1px solid;border-radius:8px;padding:0.9rem 1rem;font-size:0.85rem;}" +
       "#sbaComparePanel .cmp-title{font-weight:700;margin-bottom:0.5rem;}" +
-      "#sbaComparePanel table.cmp{width:100%;border-collapse:collapse;font-size:0.82rem;}" +
-      "#sbaComparePanel table.cmp th,#sbaComparePanel table.cmp td{border:1px solid #e6ddca;padding:0.4rem 0.5rem;text-align:left;vertical-align:top;}" +
-      "#sbaComparePanel table.cmp td.lbl{font-weight:600;color:#5a4e3c;}" +
+      "#sbaComparePanel table.cmp{width:100%;border-collapse:collapse;font-size:0.8rem;}" +
+      "#sbaComparePanel table.cmp th,#sbaComparePanel table.cmp td{border:1px solid #e6ddca;padding:0.35rem 0.5rem;text-align:left;vertical-align:top;}" +
+      "#sbaComparePanel table.cmp td.lbl{font-weight:700;color:#3a3530;background:#f4efe6;}" +
+      "#sbaComparePanel tr.sba-row td{background:#fcfaf6;}" +
+      "#sbaComparePanel tr.jpl-row td{background:#f7f9f6;}" +
       "#sbaComparePanel .muted{color:#8a7f6c;font-weight:normal;}" +
+      "#sbaComparePanel .d-ok{font-size:0.72rem;color:#5a8a5a;}" +
+      "#sbaComparePanel .d-big{font-size:0.72rem;color:#8b2020;font-weight:700;}" +
+      "#sbaComparePanel .mk{font-size:0.72rem;font-weight:700;}" +
+      "#sbaComparePanel .mk.ok{color:#5a8a5a;}" +
+      "#sbaComparePanel .mk.bad{color:#8b2020;}" +
       "#sbaComparePanel .cmp-note{font-size:0.82rem;color:#5a4e3c;background:#faf7f1;border:1px dashed #cdbf9f;border-radius:6px;padding:0.6rem 0.8rem;}";
     document.head.appendChild(style);
 
