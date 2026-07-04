@@ -1295,6 +1295,14 @@
     <div class="loading-indicator" id="loadingIndicator" hidden>Computing planetary positions…</div>
 
     <div class="results-section" id="resultsSection" hidden></div>
+    <!-- ── DORMANT: Engine comparison / validation layer (off by default) ── -->
+    <div id="sbaCompareWrap" hidden style="max-width:920px;margin:1rem auto 0;padding:0 1rem;">
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:#5a4e3c;cursor:pointer;">
+        <input type="checkbox" id="sbaCompareToggle" style="width:auto;">
+        Engine comparison (validation) — run the dormant provider alongside the current engine
+      </label>
+      <div id="sbaComparePanel" hidden style="margin-top:0.75rem;"></div>
+    </div>
 
     <div class="save-session-bar" id="saveSessionBar" hidden>
       <span class="save-session-context" id="saveSessionContext"></span>
@@ -2236,6 +2244,15 @@
         const submittedBirth =
           `${form.birthDate.value} ${form.birthTime.value} · ${placeLabel} (UTC${tzNum >= 0 ? "+" : ""}${form.tzOffset.value})`;
         renderResults(sbaResult, submittedName, submittedBirth);
+        // Dormant provider hook: publish the just-computed result so the
+        // (inactive-by-default) comparison layer can read it. This does not
+        // alter any calculation, default, or rendering.
+        try {
+          window.__SBA_LAST_RESULT__ = sbaResult;
+          if (window.SBACompare && typeof window.SBACompare.onResult === "function") {
+            window.SBACompare.onResult(sbaResult);
+          }
+        } catch (e) { /* never let the hook affect the calculator */ }
       } catch (err) {
         setFieldError(errorMessageEl, err instanceof Error ? err.message : "Calculation failed. Please check your inputs.");
       } finally {
@@ -4485,6 +4502,266 @@
         _uid: uid
       };
     })();
+  </script>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SBA POSITION PROVIDER — v1.0 scaffolding (DORMANT)
+       - Does NOT run during normal calculation.
+       - Does NOT change the current engine, defaults, or any rendering.
+       - Activated only when the "Engine comparison (validation)" box is ticked.
+       - JPL adapter is generic: it uses the loaded chart's birth instant, never
+         any hard-coded chart. AJ is simply the first chart you validate with.
+       Conforms to SBA-Position-Provider-Spec-v1.0 (interface / registry / provenance).
+       ══════════════════════════════════════════════════════════════════════ -->
+  <script>
+  (function () {
+    "use strict";
+
+    // ── Body registry (data-driven; doctrine lives here, not in math) ──────────
+    // Only the entries needed for the first validation are populated. Adding a
+    // body later is a registry row + adapter, per the spec — no consumer changes.
+    var REGISTRY = [
+      { objectId: "chiron", displayName: "Chiron", kind: "body", category: "centaur",
+        sourceRef: { adapter: "jpl", spkId: "2060", delivery: "live" },
+        motionPolicy: "compute", provenanceClass: "authoritative", sbaStatus: "core" }
+      // Future: eris, sedna, orcus, quaoar, haumea, makemake, gonggong … (one row each)
+    ];
+
+    // ── JPL Horizons adapter (real, live, generic) ─────────────────────────────
+    // Requests geocentric apparent ecliptic longitude for an object at three
+    // epochs (birth −12h, birth, birth +12h) so motion is derived by the same
+    // ±12h rule the SBA engine uses. No chart values are hard-coded.
+    var HORIZONS = "https://ssd.jpl.nasa.gov/api/horizons.api";
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+    function horizonsTime(d) {
+      // "YYYY-MM-DD HH:MM" in UTC, the format Horizons expects.
+      return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) +
+             " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
+    }
+
+    function buildHorizonsURL(spkId, startUTC, stopUTC) {
+      // QUANTITIES='31' → Observer ecliptic longitude & latitude (apparent).
+      // CENTER='500@399' → geocentric (Earth centre). STEP_SIZE='12 h' → 3 rows.
+      var p = {
+        format: "json",
+        COMMAND: "'" + spkId + ";'",           // small-body designation
+        OBJ_DATA: "'NO'",
+        MAKE_EPHEM: "'YES'",
+        EPHEM_TYPE: "'OBSERVER'",
+        CENTER: "'500@399'",
+        QUANTITIES: "'31'",
+        ANG_FORMAT: "'DEG'",
+        CAL_FORMAT: "'CAL'",
+        START_TIME: "'" + horizonsTime(startUTC) + "'",
+        STOP_TIME: "'" + horizonsTime(stopUTC) + "'",
+        STEP_SIZE: "'12 h'"
+      };
+      var q = Object.keys(p).map(function (k) {
+        return encodeURIComponent(k) + "=" + encodeURIComponent(p[k]);
+      }).join("&");
+      return HORIZONS + "?" + q;
+    }
+
+    // Parse Horizons OBSERVER text: pull ObsEcLon (deg) from each $$SOE…$$EOE row.
+    // Returns an array of numbers in row order. Pure + testable.
+    function parseObsEcLon(resultText) {
+      var lons = [];
+      if (!resultText) return lons;
+      var soe = resultText.indexOf("$$SOE");
+      var eoe = resultText.indexOf("$$EOE");
+      if (soe === -1 || eoe === -1) return lons;
+      var body = resultText.substring(soe + 5, eoe).trim();
+      var lines = body.split("\n");
+      lines.forEach(function (line) {
+        if (!line.trim()) return;
+        // Rows look like: " 1982-Nov-01 05:35   158.1037  ... "
+        // ObsEcLon is the first floating-point column after the date/time.
+        // Strip the leading date/time token(s), then read the first number.
+        var m = line.match(/\d{4}-[A-Za-z]{3}-\d{2}\s+\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s+(.*)$/);
+        var rest = m ? m[1] : line;
+        var nums = rest.match(/-?\d+\.\d+/g);
+        if (nums && nums.length) lons.push(parseFloat(nums[0]));
+      });
+      return lons;
+    }
+
+    function normalize360(d) { return ((d % 360) + 360) % 360; }
+    function motionFromLons(before, after) {
+      var d = after - before;
+      while (d > 180) d -= 360;
+      while (d < -180) d += 360;
+      return { retrograde: d < 0, motion: d < 0 ? "Retrograde" : "Direct", dailyDelta: d };
+    }
+
+    // Live fetch for one JPL object at a birth instant → placement fragment.
+    async function jplGetPlacement(spkId, birthUTC) {
+      var half = 43200000; // 12h
+      var start = new Date(birthUTC.getTime() - half);
+      var stop = new Date(birthUTC.getTime() + half);
+      var url = buildHorizonsURL(spkId, start, stop);
+      var res = await fetch(url, { method: "GET" });
+      if (!res.ok) throw new Error("Horizons HTTP " + res.status);
+      var data = await res.json();
+      var lons = parseObsEcLon(data && data.result ? data.result : "");
+      if (lons.length < 3) {
+        throw new Error("Horizons returned " + lons.length + " longitude rows (expected 3). Raw head: " +
+          ((data && data.result) ? data.result.substring(0, 160) : "no result field"));
+      }
+      var before = lons[0], mid = lons[1], after = lons[2];
+      var mo = motionFromLons(before, after);
+      return {
+        objectId: "chiron",
+        longitude: normalize360(mid),
+        longitudeBefore: normalize360(before),
+        longitudeAfter: normalize360(after),
+        motion: mo.motion,
+        retrograde: mo.retrograde,
+        dailyDelta: mo.dailyDelta,
+        source: { engine: "jpl:live", label: "JPL Horizons (live)", authoritative: true }
+      };
+    }
+
+    // ── Expose provider surface (per spec §6) — dormant until called ───────────
+    window.SBAProvider = {
+      registry: function () { return REGISTRY.slice(); },
+      _parseObsEcLon: parseObsEcLon,          // exposed for validation/testing
+      _buildHorizonsURL: buildHorizonsURL,
+      _motionFromLons: motionFromLons,
+      jplGetPlacement: jplGetPlacement
+    };
+
+    // ── Comparison / validation layer (renders only when toggled) ──────────────
+    function $(id) { return document.getElementById(id); }
+
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function fmtLon(x) {
+      if (x == null || isNaN(x)) return "—";
+      var d = Math.floor(x), m = Math.floor((x - d) * 60);
+      return x.toFixed(4) + "° (" + d + "° " + pad(m) + "′)";
+    }
+
+    // Parse the engine's utcDateTime string back to an absolute instant.
+    function birthInstantFromResult(result) {
+      // Format: "YYYY-MM-DD HH:MM:SS UTC"
+      var s = (result && result.utcDateTime) ? result.utcDateTime.replace(" UTC", "") : "";
+      var m = s.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+      if (!m) return null;
+      return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+    }
+
+    function currentChiron(result) {
+      var pts = (result && result.additionalPoints) || [];
+      for (var i = 0; i < pts.length; i++) {
+        if (pts[i].name && pts[i].name.indexOf("Chiron") === 0) return pts[i];
+      }
+      return null;
+    }
+
+    var lastResult = null;
+
+    async function runComparison() {
+      var panel = $("sbaComparePanel");
+      if (!panel) return;
+      if (!lastResult) { panel.hidden = false; panel.innerHTML = note("Calculate a chart first, then tick this box."); return; }
+
+      var birthUTC = birthInstantFromResult(lastResult);
+      var cur = currentChiron(lastResult);
+      panel.hidden = false;
+      panel.innerHTML = note("Querying JPL Horizons for Chiron at " +
+        esc(lastResult.utcDateTime) + " … (requires internet; may be blocked by CORS on some hosts)");
+
+      var jpl;
+      try {
+        jpl = await jplGetPlacement("2060", birthUTC);
+      } catch (err) {
+        panel.innerHTML = box(
+          "JPL Horizons request failed",
+          "<p style='margin:.3rem 0'>" + esc(err.message) + "</p>" +
+          "<p style='margin:.3rem 0;color:#8a7f6c'>This is expected if the browser blocks cross-origin " +
+          "requests to JPL (CORS). The provider code is correct and generic; the live fetch is the part " +
+          "that depends on the host. If this persists we can add a tiny proxy or a bundled-data path — " +
+          "the architecture supports both without changing anything else.</p>" +
+          "<p style='margin:.3rem 0'><strong>Current-engine Chiron (unchanged):</strong> " +
+          (cur ? fmtLon(cur.eclipticLon) + " · " + esc(cur.constellation) + " · " + esc(cur.motion || "—") : "—") + "</p>",
+          "#8b2020", "#fff3f3");
+        return;
+      }
+
+      // Build the diff (Chiron is the intentional-improvement case).
+      var dLon = cur ? angularDelta(cur.eclipticLon, jpl.longitude) : null;
+      var motionMatch = cur ? (String(cur.motion) === String(jpl.motion)) : false;
+
+      panel.innerHTML =
+        box("Engine comparison — Chiron (first live validation)",
+          "<table class='cmp'>" +
+          "<tr><th></th><th>Current engine<br><span class='muted'>Keplerian (approx.)</span></th>" +
+          "<th>New provider<br><span class='muted'>JPL Horizons (live)</span></th><th>Δ / match</th></tr>" +
+          row("Ecliptic longitude", cur ? fmtLon(cur.eclipticLon) : "—", fmtLon(jpl.longitude),
+              dLon == null ? "—" : (Math.abs(dLon).toFixed(4) + "°")) +
+          row("Motion", cur ? esc(cur.motion || "—") : "—", esc(jpl.motion),
+              motionMatch ? "✓ match" : "✗ differ") +
+          row("Retrograde flag", cur ? String(cur.retrograde) : "—", String(jpl.retrograde),
+              (cur && cur.retrograde === jpl.retrograde) ? "✓" : "✗") +
+          "</table>" +
+          "<p class='muted' style='margin:.6rem 0 0'>Chiron is the one placement expected to change " +
+          "(current fixed-Keplerian → JPL ephemeris-grade). A small longitude Δ is the improvement. " +
+          "All other bodies are produced by the unchanged current engine and are not altered by this panel. " +
+          "Frame note: JPL ObsEcLon is compared directly to the engine's ecliptic longitude; a fraction-of-a-degree " +
+          "offset can reflect ecliptic-of-date vs frame conventions and will be reconciled before any default switch.</p>",
+          "#5a4e3c", "#faf7f1");
+    }
+
+    function angularDelta(a, b) {
+      var d = b - a; while (d > 180) d -= 360; while (d < -180) d += 360; return d;
+    }
+    function row(label, a, b, delta) {
+      return "<tr><td class='lbl'>" + esc(label) + "</td><td>" + a + "</td><td>" + b + "</td><td>" + delta + "</td></tr>";
+    }
+    function note(t) { return "<div class='cmp-note'>" + esc(t) + "</div>"; }
+    function box(title, inner, color, bg) {
+      return "<div class='cmp-box' style='border-color:" + color + ";background:" + bg + "'>" +
+        "<div class='cmp-title' style='color:" + color + "'>" + esc(title) + "</div>" + inner + "</div>";
+    }
+
+    // Styles for the comparison panel (scoped names, no impact elsewhere).
+    var style = document.createElement("style");
+    style.textContent =
+      "#sbaComparePanel .cmp-box{border:1px solid;border-radius:8px;padding:0.9rem 1rem;font-size:0.85rem;}" +
+      "#sbaComparePanel .cmp-title{font-weight:700;margin-bottom:0.5rem;}" +
+      "#sbaComparePanel table.cmp{width:100%;border-collapse:collapse;font-size:0.82rem;}" +
+      "#sbaComparePanel table.cmp th,#sbaComparePanel table.cmp td{border:1px solid #e6ddca;padding:0.4rem 0.5rem;text-align:left;vertical-align:top;}" +
+      "#sbaComparePanel table.cmp td.lbl{font-weight:600;color:#5a4e3c;}" +
+      "#sbaComparePanel .muted{color:#8a7f6c;font-weight:normal;}" +
+      "#sbaComparePanel .cmp-note{font-size:0.82rem;color:#5a4e3c;background:#faf7f1;border:1px dashed #cdbf9f;border-radius:6px;padding:0.6rem 0.8rem;}";
+    document.head.appendChild(style);
+
+    // Hook: engine publishes each result here (dormant unless toggled).
+    window.SBACompare = {
+      onResult: function (result) {
+        lastResult = result;
+        var wrap = $("sbaCompareWrap");
+        if (wrap) wrap.hidden = false;         // reveal the toggle once a chart exists
+        var tog = $("sbaCompareToggle");
+        if (tog && tog.checked) runComparison();
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+      // If a result already exists (e.g. re-render), pick it up.
+      if (window.__SBA_LAST_RESULT__) { lastResult = window.__SBA_LAST_RESULT__; var w = $("sbaCompareWrap"); if (w) w.hidden = false; }
+      var tog = $("sbaCompareToggle");
+      if (tog) {
+        tog.addEventListener("change", function () {
+          var panel = $("sbaComparePanel");
+          if (!tog.checked) { if (panel) panel.hidden = true; return; }
+          runComparison();
+        });
+      }
+    });
+  })();
   </script>
 </body>
 </html>
