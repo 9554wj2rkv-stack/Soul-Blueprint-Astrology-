@@ -1301,6 +1301,16 @@
         <input type="checkbox" id="sbaCompareToggle" style="width:auto;">
         Engine comparison (validation) — run the dormant provider alongside the current engine
       </label>
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.8rem;color:#8a7f6c;margin-top:0.4rem;">
+        JPL fetch route:
+        <select id="sbaProxySelect" style="width:auto;font-size:0.8rem;padding:0.2rem 0.4rem;">
+          <option value="auto">Auto (try direct, then proxies)</option>
+          <option value="direct">Direct (no proxy)</option>
+          <option value="allorigins">Proxy: allorigins.win</option>
+          <option value="corsproxy">Proxy: corsproxy.io</option>
+          <option value="codetabs">Proxy: codetabs.com</option>
+        </select>
+      </label>
       <div id="sbaComparePanel" hidden style="margin-top:0.75rem;"></div>
     </div>
 
@@ -4599,14 +4609,59 @@
       Aqr:"Aquarius", Psc:"Pisces", Cet:"Cetus", Ori:"Orion", Sex:"Sextans", Crt:"Crater",
       Hya:"Hydra", Ser:"Serpens", Sco2:"Scorpius" };
 
+    // ── CORS proxy layer (validation fetch path only) ─────────────────────────
+    // JPL Horizons does not send CORS headers, so a browser cannot call it
+    // directly. We try direct first, then public CORS proxies, and cache
+    // whichever works. Selectable via the dropdown; "Auto" tries all.
+    // NOTE: a proxy relays the query (which contains the birth date/time) through
+    // a third-party server. Disclosed in the panel.
+    var PROXIES = {
+      direct:     { label: "Direct (no proxy)", wrap: function (u) { return u; } },
+      allorigins: { label: "allorigins.win",    wrap: function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); } },
+      corsproxy:  { label: "corsproxy.io",       wrap: function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); } },
+      codetabs:   { label: "codetabs.com",       wrap: function (u) { return "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u); } }
+    };
+    var PROXY_ORDER = ["direct", "allorigins", "corsproxy", "codetabs"];
+    var proxyMode = "auto";       // "auto" or a specific key
+    var activeProxyKey = null;    // cached winner within a run
+
+    function setProxyMode(mode) { proxyMode = mode; activeProxyKey = null; }
+    function activeProxyLabel() {
+      if (activeProxyKey) return PROXIES[activeProxyKey].label;
+      return proxyMode === "auto" ? "Auto (trying routes…)" : PROXIES[proxyMode].label;
+    }
+
+    // Fetch a Horizons URL and return parsed JSON ({ result: "..." }), trying
+    // proxy strategies as needed. Caches the first strategy that works.
+    async function proxiedHorizonsJSON(url) {
+      var keys;
+      if (activeProxyKey) keys = [activeProxyKey];
+      else if (proxyMode !== "auto") keys = [proxyMode];
+      else keys = PROXY_ORDER;
+
+      var lastErr = null;
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        try {
+          var res = await fetch(PROXIES[key].wrap(url), { method: "GET" });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          var data = await res.json();
+          if (data && typeof data.result === "string") { activeProxyKey = key; return data; }
+          // Some proxies return the payload as text or wrapped; try to recover.
+          if (typeof data === "string") { var d2 = JSON.parse(data); if (d2 && d2.result) { activeProxyKey = key; return d2; } }
+          if (data && typeof data.contents === "string") { var d3 = JSON.parse(data.contents); if (d3 && d3.result) { activeProxyKey = key; return d3; } }
+          throw new Error("unexpected response shape");
+        } catch (e) { lastErr = e; }
+      }
+      throw new Error("all routes failed (" + (lastErr ? lastErr.message : "unknown") + ")");
+    }
+
     async function jplQuery(command, birthUTC) {
       var half = 43200000;
       var start = new Date(birthUTC.getTime() - half);
       var stop = new Date(birthUTC.getTime() + half);
       var url = buildHorizonsURL(command, start, stop);
-      var res = await fetch(url, { method: "GET" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      var data = await res.json();
+      var data = await proxiedHorizonsJSON(url);
       var rows = parseHorizonsRows(data && data.result ? data.result : "");
       if (rows.length < 3) throw new Error("got " + rows.length + " rows (need 3)");
       var mo = motionFromLons(rows[0].lon, rows[2].lon);
@@ -4721,7 +4776,10 @@
         "<div class='cmp-title' style='color:#5a4e3c'>SBA vs JPL Horizons — verification report</div>" +
         "<p class='muted' style='margin:.2rem 0 .6rem'>Instant: " + esc(result.utcDateTime) +
         ". SBA values are read directly from the current engine's output (unchanged). JPL values are fetched live " +
-        "from Horizons (geocentric, apparent, ecliptic of date). Δlon is the shortest angular difference.</p>";
+        "from Horizons (geocentric, apparent, ecliptic of date). Δlon is the shortest angular difference.<br>" +
+        "Fetch route: <strong>" + esc(activeProxyLabel()) + "</strong>. " +
+        "<span style='color:#8a7f6c'>When a proxy is used, the query (birth date/time, no name) is relayed via that " +
+        "third-party server. Switch route above if one is slow or blocked.</span></p>";
 
       if (hadNetworkError) {
         head += "<p class='muted' style='color:#8b2020;margin:.2rem 0 .6rem'>Some JPL requests failed — likely " +
@@ -4814,6 +4872,13 @@
           var panel = $("sbaComparePanel");
           if (!tog.checked) { if (panel) panel.hidden = true; return; }
           runComparison();
+        });
+      }
+      var sel = $("sbaProxySelect");
+      if (sel) {
+        sel.addEventListener("change", function () {
+          setProxyMode(sel.value);
+          if (tog && tog.checked) runComparison();  // re-run with the chosen route
         });
       }
     });
