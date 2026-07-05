@@ -287,19 +287,6 @@
     td.motion-cell { font-size: 0.85rem; color: #555; white-space: nowrap; }
     td.motion-cell.is-retro { color: #8b2020; font-weight: 600; }
 
-    .motion-debug {
-      margin-top: 1.25rem; background: #f7f4ee; border: 1px dashed #cdbf9f;
-      border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.82rem; color: #4a4438;
-    }
-    .motion-debug .md-title {
-      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
-      color: #8a7f6c; margin-bottom: 0.5rem; font-weight: 700;
-    }
-    .motion-debug .md-cols {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; line-height: 1.6;
-    }
-    @media (max-width: 640px) { .motion-debug .md-cols { grid-template-columns: 1fr; } }
-
     /* Collapsible SBA House Reference */
     .house-ref-fold { }
     .house-ref-summary {
@@ -2255,7 +2242,6 @@
           longitude: lon,
           motion: retro ? "Retrograde" : "Direct",
           retrograde: retro,
-          source: "JPL Horizons (live)",
         });
       } catch (e) { return null; }
     }
@@ -2299,16 +2285,7 @@
         if (replacement) { pts[idx] = replacement; }
       } catch (e) {
         // Only reached when JPL has never been obtained for this instant and the
-        // fetch failed. Keep the Keplerian value but label it as a fallback.
-        try {
-          var pts2 = result.additionalPoints || [];
-          for (var j = 0; j < pts2.length; j++) {
-            if (pts2[j].name && String(pts2[j].name).indexOf("Chiron") === 0) {
-              pts2[j] = Object.assign({}, pts2[j], { source: "Keplerian (fallback — JPL not yet available)" });
-              break;
-            }
-          }
-        } catch (_) {}
+        // fetch failed. The Keplerian value stays in place as a silent fallback.
       }
     }
 
@@ -2443,15 +2420,6 @@
             13 SBA houses shown as the fixed background. Placements are positioned by exact ecliptic longitude.
           </p>
           ${buildWheelSVG(result)}
-        </div>
-
-        <div class="motion-debug">
-          <div class="md-title">Motion Debug (temporary)</div>
-          <div class="md-cols">
-            <div><strong>Bodies</strong><br>${result.planets.map(p => `${esc(p.name)} = ${esc(displayMotion(p))}`).join("<br>")}</div>
-            <div><strong>Points</strong><br>${(result.additionalPoints ?? []).filter(pt => pt.eclipticLonFormatted !== "Not available yet").map(pt => `${esc(pt.name)} = ${esc(displayMotion(pt))}${pt.source ? " <span style='color:#8a7f6c'>[" + esc(pt.source) + "]</span>" : ""}`).join("<br>")}</div>
-            <div><strong>Angles</strong><br>${result.angles.map(a => `${esc(a.name)} = ${esc(displayMotion(a))}`).join("<br>")}</div>
-          </div>
         </div>
 
         <div class="section-divider"></div>
