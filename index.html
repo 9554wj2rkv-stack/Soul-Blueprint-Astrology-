@@ -2264,32 +2264,36 @@
     // one. Times out quickly and leaves the fallback in place on any failure so
     // a chart never depends on the network to finish. Only Chiron is touched.
     async function applyJplChiron(result) {
+      var TRACE = { stage: "start", ok: false };
+      window.__CHIRON_TRACE__ = TRACE;
       try {
-        if (!window.SBAProvider || typeof window.SBAProvider.jplQuery !== "function") return;
+        if (!window.SBAProvider || typeof window.SBAProvider.jplQuery !== "function") { TRACE.stage = "no-provider"; return; }
         const instant = result.utcInstant;
-        if (!(instant instanceof Date)) return;
+        if (!(instant instanceof Date)) { TRACE.stage = "no-instant"; TRACE.utcInstant = String(result.utcInstant); return; }
         const pts = result.additionalPoints || [];
         let idx = -1;
         for (let i = 0; i < pts.length; i++) {
           if (pts[i].name && String(pts[i].name).indexOf("Chiron") === 0) { idx = i; break; }
         }
-        if (idx === -1) return;
+        if (idx === -1) { TRACE.stage = "no-chiron-row"; return; }
+        TRACE.stage = "fetching"; TRACE.instant = instant.toISOString();
 
-        // Race the JPL fetch against a timeout so render is never held hostage.
         const cmd = (window.SBAProvider.JPL_COMMAND && window.SBAProvider.JPL_COMMAND["Chiron"]) || "2060;";
         const jpl = await Promise.race([
           window.SBAProvider.jplQuery(cmd, instant),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 15000)),
         ]);
+        TRACE.stage = "fetched"; TRACE.jplLon = jpl && jpl.longitude;
         const replacement = buildChironFromJPL(jpl, instant, pts[idx]);
         if (replacement) {
           pts[idx] = replacement;
+          TRACE.stage = "applied"; TRACE.ok = true; TRACE.appliedLon = replacement.eclipticLon;
         } else {
-          // keep fallback but mark provenance
           pts[idx] = Object.assign({}, pts[idx], { source: "Keplerian (fallback — JPL unusable)" });
+          TRACE.stage = "build-null";
         }
       } catch (e) {
-        // Offline / CORS / timeout → keep Keplerian Chiron, mark it clearly.
+        TRACE.stage = "error"; TRACE.error = (e && e.message) || String(e);
         try {
           const pts = result.additionalPoints || [];
           for (let i = 0; i < pts.length; i++) {
@@ -2439,9 +2443,10 @@
           <div class="md-title">Motion Debug (temporary)</div>
           <div class="md-cols">
             <div><strong>Bodies</strong><br>${result.planets.map(p => `${esc(p.name)} = ${esc(displayMotion(p))}`).join("<br>")}</div>
-            <div><strong>Points</strong><br>${(result.additionalPoints ?? []).filter(pt => pt.eclipticLonFormatted !== "Not available yet").map(pt => `${esc(pt.name)} = ${esc(displayMotion(pt))}`).join("<br>")}</div>
+            <div><strong>Points</strong><br>${(result.additionalPoints ?? []).filter(pt => pt.eclipticLonFormatted !== "Not available yet").map(pt => `${esc(pt.name)} = ${esc(displayMotion(pt))}${pt.source ? " <span style='color:#8a7f6c'>[" + esc(pt.source) + "]</span>" : ""}`).join("<br>")}</div>
             <div><strong>Angles</strong><br>${result.angles.map(a => `${esc(a.name)} = ${esc(displayMotion(a))}`).join("<br>")}</div>
           </div>
+          <div style="margin-top:.6rem;font-size:.75rem;color:#8a7f6c">Chiron override trace: ${esc(JSON.stringify(window.__CHIRON_TRACE__ || "not run"))}</div>
         </div>
 
         <div class="section-divider"></div>
