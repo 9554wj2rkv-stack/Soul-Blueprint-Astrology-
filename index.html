@@ -1859,6 +1859,7 @@
         elementBalance,
         elementBalancePercent,
         utcDateTime: formatDate(utcDate),
+        utcInstant: utcDate,   // raw birth instant, for the JPL Chiron override
       };
     }
 
@@ -2227,6 +2228,80 @@
       return "";
     }
 
+    // Build a Chiron point object from a JPL-derived longitude + motion, using
+    // the engine's OWN sky-model helpers so its sign/house are assigned exactly
+    // like every other SBA body. Returns null on any problem (caller falls back).
+    function buildChironFromJPL(jpl, instant, fallbackPoint) {
+      try {
+        if (!jpl || typeof jpl.longitude !== "number") return null;
+        const lon = normalize360(jpl.longitude);
+        const eps = meanObliquity(julianDate(instant));
+        const con = constellationForEclipticLon(lon, eps);
+        const houseData = withHouse(con);
+        const degree = Math.floor(lon);
+        const minute = Math.floor((lon - degree) * 60);
+        const retro = (jpl.retrograde === true);
+        return Object.assign({}, fallbackPoint, {
+          name: "Chiron",
+          kind: "point",
+          eclipticLon: lon,
+          eclipticLonFormatted: formatEclipticLon(lon),
+          constellation: con,
+          ...houseData,
+          sign: con,
+          house: houseData.sbaHouseNumber ?? null,
+          degree: degree,
+          minute: minute,
+          longitude: lon,
+          motion: retro ? "Retrograde" : "Direct",
+          retrograde: retro,
+          source: "JPL Horizons (live)",
+        });
+      } catch (e) { return null; }
+    }
+
+    // Attempt to replace the (Keplerian) Chiron in a result with a JPL-derived
+    // one. Times out quickly and leaves the fallback in place on any failure so
+    // a chart never depends on the network to finish. Only Chiron is touched.
+    async function applyJplChiron(result) {
+      try {
+        if (!window.SBAProvider || typeof window.SBAProvider.jplQuery !== "function") return;
+        const instant = result.utcInstant;
+        if (!(instant instanceof Date)) return;
+        const pts = result.additionalPoints || [];
+        let idx = -1;
+        for (let i = 0; i < pts.length; i++) {
+          if (pts[i].name && String(pts[i].name).indexOf("Chiron") === 0) { idx = i; break; }
+        }
+        if (idx === -1) return;
+
+        // Race the JPL fetch against a timeout so render is never held hostage.
+        const cmd = (window.SBAProvider.JPL_COMMAND && window.SBAProvider.JPL_COMMAND["Chiron"]) || "2060;";
+        const jpl = await Promise.race([
+          window.SBAProvider.jplQuery(cmd, instant),
+          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
+        ]);
+        const replacement = buildChironFromJPL(jpl, instant, pts[idx]);
+        if (replacement) {
+          pts[idx] = replacement;
+        } else {
+          // keep fallback but mark provenance
+          pts[idx] = Object.assign({}, pts[idx], { source: "Keplerian (fallback — JPL unusable)" });
+        }
+      } catch (e) {
+        // Offline / CORS / timeout → keep Keplerian Chiron, mark it clearly.
+        try {
+          const pts = result.additionalPoints || [];
+          for (let i = 0; i < pts.length; i++) {
+            if (pts[i].name && String(pts[i].name).indexOf("Chiron") === 0) {
+              pts[i] = Object.assign({}, pts[i], { source: "Keplerian (fallback — JPL unavailable)" });
+              break;
+            }
+          }
+        } catch (_) { /* ignore */ }
+      }
+    }
+
     async function handleCalculate() {
       setFieldError(errorMessageEl, "");
       const validationError = validate();
@@ -2253,6 +2328,10 @@
         const placeLabel = resolvedPlace || form.birthPlace.value || `${form.latitude.value}, ${form.longitude.value}`;
         const submittedBirth =
           `${form.birthDate.value} ${form.birthTime.value} · ${placeLabel} (UTC${tzNum >= 0 ? "+" : ""}${form.tzOffset.value})`;
+        // Chiron override: replace the Keplerian Chiron with a JPL-derived one
+        // (times out + falls back to Keplerian if the network/JPL is unavailable,
+        // so a chart always renders). Only Chiron is affected.
+        await applyJplChiron(sbaResult);
         renderResults(sbaResult, submittedName, submittedBirth);
         // Dormant provider hook: publish the just-computed result so the
         // (inactive-by-default) comparison layer can read it. This does not
