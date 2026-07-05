@@ -2263,46 +2263,52 @@
     // Attempt to replace the (Keplerian) Chiron in a result with a JPL-derived
     // one. Times out quickly and leaves the fallback in place on any failure so
     // a chart never depends on the network to finish. Only Chiron is touched.
+    // Replace the (Keplerian) Chiron with the validated JPL-derived one.
+    // Cache-first: if the JPL value for this instant was already fetched (e.g. by
+    // the validator), it is applied instantly with no network. Only falls back to
+    // the Keplerian value if JPL data has never been obtained AND a fresh fetch
+    // fails. Once JPL data exists, Chiron always uses it. Only Chiron is touched.
     async function applyJplChiron(result) {
-      var TRACE = { stage: "start", ok: false };
-      window.__CHIRON_TRACE__ = TRACE;
       try {
-        if (!window.SBAProvider || typeof window.SBAProvider.jplQuery !== "function") { TRACE.stage = "no-provider"; return; }
-        const instant = result.utcInstant;
-        if (!(instant instanceof Date)) { TRACE.stage = "no-instant"; TRACE.utcInstant = String(result.utcInstant); return; }
-        const pts = result.additionalPoints || [];
-        let idx = -1;
-        for (let i = 0; i < pts.length; i++) {
+        var P = window.SBAProvider;
+        if (!P || typeof P.getChiron !== "function") return;
+        var instant = result.utcInstant;
+        if (!(instant instanceof Date)) return;
+        var pts = result.additionalPoints || [];
+        var idx = -1;
+        for (var i = 0; i < pts.length; i++) {
           if (pts[i].name && String(pts[i].name).indexOf("Chiron") === 0) { idx = i; break; }
         }
-        if (idx === -1) { TRACE.stage = "no-chiron-row"; return; }
-        TRACE.stage = "fetching"; TRACE.instant = instant.toISOString();
+        if (idx === -1) return;
 
-        const cmd = (window.SBAProvider.JPL_COMMAND && window.SBAProvider.JPL_COMMAND["Chiron"]) || "2060;";
-        const jpl = await Promise.race([
-          window.SBAProvider.jplQuery(cmd, instant),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 15000)),
-        ]);
-        TRACE.stage = "fetched"; TRACE.jplLon = jpl && jpl.longitude;
-        const replacement = buildChironFromJPL(jpl, instant, pts[idx]);
-        if (replacement) {
-          pts[idx] = replacement;
-          TRACE.stage = "applied"; TRACE.ok = true; TRACE.appliedLon = replacement.eclipticLon;
+        // If already cached, apply immediately — no network, no timeout.
+        var cached = (typeof P.getChironCached === "function") ? P.getChironCached(instant) : null;
+        var jpl;
+        if (cached) {
+          jpl = cached;
         } else {
-          pts[idx] = Object.assign({}, pts[idx], { source: "Keplerian (fallback — JPL unusable)" });
-          TRACE.stage = "build-null";
+          // Fresh fetch: allow a generous window (proxy round-trip). Reuses the
+          // remembered good route, so this is not a cold start after first use.
+          jpl = await Promise.race([
+            P.getChiron(instant),
+            new Promise(function (_, rej) { setTimeout(function () { rej(new Error("timeout")); }, 20000); })
+          ]);
         }
+
+        var replacement = buildChironFromJPL(jpl, instant, pts[idx]);
+        if (replacement) { pts[idx] = replacement; }
       } catch (e) {
-        TRACE.stage = "error"; TRACE.error = (e && e.message) || String(e);
+        // Only reached when JPL has never been obtained for this instant and the
+        // fetch failed. Keep the Keplerian value but label it as a fallback.
         try {
-          const pts = result.additionalPoints || [];
-          for (let i = 0; i < pts.length; i++) {
-            if (pts[i].name && String(pts[i].name).indexOf("Chiron") === 0) {
-              pts[i] = Object.assign({}, pts[i], { source: "Keplerian (fallback — JPL unavailable)" });
+          var pts2 = result.additionalPoints || [];
+          for (var j = 0; j < pts2.length; j++) {
+            if (pts2[j].name && String(pts2[j].name).indexOf("Chiron") === 0) {
+              pts2[j] = Object.assign({}, pts2[j], { source: "Keplerian (fallback — JPL not yet available)" });
               break;
             }
           }
-        } catch (_) { /* ignore */ }
+        } catch (_) {}
       }
     }
 
@@ -2446,7 +2452,6 @@
             <div><strong>Points</strong><br>${(result.additionalPoints ?? []).filter(pt => pt.eclipticLonFormatted !== "Not available yet").map(pt => `${esc(pt.name)} = ${esc(displayMotion(pt))}${pt.source ? " <span style='color:#8a7f6c'>[" + esc(pt.source) + "]</span>" : ""}`).join("<br>")}</div>
             <div><strong>Angles</strong><br>${result.angles.map(a => `${esc(a.name)} = ${esc(displayMotion(a))}`).join("<br>")}</div>
           </div>
-          <div style="margin-top:.6rem;font-size:.75rem;color:#8a7f6c">Chiron override trace: ${esc(JSON.stringify(window.__CHIRON_TRACE__ || "not run"))}</div>
         </div>
 
         <div class="section-divider"></div>
@@ -4705,21 +4710,33 @@
       corsproxy:  { label: "corsproxy.io",       wrap: function (u) { return "https://corsproxy.io/?url=" + encodeURIComponent(u); } },
       codetabs:   { label: "codetabs.com",       wrap: function (u) { return "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u); } }
     };
-    var PROXY_ORDER = ["direct", "allorigins", "corsproxy", "codetabs"];
-    var proxyMode = "auto";       // "auto" or a specific key
-    var activeProxyKey = null;    // cached winner within a run
+    var PROXY_ORDER = ["allorigins", "corsproxy", "codetabs", "direct"]; // proxies first; direct last (CORS-blocked)
+    var proxyMode = "auto";
+    // Remembered good route across sessions, so calculation never cold-starts.
+    var activeProxyKey = null;
+    try { activeProxyKey = localStorage.getItem("sba_jpl_route") || null; } catch (e) {}
 
-    function setProxyMode(mode) { proxyMode = mode; activeProxyKey = null; }
+    function rememberRoute(key) {
+      activeProxyKey = key;
+      try { localStorage.setItem("sba_jpl_route", key); } catch (e) {}
+    }
+    function setProxyMode(mode) { proxyMode = mode; if (mode !== "auto") rememberRoute(mode); else { activeProxyKey = null; try { localStorage.removeItem("sba_jpl_route"); } catch (e) {} } }
     function activeProxyLabel() {
-      if (activeProxyKey) return PROXIES[activeProxyKey].label;
+      if (activeProxyKey) return PROXIES[activeProxyKey] ? PROXIES[activeProxyKey].label : activeProxyKey;
       return proxyMode === "auto" ? "Auto (trying routes…)" : PROXIES[proxyMode].label;
     }
 
-    // Fetch a Horizons URL and return parsed JSON ({ result: "..." }), trying
-    // proxy strategies as needed. Caches the first strategy that works.
+    // Cache of successful JPL placements, keyed by command + minute-resolution
+    // instant, so a value fetched once (e.g. by the validator) is reused by the
+    // Chiron override without re-fetching or timing out.
+    var JPL_CACHE = {};
+    function cacheKey(command, instant) {
+      return command + "@" + Math.round(instant.getTime() / 60000);
+    }
+
     async function proxiedHorizonsJSON(url) {
       var keys;
-      if (activeProxyKey) keys = [activeProxyKey];
+      if (activeProxyKey && PROXIES[activeProxyKey]) keys = [activeProxyKey].concat(PROXY_ORDER.filter(function (k) { return k !== activeProxyKey; }));
       else if (proxyMode !== "auto") keys = [proxyMode];
       else keys = PROXY_ORDER;
 
@@ -4730,10 +4747,9 @@
           var res = await fetch(PROXIES[key].wrap(url), { method: "GET" });
           if (!res.ok) throw new Error("HTTP " + res.status);
           var data = await res.json();
-          if (data && typeof data.result === "string") { activeProxyKey = key; return data; }
-          // Some proxies return the payload as text or wrapped; try to recover.
-          if (typeof data === "string") { var d2 = JSON.parse(data); if (d2 && d2.result) { activeProxyKey = key; return d2; } }
-          if (data && typeof data.contents === "string") { var d3 = JSON.parse(data.contents); if (d3 && d3.result) { activeProxyKey = key; return d3; } }
+          if (data && typeof data.result === "string") { rememberRoute(key); return data; }
+          if (typeof data === "string") { var d2 = JSON.parse(data); if (d2 && d2.result) { rememberRoute(key); return d2; } }
+          if (data && typeof data.contents === "string") { var d3 = JSON.parse(data.contents); if (d3 && d3.result) { rememberRoute(key); return d3; } }
           throw new Error("unexpected response shape");
         } catch (e) { lastErr = e; }
       }
@@ -4741,6 +4757,8 @@
     }
 
     async function jplQuery(command, birthUTC) {
+      var ck = cacheKey(command, birthUTC);
+      if (JPL_CACHE[ck]) return JPL_CACHE[ck];
       var half = 43200000;
       var start = new Date(birthUTC.getTime() - half);
       var stop = new Date(birthUTC.getTime() + half);
@@ -4749,13 +4767,28 @@
       var rows = parseHorizonsRows(data && data.result ? data.result : "");
       if (rows.length < 3) throw new Error("got " + rows.length + " rows (need 3)");
       var mo = motionFromLons(rows[0].lon, rows[2].lon);
-      return {
+      var out = {
         longitude: normalize360(rows[1].lon),
         latitude: rows[1].lat,
         constellationAbbr: rows[1].constellation,
         constellation: IAU[rows[1].constellation] || rows[1].constellation,
         motion: mo.motion, retrograde: mo.retrograde, dailyDelta: mo.dailyDelta
       };
+      JPL_CACHE[ck] = out;
+      return out;
+    }
+
+    // Cache-first Chiron accessor for the engine override. If a value for this
+    // instant was already fetched (e.g. by the validator), it returns instantly
+    // with no network — so the override never cold-starts or times out.
+    function getChironCached(instant) {
+      var ck = cacheKey(JPL_COMMAND["Chiron"], instant);
+      return JPL_CACHE[ck] || null;
+    }
+    async function getChiron(instant) {
+      var cached = getChironCached(instant);
+      if (cached) return cached;
+      return await jplQuery(JPL_COMMAND["Chiron"], instant);
     }
 
     window.SBAProvider = {
@@ -4763,6 +4796,8 @@
       _buildHorizonsURL: buildHorizonsURL,
       _motionFromLons: motionFromLons,
       jplQuery: jplQuery,
+      getChiron: getChiron,
+      getChironCached: getChironCached,
       JPL_COMMAND: JPL_COMMAND
     };
 
