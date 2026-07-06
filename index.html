@@ -287,6 +287,45 @@
     td.motion-cell { font-size: 0.85rem; color: #555; white-space: nowrap; }
     td.motion-cell.is-retro { color: #8b2020; font-weight: 600; }
 
+    /* Birth Time Confidence */
+    .btm-modes { display: flex; gap: 0.4rem; }
+    .btm-mode {
+      flex: 1; padding: 0.55rem 0.5rem; font-family: inherit; font-size: 0.9rem;
+      border: 1px solid #ccc7bc; border-radius: 6px; background: #fff; color: #5a4e3c;
+      cursor: pointer;
+    }
+    .btm-mode.active { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; font-weight: 600; }
+    .btm-presets { margin-top: 0.6rem; }
+    .btm-presets-label { display: block; font-size: 0.8rem; color: #8a7f6c; margin-bottom: 0.35rem; }
+    .btm-preset {
+      font-family: inherit; font-size: 0.85rem; padding: 0.4rem 0.7rem; margin: 0 0.3rem 0.3rem 0;
+      border: 1px solid #c9b896; border-radius: 999px; background: #f3efe7; color: #5a4e3c; cursor: pointer;
+    }
+    .btm-preset.active { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; }
+    .btm-hint, .btm-unknown-note {
+      font-size: 0.78rem; color: #8a7f6c; margin-top: 0.4rem; line-height: 1.5;
+      background: #faf7f1; border: 1px dashed #cdbf9f; border-radius: 6px; padding: 0.5rem 0.7rem;
+    }
+
+    /* Confidence banners in results */
+    .conf-banner {
+      border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 1rem; font-size: 0.88rem; line-height: 1.55;
+    }
+    .conf-high   { background: #f0f6ef; border: 1px solid #bcd6b6; color: #2f4d2b; }
+    .conf-medium { background: #fbf6ea; border: 1px solid #e6d4a0; color: #6b551f; }
+    .conf-limited{ background: #f7f4ee; border: 1px solid #cdbf9f; color: #5a4e3c; }
+    .conf-banner .conf-title { font-weight: 700; display: block; margin-bottom: 0.25rem; }
+    .conf-flags { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+    .conf-flags li { margin: 0.15rem 0; }
+
+    /* Core Profile list */
+    .core-profile { max-width: 760px; margin: 0 auto; }
+    .core-list { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    .core-list th, .core-list td { border: 1px solid #e6ddca; padding: 0.5rem 0.7rem; text-align: left; }
+    .core-list th { background: #f4efe6; font-size: 0.8rem; color: #5a4e3c; }
+    .core-uncertain { background: #fbf6ea; color: #6b551f; }
+    .core-note { font-size: 0.82rem; color: #8a7f6c; margin-top: 0.6rem; line-height: 1.55; }
+
     /* Collapsible SBA House Reference */
     .house-ref-fold { }
     .house-ref-summary {
@@ -1231,9 +1270,38 @@
           <input id="birthDate" name="birthDate" type="date" />
         </div>
 
-        <div class="form-group">
+        <div class="form-group full-width">
+          <label>Birth Time Confidence</label>
+          <div class="btm-modes" id="btmModes">
+            <button type="button" class="btm-mode active" data-mode="exact">Exact</button>
+            <button type="button" class="btm-mode" data-mode="approximate">Approximate</button>
+            <button type="button" class="btm-mode" data-mode="unknown">Unknown</button>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Reading Type</label>
+          <div class="btm-modes" id="readingTypeModes">
+            <button type="button" class="btm-mode active" data-reading="full">Full SBA Reading</button>
+            <button type="button" class="btm-mode" data-reading="core">Core SBA Reading — no birth time</button>
+          </div>
+        </div>
+
+        <div class="form-group" id="birthTimeGroup">
           <label for="birthTime">Birth Time</label>
           <input id="birthTime" name="birthTime" type="time" />
+          <div class="btm-presets" id="btmPresets" hidden>
+            <span class="btm-presets-label">Approximate time of day:</span>
+            <button type="button" class="btm-preset" data-time="08:00">Morning</button>
+            <button type="button" class="btm-preset" data-time="12:00">Midday</button>
+            <button type="button" class="btm-preset" data-time="15:00">Afternoon</button>
+            <button type="button" class="btm-preset" data-time="19:00">Evening</button>
+            <button type="button" class="btm-preset" data-time="23:00">Night</button>
+            <div class="btm-hint">Pick a rough time of day, or type an approximate time above. Angles, houses, Ascendant, MC, Vertex and Part of Fortune will be flagged as uncertain.</div>
+          </div>
+          <div class="btm-unknown-note" id="btmUnknownNote" hidden>
+            Birth time not required. SBA will build a <strong>Core Profile</strong> using only placements that don't depend on birth time. Time-dependent points (Ascendant, angles, houses, Vertex, Part of Fortune) will be hidden.
+          </div>
         </div>
 
         <div class="form-group full-width">
@@ -2199,10 +2267,21 @@
       }
     }
 
+    // Birth Time Confidence mode: "exact" | "approximate" | "unknown".
+    var birthTimeMode = "exact";
+    // Reading Type: "full" | "core".
+    var readingType = "full";
+
     function validate() {
       if (!form.clientName.value.trim()) return "Client name is required.";
       if (!form.birthDate.value) return "Birth date is required.";
-      if (!form.birthTime.value) return "Birth time is required.";
+      if (birthTimeMode === "unknown") {
+        // Birth time intentionally not required.
+      } else if (birthTimeMode === "approximate") {
+        if (!form.birthTime.value) return "Pick an approximate time of day (or type an approximate time).";
+      } else {
+        if (!form.birthTime.value) return "Birth time is required.";
+      }
       const lat = parseFloat(form.latitude.value);
       const lon = parseFloat(form.longitude.value);
       const tz = parseFloat(form.tzOffset.value);
@@ -2303,32 +2382,51 @@
       resultsEl.innerHTML = "";
       try {
         await new Promise((r) => setTimeout(r, 50));
-        const sbaResult = calculateSBA(
-          form.birthDate.value,
-          form.birthTime.value,
-          parseFloat(form.tzOffset.value),
-          parseFloat(form.latitude.value),
-          parseFloat(form.longitude.value)
-        );
-        const submittedName = form.clientName.value.trim();
+
         const tzNum = parseFloat(form.tzOffset.value);
+        const lat = parseFloat(form.latitude.value);
+        const lon = parseFloat(form.longitude.value);
+        const dateStr = form.birthDate.value;
+        const submittedName = form.clientName.value.trim();
         const placeLabel = resolvedPlace || form.birthPlace.value || `${form.latitude.value}, ${form.longitude.value}`;
-        const submittedBirth =
-          `${form.birthDate.value} ${form.birthTime.value} · ${placeLabel} (UTC${tzNum >= 0 ? "+" : ""}${form.tzOffset.value})`;
-        // Chiron override: replace the Keplerian Chiron with a JPL-derived one
-        // (times out + falls back to Keplerian if the network/JPL is unavailable,
-        // so a chart always renders). Only Chiron is affected.
-        await applyJplChiron(sbaResult);
-        renderResults(sbaResult, submittedName, submittedBirth);
-        // Dormant provider hook: publish the just-computed result so the
-        // (inactive-by-default) comparison layer can read it. This does not
-        // alter any calculation, default, or rendering.
-        try {
-          window.__SBA_LAST_RESULT__ = sbaResult;
-          if (window.SBACompare && typeof window.SBACompare.onResult === "function") {
-            window.SBACompare.onResult(sbaResult);
-          }
-        } catch (e) { /* never let the hook affect the calculator */ }
+        const tzLabel = `UTC${tzNum >= 0 ? "+" : ""}${form.tzOffset.value}`;
+
+        if (readingType === "core") {
+          // ── CORE SBA READING (no birth time). Houses, Entry House, angles,
+          //    Vertex, and Part of Fortune are excluded. Uses the entered time
+          //    if available, else an INTERNAL noon (calculation support only,
+          //    never presented as the birth time), purely for slow bodies.
+          const timeForCalc = (birthTimeMode !== "unknown" && form.birthTime.value) ? form.birthTime.value : "12:00";
+          const coreResult = calculateSBA(dateStr, timeForCalc, tzNum, lat, lon);
+          await applyJplChiron(coreResult);
+          const stability = scanDaySignStability(dateStr, tzNum, lat, lon);
+          const birthLabel = (birthTimeMode === "unknown")
+            ? `${dateStr} · birth time unknown · ${placeLabel} (${tzLabel})`
+            : `${dateStr} · Core reading · ${placeLabel} (${tzLabel})`;
+          renderCoreProfile(coreResult, stability, submittedName, birthLabel, birthTimeMode);
+          publishResult(coreResult);
+
+        } else if (birthTimeMode === "approximate") {
+          // ── FULL reading, APPROXIMATE time: angles/houses labelled estimated.
+          const t = form.birthTime.value;
+          const sbaResult = calculateSBA(dateStr, t, tzNum, lat, lon);
+          await applyJplChiron(sbaResult);
+          const drift = scanApproxDrift(dateStr, t, tzNum, lat, lon);
+          const submittedBirth = `${dateStr} ~${t} (approximate) · ${placeLabel} (${tzLabel})`;
+          renderResults(sbaResult, submittedName, submittedBirth, { estimated: true });
+          injectConfidenceBanner("approximate", drift);
+          publishResult(sbaResult);
+
+        } else {
+          // ── FULL reading, EXACT time: unchanged behaviour.
+          const sbaResult = calculateSBA(dateStr, form.birthTime.value, tzNum, lat, lon);
+          const submittedBirth =
+            `${dateStr} ${form.birthTime.value} · ${placeLabel} (${tzLabel})`;
+          await applyJplChiron(sbaResult);
+          renderResults(sbaResult, submittedName, submittedBirth);
+          injectConfidenceBanner("exact", null);
+          publishResult(sbaResult);
+        }
       } catch (err) {
         setFieldError(errorMessageEl, err instanceof Error ? err.message : "Calculation failed. Please check your inputs.");
       } finally {
@@ -2338,7 +2436,168 @@
       }
     }
 
-    function renderResults(result, submittedName, submittedBirth) {
+    // Publish result to the dormant comparison layer (unchanged hook).
+    function publishResult(result) {
+      try {
+        window.__SBA_LAST_RESULT__ = result;
+        if (window.SBACompare && typeof window.SBACompare.onResult === "function") {
+          window.SBACompare.onResult(result);
+        }
+      } catch (e) { /* never let the hook affect the calculator */ }
+    }
+
+    // Prepend a confidence banner to the results (Exact=High, Approximate=Medium).
+    function injectConfidenceBanner(mode, drift) {
+      if (!resultsEl) return;
+      var html = "";
+      if (mode === "exact") {
+        html = '<div class="conf-banner conf-high"><span class="conf-title">Full Birth Time Reading · High confidence</span>' +
+          'Calculated from an exact birth time. All placements, angles, and houses are shown.</div>';
+      } else if (mode === "approximate") {
+        var flags = "";
+        if (drift && drift.length) {
+          flags = '<ul class="conf-flags">' + drift.map(function (d) { return "<li>" + esc(d) + "</li>"; }).join("") + '</ul>';
+        }
+        html = '<div class="conf-banner conf-medium"><span class="conf-title">Approximate Birth Time Reading · Medium confidence</span>' +
+          'Birth time is approximate. Time-sensitive placements are estimated. ' +
+          'Entry House, houses, and AC/MC/DC/IC below are marked <em>estimated</em> and should be treated with caution.' + flags + '</div>';
+      }
+      var first = resultsEl.firstChild;
+      var wrap = document.createElement("div");
+      wrap.innerHTML = html;
+      if (wrap.firstChild) resultsEl.insertBefore(wrap.firstChild, first);
+    }
+
+    // Sample a body's constellation at several times across the local birth day.
+    // Returns per-name arrays of distinct constellations seen. Uses calculateSBA
+    // only (no engine change). Times are local (interpreted via tzOffset).
+    function bodySignsAtTimes(dateStr, tz, lat, lon, times) {
+      var byName = {};
+      times.forEach(function (t) {
+        var r = calculateSBA(dateStr, t, tz, lat, lon);
+        r.planets.forEach(function (p) {
+          (byName[p.body] = byName[p.body] || []).push(p.constellation);
+        });
+        (r.additionalPoints || []).forEach(function (pt) {
+          if (pt.eclipticLonFormatted === "Not available yet") return;
+          var base = String(pt.name).replace(/\s*\(.*\)$/, "");
+          (byName[base] = byName[base] || []).push(pt.constellation);
+        });
+      });
+      var distinct = {};
+      Object.keys(byName).forEach(function (n) {
+        var seen = [];
+        byName[n].forEach(function (c) { if (seen.indexOf(c) === -1) seen.push(c); });
+        distinct[n] = seen;
+      });
+      return distinct;
+    }
+
+    // Unknown mode: check sign stability over the whole local birth day.
+    function scanDaySignStability(dateStr, tz, lat, lon) {
+      var distinct = bodySignsAtTimes(dateStr, tz, lat, lon, ["00:01", "06:00", "12:00", "18:00", "23:59"]);
+      return distinct; // { bodyName: [distinct constellations across the day] }
+    }
+
+    // Approximate mode: compare the chosen time with nearby times and report
+    // anything that changes (angles' sign, and any body sign).
+    function scanApproxDrift(dateStr, t, tz, lat, lon) {
+      function clampTime(mins) {
+        mins = Math.max(0, Math.min(1439, mins));
+        var h = Math.floor(mins / 60), m = mins % 60;
+        return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+      }
+      var parts = (t || "12:00").split(":");
+      var base = parseInt(parts[0], 10) * 60 + parseInt(parts[1] || "0", 10);
+      var times = [clampTime(base - 180), clampTime(base - 90), t, clampTime(base + 90), clampTime(base + 180)];
+
+      var acSigns = [], mcSigns = [];
+      times.forEach(function (tt) {
+        var r = calculateSBA(dateStr, tt, tz, lat, lon);
+        (r.angles || []).forEach(function (a) {
+          if (a.name.indexOf("Ascendant") === 0) { if (acSigns.indexOf(a.constellation) === -1) acSigns.push(a.constellation); }
+          if (a.name.indexOf("Midheaven") === 0) { if (mcSigns.indexOf(a.constellation) === -1) mcSigns.push(a.constellation); }
+        });
+      });
+      var flags = [];
+      if (acSigns.length > 1) flags.push("Ascendant sign changes across ±3h: " + acSigns.join(" / ") + " — houses and the whole angular structure are uncertain.");
+      if (mcSigns.length > 1) flags.push("Midheaven (MC) sign changes across ±3h: " + mcSigns.join(" / ") + ".");
+      var bodyDistinct = bodySignsAtTimes(dateStr, tz, lat, lon, times);
+      Object.keys(bodyDistinct).forEach(function (n) {
+        if (bodyDistinct[n].length > 1) flags.push(n + " sign changes across ±3h: " + bodyDistinct[n].join(" / ") + ".");
+      });
+      return flags;
+    }
+
+    // Render the reduced, birth-time-independent "SBA Core Profile".
+    function renderCoreProfile(result, distinct, submittedName, submittedBirth, mode) {
+      var CORE_ORDER = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
+      var byName = {};
+      result.planets.forEach(function (p) { byName[p.body] = p; });
+
+      var rows = "";
+      CORE_ORDER.forEach(function (name) {
+        var p = byName[name];
+        if (!p) return;
+        var signs = distinct[name] || [p.constellation];
+        if (name === "Moon" && signs.length > 1) {
+          rows += '<tr class="core-uncertain"><td>Moon</td><td colspan="2">Moon sign uncertain: could be ' +
+            esc(signs.join(" or ")) + '. Exact birth time required.</td></tr>';
+        } else {
+          rows += '<tr><td>' + esc(name) + '</td><td>' + esc(p.constellation) + '</td><td>' + esc(displayMotion(p)) + '</td></tr>';
+        }
+      });
+
+      function pointNamed(prefix) {
+        return (result.additionalPoints || []).find(function (pt) { return String(pt.name).indexOf(prefix) === 0; });
+      }
+      function coreRow(label, pt) {
+        if (!pt || pt.eclipticLonFormatted === "Not available yet") return;
+        var signs = distinct[label] || distinct[String(pt.name).replace(/\s*\(.*\)$/, "")] || [pt.constellation];
+        if (signs.length > 1) {
+          rows += '<tr class="core-uncertain"><td>' + esc(label) + '</td><td colspan="2">Sign uncertain across the day (' +
+            esc(signs.join(" / ")) + '); omitted for reliability.</td></tr>';
+        } else {
+          rows += '<tr><td>' + esc(label) + '</td><td>' + esc(pt.constellation) + '</td><td>' + esc(displayMotion(pt)) + '</td></tr>';
+        }
+      }
+
+      // Chiron (slow — sign stable over a day).
+      coreRow("Chiron", pointNamed("Chiron"));
+      // Lunar nodes — only if sign-stable across the day.
+      coreRow("North Node", pointNamed("North Node"));
+      coreRow("South Node", pointNamed("South Node"));
+      // Lilith (Mean BML) — date-based (mean apogee), time-independent.
+      coreRow("Lilith (Mean BML)", pointNamed("Lilith"));
+      // NOTE: Part of Fortune and Vertex are intentionally excluded — both require
+      // the Ascendant and are not valid without an exact birth time.
+
+      var noteText = (mode === "unknown")
+        ? "Birth time unknown. This is a Core SBA Reading. Houses, Entry House, and angles are not included."
+        : "Core SBA Reading. Houses, Entry House, and angles are not included.";
+
+      var html =
+        '<div class="core-profile">' +
+        '<div class="conf-banner conf-limited"><span class="conf-title">SBA Core Profile – Birth Time Unknown · Limited but valid confidence</span>' +
+        esc(noteText) + '</div>' +
+        '<h2 style="font-family:Georgia,serif;color:#3a3530;margin:0.2rem 0 0.2rem">SBA Core Profile – Birth Time Unknown</h2>' +
+        '<div style="font-size:0.85rem;color:#8a7f6c;margin-bottom:0.4rem">' + esc(submittedName || "") + (submittedName ? " · " : "") + esc(submittedBirth) + '</div>' +
+        '<table class="core-list"><thead><tr><th>Body</th><th>Sign (constellation)</th><th>Motion</th></tr></thead><tbody>' +
+        rows + '</tbody></table>' +
+        '<p class="core-note">Sign stability was checked across the full 24 hours of the birth date at this location. ' +
+        'Slow-moving bodies are reliable; the Moon (and, if flagged, the nodes) can change sign within a day and are marked uncertain when so. ' +
+        'Part of Fortune and Vertex are excluded because they require the Ascendant. ' +
+        'An internal noon was used only as calculation support for the slow-moving bodies — it is not the client\u2019s birth time.</p>' +
+        '</div>';
+
+      resultsEl.innerHTML = html;
+      resultsEl.hidden = false;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function renderResults(result, submittedName, submittedBirth, opts) {
+      var estimated = !!(opts && opts.estimated);
+      var estTag = estimated ? ' <span style="font-size:0.72rem;color:#6b551f;background:#fbf6ea;border:1px solid #e6d4a0;border-radius:4px;padding:0 0.3rem;">estimated</span>' : '';
       const planetRows = result.planets.map(p => `
         <tr>
           <td class="body-name">${esc(displayPlacementName(p))}</td>
@@ -2425,7 +2684,7 @@
         <div class="section-divider"></div>
 
         <div class="angles-section">
-          <div class="angles-heading">Angles</div>
+          <div class="angles-heading">Angles${estTag}</div>
           <div class="table-container">
             <table>
               <thead>
@@ -2434,7 +2693,7 @@
               <tbody>${angleRows}</tbody>
             </table>
           </div>
-          <div class="angles-note">AC and MC depend strongly on exact birth time and location.</div>
+          <div class="angles-note">${estimated ? "Birth time is approximate — AC/MC/DC/IC and their houses are estimated and may shift with the true time. " : ""}AC and MC depend strongly on exact birth time and location.</div>
         </div>
 
         <div class="section-divider"></div>
@@ -2497,6 +2756,75 @@
     form.latitude.addEventListener("input", renderResolvedPlace);
     form.longitude.addEventListener("input", renderResolvedPlace);
     btnCalculate.addEventListener("click", handleCalculate);
+
+    // ── Birth Time Confidence + Reading Type selectors ────────────────────────
+    (function wireBirthTimeMode() {
+      var modeWrap = document.getElementById("btmModes");
+      var readingWrap = document.getElementById("readingTypeModes");
+      var birthTimeInput = document.getElementById("birthTime");
+      var presets = document.getElementById("btmPresets");
+      var unknownNote = document.getElementById("btmUnknownNote");
+      if (!modeWrap) return;
+
+      function setReadingButtons(type, locked) {
+        readingType = type;
+        if (!readingWrap) return;
+        Array.prototype.forEach.call(readingWrap.querySelectorAll(".btm-mode"), function (b) {
+          var isSel = b.getAttribute("data-reading") === type;
+          b.classList.toggle("active", isSel);
+          b.disabled = !!locked && !isSel;
+          b.style.opacity = (!!locked && !isSel) ? "0.4" : "";
+          b.style.cursor = locked ? "not-allowed" : "pointer";
+        });
+      }
+
+      function applyMode(mode) {
+        birthTimeMode = mode;
+        Array.prototype.forEach.call(modeWrap.querySelectorAll(".btm-mode"), function (b) {
+          b.classList.toggle("active", b.getAttribute("data-mode") === mode);
+        });
+        if (presets) presets.hidden = (mode !== "approximate");
+        if (unknownNote) unknownNote.hidden = (mode !== "unknown");
+        if (birthTimeInput) {
+          birthTimeInput.disabled = (mode === "unknown");
+          birthTimeInput.style.opacity = (mode === "unknown") ? "0.5" : "";
+          if (mode === "unknown") birthTimeInput.value = "";
+        }
+        if (mode !== "approximate" && presets) {
+          Array.prototype.forEach.call(presets.querySelectorAll(".btm-preset"), function (p) { p.classList.remove("active"); });
+        }
+        // Reading Type defaults per confidence:
+        //  Unknown  → Core, locked (no exact time available).
+        //  Exact/Approximate → default Full, but AJ may switch to Core.
+        if (mode === "unknown") setReadingButtons("core", true);
+        else setReadingButtons("full", false);
+      }
+
+      Array.prototype.forEach.call(modeWrap.querySelectorAll(".btm-mode"), function (b) {
+        b.addEventListener("click", function () { applyMode(b.getAttribute("data-mode")); });
+      });
+
+      if (readingWrap) {
+        Array.prototype.forEach.call(readingWrap.querySelectorAll(".btm-mode"), function (b) {
+          b.addEventListener("click", function () {
+            if (b.disabled) return;
+            setReadingButtons(b.getAttribute("data-reading"), birthTimeMode === "unknown");
+          });
+        });
+      }
+
+      if (presets) {
+        Array.prototype.forEach.call(presets.querySelectorAll(".btm-preset"), function (p) {
+          p.addEventListener("click", function () {
+            if (birthTimeInput) birthTimeInput.value = p.getAttribute("data-time");
+            Array.prototype.forEach.call(presets.querySelectorAll(".btm-preset"), function (x) { x.classList.remove("active"); });
+            p.classList.add("active");
+          });
+        });
+      }
+
+      applyMode("exact"); // default
+    })();
   </script>
   <button class="back-to-top" id="backToTop" type="button" aria-label="Back to top" title="Back to top">↑</button>
 
