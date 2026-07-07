@@ -2573,8 +2573,20 @@
       // the Ascendant and are not valid without an exact birth time.
 
       var noteText = (mode === "unknown")
-        ? "Birth time unknown. This is a Core SBA Reading. Houses, Entry House, and angles are not included."
-        : "Core SBA Reading. Houses, Entry House, and angles are not included.";
+        ? "Birth time unknown. This is a Core SBA Reading. Angles and clock-time houses are not included. Entry House is included because it is calculated from the SBA New Year cycle, not birth time."
+        : "Core SBA Reading. Angles and clock-time houses are not included. Entry House is included because it is calculated from the SBA New Year cycle, not birth time.";
+
+      // Entry House — the EXISTING date-based SBA Year / New-Moon-cycle values
+      // straight from calculateSBA (the same fields shown in Full/Exact profiles).
+      // No new formula; reused verbatim. Not birth-time dependent.
+      var entryHouseBlock =
+        '<div class="conf-banner conf-limited" style="background:#f4efe6;">' +
+        '<span class="conf-title">Entry House — date-based from SBA New Year cycle, not birth time</span>' +
+        '<div style="display:grid;grid-template-columns:1fr auto;gap:0.3rem 1rem;font-size:0.88rem;margin-top:0.3rem;">' +
+        '<span>SBA Year</span><strong>' + esc(result.sbaYear) + '</strong>' +
+        '<span>Year Start (New Moon after March Equinox)</span><strong>' + esc(result.sbaYearStart) + '</strong>' +
+        '<span>SBA Lunar Month (Time-House)</span><strong>' + esc(result.sbaLunarMonth) + '</strong>' +
+        '</div></div>';
 
       var html =
         '<div class="core-profile">' +
@@ -2582,6 +2594,7 @@
         esc(noteText) + '</div>' +
         '<h2 style="font-family:Georgia,serif;color:#3a3530;margin:0.2rem 0 0.2rem">SBA Core Profile – Birth Time Unknown</h2>' +
         '<div style="font-size:0.85rem;color:#8a7f6c;margin-bottom:0.4rem">' + esc(submittedName || "") + (submittedName ? " · " : "") + esc(submittedBirth) + '</div>' +
+        entryHouseBlock +
         '<table class="core-list"><thead><tr><th>Body</th><th>Sign (constellation)</th><th>Motion</th></tr></thead><tbody>' +
         rows + '</tbody></table>' +
         '<p class="core-note">Sign stability was checked across the full 24 hours of the birth date at this location. ' +
