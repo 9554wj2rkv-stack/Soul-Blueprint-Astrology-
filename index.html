@@ -288,45 +288,106 @@
     td.motion-cell.is-retro { color: #8b2020; font-weight: 600; }
 
     /* ── SBA Calendar ── */
-    .cal-wrap { max-width: 860px; margin: 1.5rem auto; padding: 0 1rem 3rem; }
-    .cal-head h1 { font-family: Georgia, serif; color: #3a3530; margin: 0 0 0.25rem; }
-    .cal-sub { font-size: 0.85rem; color: #8a7f6c; line-height: 1.55; margin: 0 0 1rem; }
-    .cal-today {
-      background: #5a4e3c; color: #f5f3ef; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.2rem;
+    .cal-wrap { max-width: 720px; margin: 1rem auto; padding: 0 0.9rem 3rem; }
+    .cal-title { font-family: Georgia, serif; color: #3a3530; margin: 0.4rem 0 0.8rem; font-size: 1.6rem; }
+
+    /* Today card */
+    .cal-today { background: #5a4e3c; color: #f5f3ef; border-radius: 12px; padding: 1rem 1.1rem; margin-bottom: 0.9rem; }
+    .cal-today .ct-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.72; }
+    .cal-today .ct-main { font-family: Georgia, serif; font-size: 1.28rem; margin: 0.25rem 0 0.75rem; line-height: 1.25; }
+    .cal-today .ct-rows { display: grid; grid-template-columns: auto 1fr; gap: 0.32rem 0.9rem; font-size: 0.92rem; }
+    .cal-today .ct-rows dt { opacity: 0.72; font-size: 0.85rem; }
+    .cal-today .ct-rows dd { margin: 0; font-weight: 600; }
+    .cal-today .ct-range { margin-top: 0.7rem; font-size: 0.8rem; opacity: 0.8; }
+    .cal-today .ct-bar { margin-top: 0.55rem; height: 5px; background: rgba(255,255,255,0.22); border-radius: 999px; overflow: hidden; }
+    .cal-today .ct-bar span { display: block; height: 100%; background: #e8dcc4; border-radius: 999px; }
+
+    /* About collapsible */
+    .cal-about { border: 1px solid #e6ddca; border-radius: 8px; background: #faf7f1; margin-bottom: 1rem; }
+    .cal-about summary { cursor: pointer; padding: 0.6rem 0.85rem; font-size: 0.85rem; color: #5a4e3c; font-weight: 600; }
+    .cal-about p { margin: 0; padding: 0 0.85rem 0.8rem; font-size: 0.82rem; color: #8a7f6c; line-height: 1.6; }
+
+    /* Year navigation */
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.6rem; }
+    .cal-nav-side {
+      display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; font-size: 0.9rem;
+      background: none; border: none; color: #8a7f6c; cursor: pointer; padding: 0.45rem 0.3rem;
     }
-    .cal-today .ct-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.75; }
-    .cal-today .ct-main { font-family: Georgia, serif; font-size: 1.3rem; margin: 0.2rem 0 0.5rem; }
-    .cal-today .ct-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem 1rem; font-size: 0.9rem; }
-    .cal-today .ct-grid b { display: block; font-size: 0.72rem; opacity: 0.7; font-weight: 400; }
-    .cal-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+    .cal-nav-right { justify-content: flex-end; }
+    .cal-nav-arrow { font-size: 1rem; }
+    .cal-nav-current { font-family: Georgia, serif; font-size: 1.45rem; color: #3a3530; font-weight: 600; }
+
+    .cal-tools { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .cal-btn {
-      font-family: inherit; font-size: 0.85rem; padding: 0.45rem 0.8rem; border: 1px solid #c9b896;
-      border-radius: 6px; background: #f3efe7; color: #5a4e3c; cursor: pointer;
+      font-family: inherit; font-size: 0.85rem; padding: 0.45rem 0.85rem; border: 1px solid #c9b896;
+      border-radius: 999px; background: #f3efe7; color: #5a4e3c; cursor: pointer;
     }
     .cal-btn-accent { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; }
-    .cal-jump { font-size: 0.82rem; color: #8a7f6c; margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem; }
-    .cal-jump-input { width: 5.5rem; padding: 0.35rem 0.4rem; border: 1px solid #ccc7bc; border-radius: 6px; font-family: inherit; }
-    .cal-year-header {
-      background: #faf7f1; border: 1px solid #e6ddca; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.8rem;
+    .cal-jump { margin-left: auto; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #8a7f6c; }
+    .cal-jump-input { width: 4.8rem; padding: 0.38rem 0.45rem; border: 1px solid #ccc7bc; border-radius: 8px; font-family: inherit; font-size: 0.85rem; }
+
+    /* Year overview card */
+    .cal-year-card { background: #faf7f1; border: 1px solid #e6ddca; border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 0.9rem; }
+    .cal-year-card .cyc-top { font-family: Georgia, serif; font-size: 1.1rem; color: #3a3530; margin-bottom: 0.5rem; }
+    .cal-year-card .cyc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.45rem 0.9rem; font-size: 0.85rem; color: #5a4e3c; }
+    .cal-year-card .cyc-grid b { display: block; font-size: 0.7rem; color: #8a7f6c; font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Year progress dots */
+    .cal-progress { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.8rem; }
+    .cal-dot {
+      display: inline-flex; align-items: center; gap: 0.28rem; font-size: 0.72rem; color: #8a7f6c;
+      border: 1px solid #e0d6c0; border-radius: 999px; padding: 0.18rem 0.5rem; background: #fff;
+      cursor: pointer;
     }
-    .cal-year-header .cyh-title { font-family: Georgia, serif; font-size: 1.15rem; color: #3a3530; }
-    .cal-year-header .cyh-range { font-size: 0.85rem; color: #8a7f6c; margin-top: 0.2rem; }
-    .cal-month { border: 1px solid #e6ddca; border-radius: 8px; margin-bottom: 0.6rem; overflow: hidden; }
-    .cal-month-head {
-      display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
-      padding: 0.65rem 0.9rem; background: #f4efe6; cursor: pointer; user-select: none;
-    }
-    .cal-month-head .cmh-title { font-weight: 600; color: #3a3530; }
-    .cal-month-head .cmh-meta { font-size: 0.8rem; color: #8a7f6c; }
-    .cal-month-head .cmh-caret { transition: transform 0.15s; color: #8a7f6c; }
+    .cal-dot .cd-mark { font-size: 0.6rem; color: #cdbf9f; }
+    .cal-dot.past { color: #5a4e3c; }
+    .cal-dot.past .cd-mark { color: #5a4e3c; }
+    .cal-dot.current { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; font-weight: 600; }
+    .cal-dot.current .cd-mark { color: #e8dcc4; }
+
+    /* Month cards + calendar grid */
+    .cal-month { border: 1px solid #e6ddca; border-radius: 12px; margin-bottom: 0.7rem; overflow: hidden; background: #fff; }
+    .cal-month-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.75rem 0.9rem; background: #f4efe6; cursor: pointer; user-select: none; }
+    .cmh-left .cmh-title { font-weight: 700; color: #3a3530; font-size: 0.95rem; }
+    .cmh-left .cmh-meta { font-size: 0.75rem; color: #8a7f6c; margin-top: 0.15rem; }
+    .cmh-newmoon { font-size: 0.72rem; color: #6b551f; background: #fbf6ea; border: 1px solid #e6d4a0; border-radius: 999px; padding: 0.05rem 0.4rem; margin-left: 0.3rem; white-space: nowrap; }
+    .cmh-caret { color: #8a7f6c; transition: transform 0.15s; flex: none; }
     .cal-month.open .cmh-caret { transform: rotate(90deg); }
-    .cal-days { display: none; }
-    .cal-month.open .cal-days { display: block; }
-    .cal-days table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    .cal-days th, .cal-days td { border-top: 1px solid #efe8d8; padding: 0.4rem 0.6rem; text-align: left; }
-    .cal-days th { background: #fbf9f4; color: #8a7f6c; font-weight: 600; position: sticky; top: 0; }
-    .cal-days tr.is-today td { background: #fbf6ea; font-weight: 600; color: #6b551f; }
+    .cal-grid-wrap { display: none; padding: 0.7rem 0.6rem 0.9rem; }
+    .cal-month.open .cal-grid-wrap { display: block; }
+
+    .cal-weekdays, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .cal-weekdays { margin-bottom: 4px; }
+    .cal-weekdays span { text-align: center; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: #8a7f6c; padding: 0.2rem 0; }
+    .cal-cell {
+      aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 8px; background: #faf7f1; border: 1px solid transparent; cursor: pointer;
+      font-size: 0.86rem; color: #3a3530; line-height: 1; padding: 0;
+      font-family: inherit;
+    }
+    .cal-cell:active { transform: scale(0.96); }
+    .cal-cell.empty { background: transparent; cursor: default; }
+    .cal-cell .cc-sub { font-size: 0.55rem; color: #a99f8c; margin-top: 2px; }
+    .cal-cell.is-newmoon { border-color: #e6d4a0; background: #fdfaf2; }
+    .cal-cell.is-today { background: #5a4e3c; color: #f5f3ef; font-weight: 700; }
+    .cal-cell.is-today .cc-sub { color: #e8dcc4; }
+    .cal-today-badge { display: inline-block; font-size: 0.62rem; background: #5a4e3c; color: #f5f3ef; border-radius: 999px; padding: 0.05rem 0.4rem; margin-left: 0.35rem; vertical-align: middle; }
+
     .cal-loading { color: #8a7f6c; font-size: 0.9rem; padding: 1rem 0; }
+
+    /* Day detail modal */
+    .cal-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+    .cal-modal-backdrop { position: absolute; inset: 0; background: rgba(30,26,20,0.45); }
+    .cal-modal-card {
+      position: relative; background: #fff; border-radius: 16px 16px 0 0; padding: 1.1rem 1.1rem 1.6rem;
+      width: 100%; max-width: 520px; box-shadow: 0 -6px 30px rgba(0,0,0,0.2);
+    }
+    .cal-modal-close { position: absolute; top: 0.6rem; right: 0.8rem; background: none; border: none; font-size: 1.5rem; color: #8a7f6c; cursor: pointer; line-height: 1; }
+    .cal-modal-title { font-family: Georgia, serif; font-size: 1.15rem; color: #3a3530; margin-bottom: 0.7rem; padding-right: 1.5rem; }
+    .cal-modal-body { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 0.9rem; font-size: 0.9rem; }
+    .cal-modal-body dt { color: #8a7f6c; font-size: 0.82rem; }
+    .cal-modal-body dd { margin: 0; font-weight: 600; color: #3a3530; }
+    @media (min-width: 560px) { .cal-modal { align-items: center; } .cal-modal-card { border-radius: 16px; } }
 
     /* Birth Time Confidence */
     .btm-modes { display: flex; gap: 0.4rem; }
@@ -1295,25 +1356,45 @@
   <!-- ── SBA CALENDAR (date conversion only — no readings/interpretations) ── -->
   <div class="prac-screen" id="screenCalendar" hidden>
     <div class="cal-wrap">
-      <div class="cal-head">
-        <h1>SBA Calendar</h1>
-        <p class="cal-sub">Gregorian ⇄ SBA date conversion. The SBA year begins on the first New Moon after the March equinox; months follow the New Moon cycle. This is a date tool only — no readings, interpretations, or transits.</p>
-      </div>
+      <h1 class="cal-title">SBA Calendar</h1>
 
       <div id="calTodayCard" class="cal-today">Loading today…</div>
 
-      <div class="cal-controls">
-        <button type="button" id="calPrev" class="cal-btn">‹ Prev SBA Year</button>
+      <details class="cal-about">
+        <summary>About SBA Calendar</summary>
+        <p>Gregorian ⇄ SBA date conversion. The SBA year begins on the first New Moon after the March equinox, and SBA months follow the New Moon cycle — so a year has 12 or 13 lunar months. Dates are resolved with the same time-house rule the reading calculator uses, so a date never shows a different SBA month here than in a reading. This is a personal date tool only: no readings, interpretations, or transits.</p>
+      </details>
+
+      <div class="cal-nav">
+        <button type="button" id="calPrev" class="cal-nav-side" aria-label="Previous SBA year">
+          <span class="cal-nav-arrow">←</span><span id="calPrevLabel">—</span>
+        </button>
+        <div class="cal-nav-current" id="calCurrentLabel">—</div>
+        <button type="button" id="calNext" class="cal-nav-side cal-nav-right" aria-label="Next SBA year">
+          <span id="calNextLabel">—</span><span class="cal-nav-arrow">→</span>
+        </button>
+      </div>
+
+      <div class="cal-tools">
         <button type="button" id="calToday" class="cal-btn cal-btn-accent">Today</button>
-        <button type="button" id="calNext" class="cal-btn">Next SBA Year ›</button>
         <span class="cal-jump">
-          Jump to SBA year:
-          <input type="number" id="calJumpInput" class="cal-jump-input" />
+          Jump to SBA year
+          <input type="number" id="calJumpInput" class="cal-jump-input" inputmode="numeric" />
           <button type="button" id="calJumpGo" class="cal-btn">Go</button>
         </span>
       </div>
 
       <div id="calYearView" class="cal-year"></div>
+    </div>
+
+    <!-- Day detail modal (date facts only) -->
+    <div id="calDayModal" class="cal-modal" hidden>
+      <div class="cal-modal-backdrop" id="calDayModalBackdrop"></div>
+      <div class="cal-modal-card" role="dialog" aria-modal="true" aria-labelledby="calDayModalTitle">
+        <button type="button" class="cal-modal-close" id="calDayModalClose" aria-label="Close">×</button>
+        <div id="calDayModalTitle" class="cal-modal-title"></div>
+        <div id="calDayModalBody" class="cal-modal-body"></div>
+      </div>
     </div>
   </div>
 
@@ -5524,14 +5605,15 @@
     });
   })();
   </script>
-  <!-- ── SBA Calendar UI controller (date rendering only) ── -->
+  <!-- ── SBA Calendar UI controller (presentation only — no calculations) ── -->
   <script>
   (function () {
     "use strict";
     function $(id) { return document.getElementById(id); }
     function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-    var MIN_YEAR, MAX_YEAR, viewYear = null, todayISO = null;
+    var MIN_YEAR, MAX_YEAR, viewYear = null, todayISO = null, todayInfo = null;
+    var yearCache = {};
 
     function cal() { return window.SBACalendar; }
 
@@ -5539,68 +5621,133 @@
       var n = new Date();
       return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
     }
+    // Monday-first index (0=Mon … 6=Sun) from a UTC date.
+    function mondayIndex(d) { return (d.getUTCDay() + 6) % 7; }
+    function dayNum(isoStr) { return parseInt(isoStr.substring(8, 10), 10); }
 
+    function getYear(Y) {
+      if (!yearCache[Y]) yearCache[Y] = cal().buildYear(Y);
+      return yearCache[Y];
+    }
+
+    // ── Today card ────────────────────────────────────────────────────────────
     function renderTodayCard() {
       var card = $("calTodayCard");
       if (!card) return;
       try {
-        var t = todayUTCDate();
-        var c = cal().convert(t);
+        var c = cal().convert(todayUTCDate());
         todayISO = c.gregorianISO;
+        todayInfo = c;
+
+        // Current month range + day X of Y (from the built year, no new math).
+        var y = getYear(c.sbaYear);
+        var m = y.months[c.sbaMonth - 1];
+        var mStartISO = m ? m.days[0].iso : c.gregorianISO;
+        var mEndISO = m ? m.days[m.days.length - 1].iso : c.gregorianISO;
+        var mDays = m ? m.dayCount : 0;
+        var pct = mDays ? Math.round((c.sbaMonthDay / mDays) * 100) : 0;
+
         card.innerHTML =
           '<div class="ct-title">Today in SBA Calendar</div>' +
           '<div class="ct-main">' + esc(c.gregorianLong) + '</div>' +
-          '<div class="ct-grid">' +
-          '<div><b>SBA Year</b>' + esc(c.sbaYear) + '</div>' +
-          '<div><b>SBA Month</b>' + esc(c.sbaMonth) + ' of ' + esc(c.sbaMonthsInYear) + '</div>' +
-          '<div><b>SBA Month Day</b>' + esc(c.sbaMonthDay) + '</div>' +
-          '<div><b>SBA Day of Year</b>' + esc(c.sbaDayOfYear) + '</div>' +
-          '<div><b>SBA Year Range</b>' + esc(c.sbaYearStartISO) + ' → ' + esc(c.sbaYearEndISO) + '</div>' +
-          '</div>';
+          '<dl class="ct-rows">' +
+          '<dt>SBA Year</dt><dd>' + esc(c.sbaYear) + '</dd>' +
+          '<dt>SBA Month</dt><dd>' + esc(c.sbaMonth) + ' of ' + esc(c.sbaMonthsInYear) + '</dd>' +
+          '<dt>Month Day</dt><dd>' + esc(c.sbaMonthDay) + ' of ' + esc(mDays) + '</dd>' +
+          '<dt>SBA Day of Year</dt><dd>' + esc(c.sbaDayOfYear) + '</dd>' +
+          '</dl>' +
+          '<div class="ct-range">Current Month: ' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</div>' +
+          '<div class="ct-bar"><span style="width:' + pct + '%"></span></div>';
       } catch (e) {
         card.innerHTML = '<div class="ct-title">Today in SBA Calendar</div><div class="ct-main">Unavailable</div>' +
-          '<div class="ct-grid"><div>' + esc(e.message || "calculation error") + '</div></div>';
+          '<div class="ct-range">' + esc(e.message || "calculation error") + '</div>';
       }
+    }
+
+    // ── One SBA month rendered as a calendar grid ─────────────────────────────
+    function monthGridHTML(m) {
+      var lead = mondayIndex(m.days[0].date);
+      var cells = "";
+      for (var i = 0; i < lead; i++) cells += '<div class="cal-cell empty"></div>';
+      m.days.forEach(function (d, idx) {
+        var cls = "cal-cell";
+        if (idx === 0) cls += " is-newmoon";
+        if (d.iso === todayISO) cls += " is-today";
+        cells += '<button type="button" class="' + cls + '" data-iso="' + esc(d.iso) + '">' +
+          esc(dayNum(d.iso)) + '<span class="cc-sub">' + esc(d.monthDay) + '</span></button>';
+      });
+      return '<div class="cal-weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>' +
+        '<span>Fri</span><span>Sat</span><span>Sun</span></div>' +
+        '<div class="cal-grid">' + cells + '</div>';
     }
 
     function renderYear(Y) {
       var host = $("calYearView");
       if (!host) return;
       host.innerHTML = '<div class="cal-loading">Calculating SBA year ' + esc(Y) + '…</div>';
-      // Defer so the loading text paints before the (synchronous) astronomy runs.
       setTimeout(function () {
         try {
-          var data = cal().buildYear(Y);
-          var html =
-            '<div class="cal-year-header">' +
-            '<div class="cyh-title">SBA Year ' + esc(data.sbaYear) + '</div>' +
-            '<div class="cyh-range">Starts ' + esc(data.startISO) + ' · ends ' + esc(data.endISO) +
-            ' · ' + esc(data.monthsCount) + ' lunar months · ' + esc(data.totalDays) + ' days</div>' +
-            '</div>';
+          var data = getYear(Y);
+          var isCurrent = todayInfo && todayInfo.sbaYear === Y;
 
-          data.months.forEach(function (m, i) {
-            var openClass = (todayISO && m.days.some(function (d) { return d.iso === todayISO; })) ? " open" : (i === 0 ? " open" : "");
-            var rows = m.days.map(function (d) {
-              var todayCls = (d.iso === todayISO) ? ' class="is-today"' : '';
-              return '<tr' + todayCls + '><td>' + esc(d.iso) + '</td><td>' + esc(d.weekday) + '</td><td>' +
-                esc(d.monthNumber) + '</td><td>' + esc(d.monthDay) + '</td><td>' + esc(d.dayOfYear) + '</td></tr>';
-            }).join("");
+          // Year overview card
+          var html =
+            '<div class="cal-year-card">' +
+            '<div class="cyc-top">SBA Year ' + esc(data.sbaYear) + '</div>' +
+            '<div class="cyc-grid">' +
+            '<div><b>Start</b>' + esc(data.startISO) + '</div>' +
+            '<div><b>End</b>' + esc(data.endISO) + '</div>' +
+            '<div><b>Lunar months</b>' + esc(data.monthsCount) + '</div>' +
+            '<div><b>Total days</b>' + esc(data.totalDays) + '</div>' +
+            (isCurrent ? '<div><b>Today is day</b>' + esc(todayInfo.sbaDayOfYear) + ' of ' + esc(data.totalDays) + '</div>' : '') +
+            '</div>' +
+            '<div class="cal-progress">' +
+            data.months.map(function (m) {
+              var st = "future", mark = "○";
+              if (isCurrent) {
+                if (m.number < todayInfo.sbaMonth) { st = "past"; mark = "●"; }
+                else if (m.number === todayInfo.sbaMonth) { st = "current"; mark = "●"; }
+              }
+              return '<button type="button" class="cal-dot ' + st + '" data-goto="' + m.number + '">' +
+                '<span class="cd-mark">' + mark + '</span>M' + esc(m.number) +
+                (st === "current" ? ' · Today' : '') + '</button>';
+            }).join("") +
+            '</div></div>';
+
+          // Month cards with calendar grids
+          data.months.forEach(function (m) {
+            var hasToday = isCurrent && m.number === todayInfo.sbaMonth;
+            var open = hasToday || (!isCurrent && m.number === 1);
+            var sISO = m.days[0].iso, eISO = m.days[m.days.length - 1].iso;
             html +=
-              '<div class="cal-month' + openClass + '">' +
-              '<div class="cal-month-head" data-month="' + i + '">' +
-              '<span class="cmh-title">SBA Month ' + esc(m.number) + '</span>' +
-              '<span class="cmh-meta">' + esc(m.start.toISOString().substring(0, 10)) + ' → ' +
-              esc(m.end.toISOString().substring(0, 10)) + ' · ' + esc(m.dayCount) + ' days <span class="cmh-caret">▸</span></span>' +
-              '</div>' +
-              '<div class="cal-days"><table><thead><tr>' +
-              '<th>Gregorian</th><th>Weekday</th><th>SBA Month</th><th>Month Day</th><th>Day of Year</th>' +
-              '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+              '<div class="cal-month' + (open ? " open" : "") + '" id="calMonth' + m.number + '">' +
+              '<div class="cal-month-head" role="button" tabindex="0">' +
+              '<div class="cmh-left">' +
+              '<div class="cmh-title">SBA Month ' + esc(m.number) +
+              (hasToday ? '<span class="cal-today-badge">Today</span>' : '') + '</div>' +
+              '<div class="cmh-meta">' + esc(sISO) + ' → ' + esc(eISO) + ' · ' + esc(m.dayCount) + ' days' +
+              '<span class="cmh-newmoon">New Moon ' + esc(sISO) + '</span></div>' +
+              '</div><span class="cmh-caret">▸</span></div>' +
+              '<div class="cal-grid-wrap">' + monthGridHTML(m) + '</div>' +
               '</div>';
           });
+
           host.innerHTML = html;
 
+          // Expand/collapse
           Array.prototype.forEach.call(host.querySelectorAll(".cal-month-head"), function (head) {
             head.addEventListener("click", function () { head.parentNode.classList.toggle("open"); });
+          });
+          // Day taps → detail modal
+          Array.prototype.forEach.call(host.querySelectorAll(".cal-cell[data-iso]"), function (cell) {
+            cell.addEventListener("click", function () { openDayModal(cell.getAttribute("data-iso")); });
+          });
+          // Progress dots → jump to that month
+          Array.prototype.forEach.call(host.querySelectorAll(".cal-dot[data-goto]"), function (dot) {
+            dot.addEventListener("click", function () {
+              var el = $("calMonth" + dot.getAttribute("data-goto"));
+              if (el) { el.classList.add("open"); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+            });
           });
         } catch (e) {
           host.innerHTML = '<div class="cal-loading">Could not build SBA year ' + esc(Y) + ': ' + esc(e.message || "error") + '</div>';
@@ -5608,32 +5755,83 @@
       }, 20);
     }
 
-    function go(Y) {
+    // ── Day detail modal (date facts only) ───────────────────────────────────
+    function openDayModal(isoStr) {
+      var modal = $("calDayModal");
+      if (!modal) return;
+      try {
+        var parts = isoStr.split("-");
+        var d = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+        var c = cal().convert(d);
+        var y = getYear(c.sbaYear);
+        var m = y.months[c.sbaMonth - 1];
+        var mStartISO = m ? m.days[0].iso : "—";
+        var mEndISO = m ? m.days[m.days.length - 1].iso : "—";
+
+        $("calDayModalTitle").innerHTML = esc(c.gregorianLong) +
+          (isoStr === todayISO ? '<span class="cal-today-badge">Today</span>' : "");
+        $("calDayModalBody").innerHTML =
+          '<dt>SBA Year</dt><dd>' + esc(c.sbaYear) + '</dd>' +
+          '<dt>SBA Month</dt><dd>' + esc(c.sbaMonth) + ' of ' + esc(c.sbaMonthsInYear) + '</dd>' +
+          '<dt>SBA Month Day</dt><dd>' + esc(c.sbaMonthDay) + (m ? ' of ' + esc(m.dayCount) : "") + '</dd>' +
+          '<dt>SBA Day of Year</dt><dd>' + esc(c.sbaDayOfYear) + '</dd>' +
+          '<dt>SBA Month Range</dt><dd>' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</dd>';
+        modal.hidden = false;
+      } catch (e) { /* ignore */ }
+    }
+    function closeDayModal() { var m = $("calDayModal"); if (m) m.hidden = true; }
+
+    // ── Navigation ───────────────────────────────────────────────────────────
+    function setNavLabels(Y) {
+      var p = $("calPrevLabel"), c = $("calCurrentLabel"), n = $("calNextLabel");
+      if (p) p.textContent = (Y - 1 >= MIN_YEAR) ? (Y - 1) : "—";
+      if (c) c.textContent = "SBA " + Y;
+      if (n) n.textContent = (Y + 1 <= MAX_YEAR) ? (Y + 1) : "—";
+      var pb = $("calPrev"), nb = $("calNext");
+      if (pb) pb.disabled = (Y - 1 < MIN_YEAR);
+      if (nb) nb.disabled = (Y + 1 > MAX_YEAR);
+    }
+
+    function go(Y, scrollToToday) {
       if (Y < MIN_YEAR) Y = MIN_YEAR;
       if (Y > MAX_YEAR) Y = MAX_YEAR;
       viewYear = Y;
       var ji = $("calJumpInput"); if (ji) ji.value = Y;
+      setNavLabels(Y);
       renderYear(Y);
+      if (scrollToToday && todayInfo && todayInfo.sbaYear === Y) {
+        setTimeout(function () {
+          var el = $("calMonth" + todayInfo.sbaMonth);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 120);
+      }
     }
 
     var wired = false;
     function wire() {
       if (wired) return; wired = true;
-      var prev = $("calPrev"), next = $("calNext"), today = $("calToday"), jumpGo = $("calJumpGo"), jumpInput = $("calJumpInput");
+      var prev = $("calPrev"), next = $("calNext"), today = $("calToday"),
+          jumpGo = $("calJumpGo"), jumpInput = $("calJumpInput");
       if (prev) prev.addEventListener("click", function () { go(viewYear - 1); });
       if (next) next.addEventListener("click", function () { go(viewYear + 1); });
-      if (today) today.addEventListener("click", function () { openToday(); });
+      if (today) today.addEventListener("click", function () { openToday(true); });
       if (jumpGo) jumpGo.addEventListener("click", function () { var v = parseInt(jumpInput.value, 10); if (!isNaN(v)) go(v); });
-      if (jumpInput) jumpInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { var v = parseInt(jumpInput.value, 10); if (!isNaN(v)) go(v); } });
+      if (jumpInput) jumpInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { var v = parseInt(jumpInput.value, 10); if (!isNaN(v)) go(v); }
+      });
+      var close = $("calDayModalClose"), backdrop = $("calDayModalBackdrop");
+      if (close) close.addEventListener("click", closeDayModal);
+      if (backdrop) backdrop.addEventListener("click", closeDayModal);
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDayModal(); });
     }
 
     function currentSbaYear() {
       try { return cal().convert(todayUTCDate()).sbaYear; } catch (e) { return new Date().getFullYear(); }
     }
 
-    function openToday() {
+    function openToday(scroll) {
       renderTodayCard();
-      go(currentSbaYear());
+      go(currentSbaYear(), !!scroll);
     }
 
     var opened = false;
@@ -5645,7 +5843,7 @@
         var now = new Date().getFullYear();
         MIN_YEAR = now - 100; MAX_YEAR = now + 100;
         var ji = $("calJumpInput"); if (ji) { ji.min = MIN_YEAR; ji.max = MAX_YEAR; }
-        openToday();
+        openToday(false);
       } else {
         renderTodayCard();
       }
