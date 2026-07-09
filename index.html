@@ -306,6 +306,8 @@
     .cal-about { border: 1px solid #e6ddca; border-radius: 8px; background: #faf7f1; margin-bottom: 1rem; }
     .cal-about summary { cursor: pointer; padding: 0.6rem 0.85rem; font-size: 0.85rem; color: #5a4e3c; font-weight: 600; }
     .cal-about p { margin: 0; padding: 0 0.85rem 0.8rem; font-size: 0.82rem; color: #8a7f6c; line-height: 1.6; }
+    .cal-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.78rem !important; }
+    .cal-legend .dim { opacity: 0.7; font-style: italic; }
 
     /* Year navigation */
     .cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.6rem; }
@@ -360,6 +362,7 @@
     .cal-weekdays { margin-bottom: 4px; }
     .cal-weekdays span { text-align: center; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.04em; color: #8a7f6c; padding: 0.2rem 0; }
     .cal-cell {
+      position: relative;
       aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
       border-radius: 8px; background: #faf7f1; border: 1px solid transparent; cursor: pointer;
       font-size: 0.86rem; color: #3a3530; line-height: 1; padding: 0;
@@ -367,10 +370,23 @@
     }
     .cal-cell:active { transform: scale(0.96); }
     .cal-cell.empty { background: transparent; cursor: default; }
+    .cal-cell .cc-day { font-size: 0.92rem; font-weight: 600; }
     .cal-cell .cc-sub { font-size: 0.55rem; color: #a99f8c; margin-top: 2px; }
+
+    /* Moon phase icon, top-right corner */
+    .cc-moon { position: absolute; top: 2px; right: 3px; line-height: 1; font-size: 0.55rem; opacity: 0.4; }
+    .cc-moon.major { font-size: 0.68rem; opacity: 0.95; }
+    .cc-moon.strong { font-size: 0.75rem; opacity: 1; }
+
+    /* Major phase emphasis: New + Full stronger than the quarters */
+    .cal-cell.phase-quarter { border-color: #e0d6c0; }
+    .cal-cell.phase-new { background: #efeae0; border-color: #b8ab92; }
+    .cal-cell.phase-full { background: #fdf7e4; border-color: #e2c96f; box-shadow: inset 0 0 0 1px rgba(226,201,111,0.35); }
+
     .cal-cell.is-newmoon { border-color: #e6d4a0; background: #fdfaf2; }
     .cal-cell.is-today { background: #5a4e3c; color: #f5f3ef; font-weight: 700; }
     .cal-cell.is-today .cc-sub { color: #e8dcc4; }
+    .cal-cell.is-today .cc-moon { opacity: 1; }
     .cal-today-badge { display: inline-block; font-size: 0.62rem; background: #5a4e3c; color: #f5f3ef; border-radius: 999px; padding: 0.05rem 0.4rem; margin-left: 0.35rem; vertical-align: middle; }
 
     .cal-loading { color: #8a7f6c; font-size: 0.9rem; padding: 1rem 0; }
@@ -743,7 +759,7 @@
        ─────────────────────────────────────────────────────────────────────── */
     .prac-topbar {
       position: sticky; top: 0; z-index: 40;
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
       padding: 0.7rem max(1.25rem, env(safe-area-inset-left));
       background: #3a3530; color: #f5f3ef;
       box-shadow: 0 1px 6px rgba(0,0,0,0.12);
@@ -752,14 +768,32 @@
       background: none; border: none; color: #f5f3ef;
       font-family: Georgia, serif; font-size: 1rem; letter-spacing: 0.06em;
       cursor: pointer; padding: 0.2rem 0;
+      white-space: nowrap; flex: none;
     }
-    .prac-topbar-actions { display: flex; gap: 0.5rem; }
+    .prac-topbar-actions { display: flex; gap: 0.4rem; flex: none; }
     .prac-link {
       background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
-      color: #f5f3ef; border-radius: 4px; padding: 0.4rem 0.8rem;
+      color: #f5f3ef; border-radius: 6px; padding: 0.4rem 0.75rem;
       font-family: inherit; font-size: 0.82rem; cursor: pointer;
+      white-space: nowrap; flex: none;
     }
     .prac-link:hover { background: rgba(255,255,255,0.2); }
+
+    /* Narrow screens (iPhone): brand on its own line, actions on a second,
+       horizontally scrollable row — nothing wraps or gets squeezed. */
+    @media (max-width: 640px) {
+      .prac-topbar {
+        flex-direction: column; align-items: stretch; gap: 0.55rem;
+        padding: 0.6rem max(0.9rem, env(safe-area-inset-left)) 0.65rem;
+      }
+      .prac-brand { align-self: flex-start; font-size: 1.05rem; letter-spacing: 0.08em; }
+      .prac-topbar-actions {
+        overflow-x: auto; -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; padding-bottom: 2px;
+      }
+      .prac-topbar-actions::-webkit-scrollbar { display: none; }
+      .prac-link { font-size: 0.8rem; padding: 0.45rem 0.75rem; }
+    }
 
     .prac-screen {
       max-width: 980px; margin: 0 auto;
@@ -1362,7 +1396,8 @@
 
       <details class="cal-about">
         <summary>About SBA Calendar</summary>
-        <p>Gregorian ⇄ SBA date conversion. The SBA year begins on the first New Moon after the March equinox, and SBA months follow the New Moon cycle — so a year has 12 or 13 lunar months. Dates are resolved with the same time-house rule the reading calculator uses, so a date never shows a different SBA month here than in a reading. This is a personal date tool only: no readings, interpretations, or transits.</p>
+        <p>Gregorian ⇄ SBA date conversion. The SBA year begins on the first New Moon after the March equinox, and SBA months follow the New Moon cycle — so a year has 12 or 13 lunar months. Dates are resolved with the same time-house rule the reading calculator uses, so a date never shows a different SBA month here than in a reading. Moon phases are astronomical facts computed for each date. This is a personal date tool only: no readings, interpretations, or transits.</p>
+        <p class="cal-legend"><span>🌑 New Moon</span><span>🌓 First Quarter</span><span>🌕 Full Moon</span><span>🌗 Last Quarter</span><span class="dim">Faint icons show intermediate phases</span></p>
       </details>
 
       <div class="cal-nav">
@@ -1905,6 +1940,121 @@
     })();
 
     if (typeof window !== "undefined") window.SBACalendar = SBACalendarUtil;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  MOON PHASE UTILITY  (factual astronomy only — no interpretation)
+    //  ---------------------------------------------------------------------------
+    //  Reusable, date-based moon phase data for the SBA Calendar. Built on the
+    //  astronomy-engine already loaded by the app, so it is accurate well beyond
+    //  ±100 years. This does NOT touch any SBA year / month / time-house logic.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const SBAMoonUtil = (function () {
+      const DAY_MS = 86400000;
+      const QUARTER_INFO = [
+        { name: "New Moon",      icon: "🌑", major: true },
+        { name: "First Quarter", icon: "🌓", major: true },
+        { name: "Full Moon",     icon: "🌕", major: true },
+        { name: "Last Quarter",  icon: "🌗", major: true },
+      ];
+
+      function toDate(t) { return (t && t.date) ? t.date : t; }
+      function iso(d) { return d.toISOString().substring(0, 10); }
+      // Calendar days are date-based; evaluate the moon at noon UTC of that day.
+      function noonOf(d) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12)); }
+
+      // Phase angle (elongation): 0 = New, 90 = First Quarter, 180 = Full, 270 = Last.
+      function phaseAngle(date) {
+        try { return Astronomy.MoonPhase(date); } catch (e) { return null; }
+      }
+
+      // Illuminated fraction (0..1). Prefer the engine; fall back to geometry.
+      function illumination(date) {
+        try {
+          const info = Astronomy.Illumination(Astronomy.Body.Moon, date);
+          if (info && typeof info.phase_fraction === "number") return info.phase_fraction;
+        } catch (e) { /* fall through */ }
+        const a = phaseAngle(date);
+        if (a == null) return null;
+        return (1 - Math.cos(a * Math.PI / 180)) / 2;
+      }
+
+      // Intermediate (non-major) phase name + subtle icon, from the phase angle.
+      function intermediate(angle) {
+        if (angle == null) return { name: "—", icon: "" };
+        if (angle < 90)  return { name: "Waxing Crescent", icon: "🌒" };
+        if (angle < 180) return { name: "Waxing Gibbous",  icon: "🌔" };
+        if (angle < 270) return { name: "Waning Gibbous",  icon: "🌖" };
+        return { name: "Waning Crescent", icon: "🌘" };
+      }
+
+      // Map of ISO date -> quarter index (0..3) for every major phase whose exact
+      // instant falls on that UTC date, across [start, end].
+      function quarterMap(startDate, endDate) {
+        const map = {};
+        try {
+          const from = new Date(startDate.getTime() - 2 * DAY_MS);
+          const until = new Date(endDate.getTime() + 2 * DAY_MS);
+          let mq = Astronomy.SearchMoonQuarter(from);
+          let guard = 0;
+          while (mq && guard++ < 90) {
+            const t = toDate(mq.time);
+            if (!t || t > until) break;
+            if (t >= from) {
+              const key = iso(t);
+              if (map[key] === undefined) map[key] = { quarter: mq.quarter, instant: t };
+            }
+            mq = Astronomy.NextMoonQuarter(mq);
+          }
+        } catch (e) { /* map stays partial/empty; cells simply render clean */ }
+        return map;
+      }
+
+      // Nearest occurrence of a target phase longitude (0 = New, 180 = Full).
+      function nearestPhase(date, targetLon) {
+        try {
+          const prev = Astronomy.SearchMoonPhase(targetLon, new Date(date.getTime() - 32 * DAY_MS), 40);
+          const p = prev ? toDate(prev.time || prev) : null;
+          let n = null;
+          if (p) {
+            const nx = Astronomy.SearchMoonPhase(targetLon, new Date(p.getTime() + DAY_MS), 40);
+            n = nx ? toDate(nx.time || nx) : null;
+          }
+          if (p && n) return (Math.abs(date - p) <= Math.abs(n - date)) ? p : n;
+          return p || n;
+        } catch (e) { return null; }
+      }
+
+      // Full factual record for one calendar day.
+      function forDate(dayDate, qMap) {
+        const key = iso(dayDate);
+        const ref = noonOf(dayDate);
+        const angle = phaseAngle(ref);
+        const illum = illumination(ref);
+        const hit = qMap ? qMap[key] : undefined;
+        let name, icon, major = false;
+        if (hit !== undefined) {
+          const q = QUARTER_INFO[hit.quarter];
+          name = q.name; icon = q.icon; major = true;
+        } else {
+          const it = intermediate(angle);
+          name = it.name; icon = it.icon;
+        }
+        return {
+          iso: key, phaseName: name, icon: icon, major: major,
+          quarter: hit !== undefined ? hit.quarter : null,
+          angle: angle,
+          illumination: illum,
+          illuminationPct: (illum == null) ? null : Math.round(illum * 1000) / 10,
+        };
+      }
+
+      return {
+        forDate: forDate, quarterMap: quarterMap, nearestPhase: nearestPhase,
+        phaseAngle: phaseAngle, illumination: illumination, noonOf: noonOf, iso: iso,
+      };
+    })();
+
+    if (typeof window !== "undefined") window.SBAMoon = SBAMoonUtil;
 
     // ─── SBA house annotation helpers ─────────────────────────────────────────
 
@@ -5665,7 +5815,8 @@
     }
 
     // ── One SBA month rendered as a calendar grid ─────────────────────────────
-    function monthGridHTML(m) {
+    function monthGridHTML(m, qMap) {
+      var moon = window.SBAMoon;
       var lead = mondayIndex(m.days[0].date);
       var cells = "";
       for (var i = 0; i < lead; i++) cells += '<div class="cal-cell empty"></div>';
@@ -5673,8 +5824,28 @@
         var cls = "cal-cell";
         if (idx === 0) cls += " is-newmoon";
         if (d.iso === todayISO) cls += " is-today";
+
+        var moonHTML = "";
+        if (moon) {
+          try {
+            var mp = moon.forDate(d.date, qMap);
+            if (mp.icon) {
+              var mcls = "cc-moon";
+              if (mp.major) {
+                mcls += " major";
+                if (mp.quarter === 0) { cls += " phase-new"; mcls += " strong"; }
+                else if (mp.quarter === 2) { cls += " phase-full"; mcls += " strong"; }
+                else cls += " phase-quarter";
+              }
+              moonHTML = '<span class="' + mcls + '" aria-label="' + esc(mp.phaseName) + '">' + mp.icon + '</span>';
+            }
+          } catch (e) { /* clean cell */ }
+        }
+
         cells += '<button type="button" class="' + cls + '" data-iso="' + esc(d.iso) + '">' +
-          esc(dayNum(d.iso)) + '<span class="cc-sub">' + esc(d.monthDay) + '</span></button>';
+          moonHTML +
+          '<span class="cc-day">' + esc(dayNum(d.iso)) + '</span>' +
+          '<span class="cc-sub">' + esc(d.monthDay) + '</span></button>';
       });
       return '<div class="cal-weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>' +
         '<span>Fri</span><span>Sat</span><span>Sun</span></div>' +
@@ -5689,6 +5860,11 @@
         try {
           var data = getYear(Y);
           var isCurrent = todayInfo && todayInfo.sbaYear === Y;
+          // Major moon phases across this SBA year (computed once, reused per month).
+          var qMap = {};
+          if (window.SBAMoon) {
+            try { qMap = window.SBAMoon.quarterMap(data.start, data.end); } catch (e) { qMap = {}; }
+          }
 
           // Year overview card
           var html =
@@ -5728,7 +5904,7 @@
               '<div class="cmh-meta">' + esc(sISO) + ' → ' + esc(eISO) + ' · ' + esc(m.dayCount) + ' days' +
               '<span class="cmh-newmoon">New Moon ' + esc(sISO) + '</span></div>' +
               '</div><span class="cmh-caret">▸</span></div>' +
-              '<div class="cal-grid-wrap">' + monthGridHTML(m) + '</div>' +
+              '<div class="cal-grid-wrap">' + monthGridHTML(m, qMap) + '</div>' +
               '</div>';
           });
 
@@ -5768,14 +5944,36 @@
         var mStartISO = m ? m.days[0].iso : "—";
         var mEndISO = m ? m.days[m.days.length - 1].iso : "—";
 
+        // Moon facts (additive; no SBA logic involved).
+        var moonRows = "";
+        var moon = window.SBAMoon;
+        if (moon) {
+          try {
+            var qm = moon.quarterMap(d, d);
+            var mp = moon.forDate(d, qm);
+            var illumTxt = (mp.illuminationPct == null) ? "—" : (mp.illuminationPct + "% illuminated");
+            moonRows +=
+              '<dt>Moon Phase</dt><dd>' + (mp.icon ? mp.icon + " " : "") + esc(mp.phaseName) +
+              (mp.major ? ' <span class="cal-today-badge">exact</span>' : "") + '</dd>' +
+              '<dt>Illumination</dt><dd>' + esc(illumTxt) + '</dd>';
+
+            var nn = moon.nearestPhase(moon.noonOf(d), 0);
+            var nf = moon.nearestPhase(moon.noonOf(d), 180);
+            if (nn) moonRows += '<dt>Nearest New Moon</dt><dd>' + esc(moon.iso(nn)) + '</dd>';
+            if (nf) moonRows += '<dt>Nearest Full Moon</dt><dd>' + esc(moon.iso(nf)) + '</dd>';
+          } catch (e) { /* omit moon rows */ }
+        }
+
         $("calDayModalTitle").innerHTML = esc(c.gregorianLong) +
           (isoStr === todayISO ? '<span class="cal-today-badge">Today</span>' : "");
         $("calDayModalBody").innerHTML =
+          '<dt>Weekday</dt><dd>' + esc(c.weekday) + '</dd>' +
           '<dt>SBA Year</dt><dd>' + esc(c.sbaYear) + '</dd>' +
           '<dt>SBA Month</dt><dd>' + esc(c.sbaMonth) + ' of ' + esc(c.sbaMonthsInYear) + '</dd>' +
           '<dt>SBA Month Day</dt><dd>' + esc(c.sbaMonthDay) + (m ? ' of ' + esc(m.dayCount) : "") + '</dd>' +
           '<dt>SBA Day of Year</dt><dd>' + esc(c.sbaDayOfYear) + '</dd>' +
-          '<dt>SBA Month Range</dt><dd>' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</dd>';
+          '<dt>SBA Month Range</dt><dd>' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</dd>' +
+          moonRows;
         modal.hidden = false;
       } catch (e) { /* ignore */ }
     }
