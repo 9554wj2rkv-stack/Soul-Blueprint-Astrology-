@@ -381,6 +381,24 @@
     .cc-sign { position: absolute; top: 2px; left: 3px; line-height: 1; font-size: 0.58rem; color: #a99f8c; opacity: 0.75; }
     .cal-cell.is-today .cc-sign { color: #e8dcc4; opacity: 1; }
 
+    /* Find a date */
+    .cal-find-body { padding: 0 0.85rem 0.85rem; }
+    .cal-find-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+    .cal-find-native { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: #8a7f6c; width: 100%; }
+    .cal-find-native input { padding: 0.45rem 0.5rem; border: 1px solid #ccc7bc; border-radius: 8px; font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .cal-find-or { font-size: 0.72rem; color: #a99f8c; text-align: center; margin: 0.2rem 0 0.4rem; }
+    .cal-find-text { flex: 1; min-width: 0; padding: 0.5rem 0.6rem; border: 1px solid #ccc7bc; border-radius: 8px; font-family: inherit; font-size: 0.9rem; }
+    .cal-find-hint { font-size: 0.72rem; color: #a99f8c; line-height: 1.5; }
+    .cal-find-error { margin-top: 0.5rem; font-size: 0.8rem; color: #8b2020; background: #fff3f3; border: 1px solid #e5b8b8; border-radius: 8px; padding: 0.5rem 0.65rem; }
+    .cal-find-result { margin-top: 0.8rem; background: #fff; border: 1px solid #e6ddca; border-radius: 12px; padding: 0.85rem 0.9rem; }
+    .cal-find-result .cfr-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: #a99f8c; }
+    .cal-find-result .cfr-title { font-family: Georgia, serif; font-size: 1.05rem; color: #3a3530; margin: 0.2rem 0 0.6rem; }
+    .cal-find-result .cal-modal-body { margin-bottom: 0.8rem; }
+    .cal-find-result .cfr-open { width: 100%; }
+
+    /* Selected day (from Find a date) */
+    .cal-cell.is-selected { outline: 2px solid #8b6f3d; outline-offset: 1px; }
+
     /* Calculation settings */
     .cal-settings { display: flex; flex-wrap: wrap; gap: 0.5rem 0.7rem; align-items: flex-end; padding: 0 0.85rem 0.6rem; }
     .cal-settings label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: #8a7f6c; }
@@ -1408,6 +1426,26 @@
       <h1 class="cal-title">SBA Calendar</h1>
 
       <div id="calTodayCard" class="cal-today">Loading today…</div>
+
+      <details class="cal-about cal-find" id="calFindPanel">
+        <summary>Find a date</summary>
+        <div class="cal-find-body">
+          <div class="cal-find-row">
+            <label class="cal-find-native">Pick a date
+              <input type="date" id="calFindNative" />
+            </label>
+          </div>
+          <div class="cal-find-or">or type it</div>
+          <div class="cal-find-row">
+            <input type="text" id="calFindText" class="cal-find-text"
+                   placeholder="1970-07-03 · 03/07/1970 · 3 July 1970" inputmode="text" />
+            <button type="button" id="calFindGo" class="cal-btn cal-btn-accent">Search</button>
+          </div>
+          <div class="cal-find-hint">Slash format is day/month/year. Sun &amp; Moon are computed at 12:00 local time for the date you enter.</div>
+          <div id="calFindError" class="cal-find-error" hidden></div>
+          <div id="calFindResult" class="cal-find-result" hidden></div>
+        </div>
+      </details>
 
       <details class="cal-about">
         <summary>About SBA Calendar</summary>
@@ -5750,11 +5788,6 @@
       return String(s == null ? "" : s)
         .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-    function fmtLon(x) {
-      if (x == null || isNaN(x)) return "—";
-      var d = Math.floor(x), m = Math.floor((x - d) * 60);
-      return x.toFixed(4) + "° (" + d + "° " + pad(m) + "′)";
-    }
 
     // Parse the engine's utcDateTime string back to an absolute instant.
     function birthInstantFromResult(result) {
@@ -5954,6 +5987,7 @@
 
     var MIN_YEAR, MAX_YEAR, viewYear = null, todayISO = null, todayInfo = null;
     var yearCache = {};
+    var selectedISO = null;   // date highlighted via "Open in SBA Calendar"
 
     // Calculation settings for Sun/Moon signs (does not affect SBA date logic).
     var settings = { tz: -(new Date().getTimezoneOffset()) / 60, lat: 0, lon: 0 };
@@ -6029,6 +6063,7 @@
         var cls = "cal-cell";
         if (idx === 0) cls += " is-newmoon";
         if (d.iso === todayISO) cls += " is-today";
+        if (d.iso === selectedISO) cls += " is-selected";
 
         var moonHTML = "";
         if (moon) {
@@ -6070,7 +6105,7 @@
         '<div class="cal-grid">' + cells + '</div>';
     }
 
-    function renderYear(Y) {
+    function renderYear(Y, afterRender) {
       var host = $("calYearView");
       if (!host) return;
       host.innerHTML = '<div class="cal-loading">Calculating SBA year ' + esc(Y) + '…</div>';
@@ -6143,6 +6178,7 @@
               if (el) { el.classList.add("open"); el.scrollIntoView({ behavior: "smooth", block: "start" }); }
             });
           });
+          if (typeof afterRender === "function") afterRender();
         } catch (e) {
           host.innerHTML = '<div class="cal-loading">Could not build SBA year ' + esc(Y) + ': ' + esc(e.message || "error") + '</div>';
         }
@@ -6150,84 +6186,177 @@
     }
 
     // ── Day detail modal (date facts only) ───────────────────────────────────
-    function openDayModal(isoStr) {
-      var modal = $("calDayModal");
-      if (!modal) return;
-      try {
-        var parts = isoStr.split("-");
-        var d = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
-        var c = cal().convert(d);
-        var y = getYear(c.sbaYear);
-        var m = y.months[c.sbaMonth - 1];
-        var mStartISO = m ? m.days[0].iso : "—";
-        var mEndISO = m ? m.days[m.days.length - 1].iso : "—";
+    // ── Shared day-facts builder (used by BOTH the tapped-day modal and the
+    //    "Find a date" result card, so they can never diverge) ────────────────
+    function dayFacts(isoStr) {
+      var parts = isoStr.split("-");
+      var d = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+      var c = cal().convert(d);
+      var y = getYear(c.sbaYear);
+      var m = y.months[c.sbaMonth - 1];
+      var mStartISO = m ? m.days[0].iso : "—";
+      var mEndISO = m ? m.days[m.days.length - 1].iso : "—";
 
-        // Moon facts (additive; no SBA logic involved).
-        var moonRows = "";
-        var moon = window.SBAMoon;
-        if (moon) {
-          try {
-            var qm = moon.quarterMap(d, d);
-            var mp = moon.forDate(d, qm);
-            var illumTxt = (mp.illuminationPct == null) ? "—" : (mp.illuminationPct + "% illuminated");
-            moonRows +=
-              '<dt>Moon Phase</dt><dd>' + (mp.icon ? mp.icon + " " : "") + esc(mp.phaseName) +
-              (mp.major ? ' <span class="cal-today-badge">exact</span>' : "") + '</dd>' +
-              '<dt>Illumination</dt><dd>' + esc(illumTxt) + '</dd>';
+      // Moon phase facts
+      var moonRows = "";
+      var moon = window.SBAMoon;
+      if (moon) {
+        try {
+          var qm = moon.quarterMap(d, d);
+          var mp = moon.forDate(d, qm);
+          var illumTxt = (mp.illuminationPct == null) ? "—" : (mp.illuminationPct + "% illuminated");
+          moonRows +=
+            '<dt>Moon Phase</dt><dd>' + (mp.icon ? mp.icon + " " : "") + esc(mp.phaseName) +
+            (mp.major ? ' <span class="cal-today-badge">exact</span>' : "") + '</dd>' +
+            '<dt>Illumination</dt><dd>' + esc(illumTxt) + '</dd>';
+          var nn = moon.nearestPhase(moon.noonOf(d), 0);
+          var nf = moon.nearestPhase(moon.noonOf(d), 180);
+          if (nn) moonRows += '<dt>Nearest New Moon</dt><dd>' + esc(moon.iso(nn)) + '</dd>';
+          if (nf) moonRows += '<dt>Nearest Full Moon</dt><dd>' + esc(moon.iso(nf)) + '</dd>';
+        } catch (e) { /* omit */ }
+      }
 
-            var nn = moon.nearestPhase(moon.noonOf(d), 0);
-            var nf = moon.nearestPhase(moon.noonOf(d), 180);
-            if (nn) moonRows += '<dt>Nearest New Moon</dt><dd>' + esc(moon.iso(nn)) + '</dd>';
-            if (nf) moonRows += '<dt>Nearest Full Moon</dt><dd>' + esc(moon.iso(nf)) + '</dd>';
-          } catch (e) { /* omit moon rows */ }
-        }
-
-        // Sun & Moon true-sky signs (same placement path as the chart calculator).
-        var skyRows = "";
-        var sk = sky();
-        if (sk) {
-          try {
-            var info = sk.dayInfo(d, settings.tz, settings.lat, settings.lon);
-            function lonTxt(x) { return (x == null) ? "—" : x.toFixed(4) + "°"; }
-            function transTxt(list, curSign) {
-              if (!list || !list.length) return "";
-              return list.map(function (t) {
-                return '<div class="cc-trans">Enters ' + esc(t.to) + ' at ' + esc(t.atLocal) + ' local</div>';
-              }).join("");
+      // Sun & Moon true-sky signs (same placement path as the chart calculator)
+      var skyRows = "";
+      var sk = sky();
+      if (sk) {
+        try {
+          var info = sk.dayInfo(d, settings.tz, settings.lat, settings.lon);
+          var lonTxt = function (x) { return (x == null) ? "—" : x.toFixed(4) + "°"; };
+          var transTxt = function (list) {
+            if (!list || !list.length) return "";
+            return list.map(function (t) {
+              return '<div class="cc-trans">Enters ' + esc(t.to) + ' at ' + esc(t.atLocal) + ' local</div>';
+            }).join("");
+          };
+          var signLine = function (b) {
+            var chain = b.sign;
+            if (b.transitions && b.transitions.length) {
+              chain = b.transitions[0].from;
+              b.transitions.forEach(function (t) { chain += " → " + t.to; });
             }
-            function signLine(b) {
-              var chain = b.sign;
-              if (b.transitions && b.transitions.length) {
-                chain = b.transitions[0].from;
-                b.transitions.forEach(function (t) { chain += " → " + t.to; });
-              }
-              return (b.symbol ? b.symbol + " " : "") + esc(chain);
-            }
-            skyRows +=
-              '<dt>Moon Sign</dt><dd>' + signLine(info.moon) + transTxt(info.moon.transitions) + '</dd>' +
-              '<dt>Moon Longitude</dt><dd>' + esc(lonTxt(info.moon.longitude)) + '</dd>' +
-              '<dt>Sun Sign</dt><dd>' + signLine(info.sun) + transTxt(info.sun.transitions) + '</dd>' +
-              '<dt>Sun Longitude</dt><dd>' + esc(lonTxt(info.sun.longitude)) + '</dd>' +
-              '<dt>Reference time</dt><dd>12:00 local</dd>' +
-              '<dt>Timezone</dt><dd>UTC' + (settings.tz >= 0 ? "+" : "") + esc(settings.tz) + '</dd>';
-          } catch (e) { /* omit sky rows */ }
-        }
+            return (b.symbol ? b.symbol + " " : "") + esc(chain);
+          };
+          skyRows +=
+            '<dt>Moon Sign</dt><dd>' + signLine(info.moon) + transTxt(info.moon.transitions) + '</dd>' +
+            '<dt>Moon Longitude</dt><dd>' + esc(lonTxt(info.moon.longitude)) + '</dd>' +
+            '<dt>Sun Sign</dt><dd>' + signLine(info.sun) + transTxt(info.sun.transitions) + '</dd>' +
+            '<dt>Sun Longitude</dt><dd>' + esc(lonTxt(info.sun.longitude)) + '</dd>' +
+            '<dt>Reference time</dt><dd>12:00 local</dd>' +
+            '<dt>Timezone</dt><dd>UTC' + (settings.tz >= 0 ? "+" : "") + esc(settings.tz) + '</dd>';
+        } catch (e) { /* omit */ }
+      }
 
-        $("calDayModalTitle").innerHTML = esc(c.gregorianLong) +
-          (isoStr === todayISO ? '<span class="cal-today-badge">Today</span>' : "");
-        $("calDayModalBody").innerHTML =
+      return {
+        date: d,
+        sbaYear: c.sbaYear,
+        sbaMonth: c.sbaMonth,
+        titleHTML: esc(c.gregorianLong) + (isoStr === todayISO ? '<span class="cal-today-badge">Today</span>' : ""),
+        bodyHTML:
           '<dt>Weekday</dt><dd>' + esc(c.weekday) + '</dd>' +
           '<dt>SBA Year</dt><dd>' + esc(c.sbaYear) + '</dd>' +
           '<dt>SBA Month</dt><dd>' + esc(c.sbaMonth) + ' of ' + esc(c.sbaMonthsInYear) + '</dd>' +
           '<dt>SBA Month Day</dt><dd>' + esc(c.sbaMonthDay) + (m ? ' of ' + esc(m.dayCount) : "") + '</dd>' +
           '<dt>SBA Day of Year</dt><dd>' + esc(c.sbaDayOfYear) + '</dd>' +
           '<dt>SBA Month Range</dt><dd>' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</dd>' +
-          moonRows + skyRows;
+          moonRows + skyRows,
+      };
+    }
+
+    function openDayModal(isoStr) {
+      var modal = $("calDayModal");
+      if (!modal) return;
+      try {
+        var f = dayFacts(isoStr);
+        $("calDayModalTitle").innerHTML = f.titleHTML;
+        $("calDayModalBody").innerHTML = f.bodyHTML;
         modal.hidden = false;
       } catch (e) { /* ignore */ }
     }
     function closeDayModal() { var m = $("calDayModal"); if (m) m.hidden = true; }
 
+    // ── "Find a date": parse flexible input, show facts, jump into calendar ───
+    var MONTH_NAMES = {
+      jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
+      may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8,
+      sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,
+      dec: 12, december: 12,
+    };
+
+    function isoFrom(y, mo, da) {
+      if (!(y >= 1 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31)) return null;
+      var d = new Date(Date.UTC(y, mo - 1, da));
+      // Reject impossible dates like 30 February.
+      if (d.getUTCFullYear() !== y || d.getUTCMonth() !== mo - 1 || d.getUTCDate() !== da) return null;
+      return d.toISOString().substring(0, 10);
+    }
+
+    // Accepts: 1970-07-03 · 03/07/1970 (day/month/year) · 3.7.1970 · 3 July 1970 · July 3 1970
+    function parseDateInput(raw) {
+      var s = String(raw || "").trim().replace(/,/g, " ").replace(/\s+/g, " ");
+      if (!s) return null;
+      var m;
+      if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return isoFrom(+m[1], +m[2], +m[3]);
+      if ((m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/))) return isoFrom(+m[3], +m[2], +m[1]); // D/M/Y
+      if ((m = s.match(/^(\d{1,2})(?:st|nd|rd|th)? ([A-Za-z]+) (\d{4})$/))) {
+        var mo = MONTH_NAMES[m[2].toLowerCase()];
+        return mo ? isoFrom(+m[3], mo, +m[1]) : null;
+      }
+      if ((m = s.match(/^([A-Za-z]+) (\d{1,2})(?:st|nd|rd|th)? (\d{4})$/))) {
+        var mo2 = MONTH_NAMES[m[1].toLowerCase()];
+        return mo2 ? isoFrom(+m[3], mo2, +m[2]) : null;
+      }
+      return null;
+    }
+
+    function runLookup(rawOrIso) {
+      var errEl = $("calFindError"), resEl = $("calFindResult");
+      if (errEl) { errEl.hidden = true; errEl.textContent = ""; }
+      var iso = /^\d{4}-\d{2}-\d{2}$/.test(rawOrIso) ? rawOrIso : parseDateInput(rawOrIso);
+      if (!iso) {
+        if (errEl) { errEl.hidden = false; errEl.textContent = "Could not read that date. Try 1970-07-03, 03/07/1970, or 3 July 1970."; }
+        if (resEl) resEl.hidden = true;
+        return;
+      }
+      var yr = parseInt(iso.substring(0, 4), 10);
+      if (yr < MIN_YEAR || yr > MAX_YEAR) {
+        if (errEl) { errEl.hidden = false; errEl.textContent = "Date is outside the supported range (" + MIN_YEAR + "–" + MAX_YEAR + ")."; }
+        if (resEl) resEl.hidden = true;
+        return;
+      }
+      try {
+        var f = dayFacts(iso);   // shared with the tapped-day modal
+        resEl.hidden = false;
+        resEl.innerHTML =
+          '<div class="cfr-label">Date Lookup</div>' +
+          '<div class="cfr-title">' + f.titleHTML + '</div>' +
+          '<dl class="cal-modal-body">' + f.bodyHTML + '</dl>' +
+          '<button type="button" class="cal-btn cal-btn-accent cfr-open" data-iso="' + esc(iso) + '">Open in SBA Calendar</button>';
+        var btn = resEl.querySelector(".cfr-open");
+        if (btn) btn.addEventListener("click", function () { openInCalendar(iso); });
+      } catch (e) {
+        if (errEl) { errEl.hidden = false; errEl.textContent = "Could not calculate that date: " + (e.message || e); }
+        if (resEl) resEl.hidden = true;
+      }
+    }
+
+    // Jump to the SBA year, expand the SBA month, highlight + scroll to the day.
+    function openInCalendar(iso) {
+      try {
+        var f = dayFacts(iso);
+        selectedISO = iso;
+        go(f.sbaYear, false, function () {
+          var monthEl = $("calMonth" + f.sbaMonth);
+          if (monthEl) monthEl.classList.add("open");
+          var cell = document.querySelector('#calYearView .cal-cell[data-iso="' + iso + '"]');
+          if (cell) {
+            cell.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (monthEl) {
+            monthEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      } catch (e) { /* ignore */ }
+    }
     // ── Navigation ───────────────────────────────────────────────────────────
     function setNavLabels(Y) {
       var p = $("calPrevLabel"), c = $("calCurrentLabel"), n = $("calNextLabel");
@@ -6239,13 +6368,13 @@
       if (nb) nb.disabled = (Y + 1 > MAX_YEAR);
     }
 
-    function go(Y, scrollToToday) {
+    function go(Y, scrollToToday, afterRender) {
       if (Y < MIN_YEAR) Y = MIN_YEAR;
       if (Y > MAX_YEAR) Y = MAX_YEAR;
       viewYear = Y;
       var ji = $("calJumpInput"); if (ji) ji.value = Y;
       setNavLabels(Y);
-      renderYear(Y);
+      renderYear(Y, afterRender);
       if (scrollToToday && todayInfo && todayInfo.sbaYear === Y) {
         setTimeout(function () {
           var el = $("calMonth" + todayInfo.sbaMonth);
@@ -6270,6 +6399,18 @@
       if (close) close.addEventListener("click", closeDayModal);
       if (backdrop) backdrop.addEventListener("click", closeDayModal);
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDayModal(); });
+
+      // Find a date
+      var findNative = $("calFindNative"), findText = $("calFindText"), findGo = $("calFindGo");
+      if (findGo) findGo.addEventListener("click", function () {
+        runLookup((findText && findText.value.trim()) || (findNative && findNative.value) || "");
+      });
+      if (findText) findText.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); runLookup(findText.value); }
+      });
+      if (findNative) findNative.addEventListener("change", function () {
+        if (findNative.value) { if (findText) findText.value = ""; runLookup(findNative.value); }
+      });
 
       // Calculation settings
       var tzI = $("calTz"), latI = $("calLat"), lonI = $("calLon"), applyB = $("calApplySettings");
