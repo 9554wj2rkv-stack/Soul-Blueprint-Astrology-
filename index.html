@@ -377,6 +377,21 @@
     .cc-moon { position: absolute; top: 2px; right: 3px; line-height: 1; font-size: 0.55rem; opacity: 0.4; }
     .cc-moon.major { font-size: 0.68rem; opacity: 0.95; }
     .cc-moon.strong { font-size: 0.75rem; opacity: 1; }
+    /* Moon-sign symbol, top-left corner (subtle) */
+    .cc-sign { position: absolute; top: 2px; left: 3px; line-height: 1; font-size: 0.58rem; color: #a99f8c; opacity: 0.75; }
+    .cal-cell.is-today .cc-sign { color: #e8dcc4; opacity: 1; }
+
+    /* Calculation settings */
+    .cal-settings { display: flex; flex-wrap: wrap; gap: 0.5rem 0.7rem; align-items: flex-end; padding: 0 0.85rem 0.6rem; }
+    .cal-settings label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: #8a7f6c; }
+    .cal-settings input { width: 6.4rem; padding: 0.35rem 0.45rem; border: 1px solid #ccc7bc; border-radius: 8px; font-family: inherit; font-size: 0.85rem; }
+    .cal-test-out { margin: 0 0.85rem 0.85rem; font-size: 0.76rem; }
+    .cal-test-out .ct-summary { font-weight: 700; margin-bottom: 0.3rem; }
+    .cal-test-out .ct-summary.ok, .cal-test-out .ct-row.ok { color: #2f6b2f; }
+    .cal-test-out .ct-summary.bad, .cal-test-out .ct-row.bad { color: #8b2020; }
+    .cal-test-out .ct-row { padding: 0.15rem 0; font-family: ui-monospace, monospace; }
+    .cal-test-out .ct-note { color: #8a7f6c; margin-top: 0.3rem; font-style: italic; }
+    .cc-trans { font-size: 0.75rem; color: #6b551f; font-weight: 400; margin-top: 0.15rem; }
 
     /* Major phase emphasis: New + Full stronger than the quarters */
     .cal-cell.phase-quarter { border-color: #e0d6c0; }
@@ -1400,6 +1415,25 @@
         <p class="cal-legend"><span>🌑 New Moon</span><span>🌓 First Quarter</span><span>🌕 Full Moon</span><span>🌗 Last Quarter</span><span class="dim">Faint icons show intermediate phases</span></p>
       </details>
 
+      <details class="cal-about">
+        <summary>Calculation settings</summary>
+        <div class="cal-settings">
+          <label>Timezone (UTC offset)
+            <input type="number" id="calTz" step="0.5" min="-14" max="14" />
+          </label>
+          <label>Reference latitude
+            <input type="number" id="calLat" step="0.0001" min="-90" max="90" />
+          </label>
+          <label>Reference longitude
+            <input type="number" id="calLon" step="0.0001" min="-180" max="180" />
+          </label>
+          <button type="button" id="calApplySettings" class="cal-btn">Apply</button>
+        </div>
+        <p>Sun and Moon signs are computed at <strong>12:00 local time</strong> for the selected date, using the true-sky 13-sign boundaries and the same placement function as the chart calculator. To reproduce a specific chart's Sun/Moon sign exactly, set the same timezone and birth coordinates here — the Moon's apparent position is observer-dependent.</p>
+        <p><button type="button" id="calRunTests" class="cal-btn">Run consistency check</button></p>
+        <div id="calTestOut" class="cal-test-out" hidden></div>
+      </details>
+
       <div class="cal-nav">
         <button type="button" id="calPrev" class="cal-nav-side" aria-label="Previous SBA year">
           <span class="cal-nav-arrow">←</span><span id="calPrevLabel">—</span>
@@ -1685,6 +1719,21 @@
     function constellationForEclipticLon(lonDeg, eps) {
       const eq = eclipticLonToEquatorial(lonDeg, eps);
       return Astronomy.Constellation(eq.ra, eq.dec).name;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  SHARED TRUE-SKY PLACEMENT (single source of truth for body → SBA sign)
+    //  ---------------------------------------------------------------------------
+    //  This is the exact path the chart calculator uses: apparent equatorial
+    //  position for the observer, then the IAU constellation of that point, plus
+    //  the ecliptic longitude. Both the chart and the SBA Calendar call this, so a
+    //  given body/instant/observer can never yield two different SBA signs.
+    // ═══════════════════════════════════════════════════════════════════════════
+    function skyPlacementAt(body, when, observer, eps) {
+      const equatorial = Astronomy.Equator(body, when, observer, false, true);
+      const sign = Astronomy.Constellation(equatorial.ra, equatorial.dec).name;
+      const longitude = equatorialToEclipticLon(equatorial.ra, equatorial.dec, eps);
+      return { equatorial: equatorial, sign: sign, longitude: longitude };
     }
 
     // ─── AC / MC ────────────────────────────────────────────────────────────────
@@ -2056,6 +2105,145 @@
 
     if (typeof window !== "undefined") window.SBAMoon = SBAMoonUtil;
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  SBA SKY UTILITY — daily true-sky Sun & Moon signs (factual only)
+    //  ---------------------------------------------------------------------------
+    //  Uses skyPlacementAt(), the SAME function the chart calculator uses, so the
+    //  13-sign true-sky boundaries are identical. No tropical zodiac, no separate
+    //  boundary logic. Reference time is 12:00 LOCAL of the selected date, using
+    //  the supplied timezone offset and observer. Does not touch SBA date logic.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const SBASkyUtil = (function () {
+      const SYMBOLS = {
+        Aries: "♈", Taurus: "♉", Gemini: "♊", Cancer: "♋", Leo: "♌", Virgo: "♍",
+        Libra: "♎", Scorpius: "♏", Ophiuchus: "⛎", Sagittarius: "♐",
+        Capricornus: "♑", Aquarius: "♒", Pisces: "♓",
+      };
+      function symbolFor(sign) { return SYMBOLS[sign] || ""; }
+      function abbrev(sign) { return sign ? sign.substring(0, 3) : "—"; }
+
+      function observerFor(lat, lon) { return new Astronomy.Observer(lat, lon, 0); }
+
+      // UTC instant for a given local wall-clock time on a UTC-day date.
+      function localToUTC(dayDate, hours, minutes, tzOffsetHours) {
+        const base = Date.UTC(dayDate.getUTCFullYear(), dayDate.getUTCMonth(), dayDate.getUTCDate(),
+                              hours, minutes || 0, 0);
+        return new Date(base - tzOffsetHours * 3600000);
+      }
+      function toLocalHM(utcDate, tzOffsetHours) {
+        const l = new Date(utcDate.getTime() + tzOffsetHours * 3600000);
+        return String(l.getUTCHours()).padStart(2, "0") + ":" + String(l.getUTCMinutes()).padStart(2, "0");
+      }
+
+      // Placement of one body at an instant, via the shared chart path.
+      function placement(body, when, observer) {
+        const eps = meanObliquity(julianDate(when));
+        return skyPlacementAt(body, when, observer, eps);
+      }
+      function signAt(body, when, observer) {
+        try { return placement(body, when, observer).sign; } catch (e) { return null; }
+      }
+
+      // All sign changes for `body` across the local day, to ~1 minute precision.
+      // Handles more than one change (the Moon can cross a short sign like Scorpius).
+      function transitions(body, dayDate, tzOffsetHours, observer) {
+        const out = [];
+        try {
+          const start = localToUTC(dayDate, 0, 0, tzOffsetHours);
+          const end = localToUTC(dayDate, 23, 59, tzOffsetHours);
+          const stepMs = 30 * 60000;
+          let tPrev = start, sPrev = signAt(body, tPrev, observer);
+          for (let t = start.getTime() + stepMs; t <= end.getTime(); t += stepMs) {
+            const tNow = new Date(Math.min(t, end.getTime()));
+            const sNow = signAt(body, tNow, observer);
+            if (sNow && sPrev && sNow !== sPrev) {
+              // Bisect [tPrev, tNow] down to a minute.
+              let lo = tPrev.getTime(), hi = tNow.getTime();
+              while (hi - lo > 60000) {
+                const mid = Math.floor((lo + hi) / 2);
+                const sMid = signAt(body, new Date(mid), observer);
+                if (sMid === sPrev) lo = mid; else hi = mid;
+              }
+              out.push({ from: sPrev, to: sNow, atUTC: new Date(hi),
+                         atLocal: toLocalHM(new Date(hi), tzOffsetHours) });
+            }
+            tPrev = tNow; sPrev = sNow;
+          }
+        } catch (e) { /* return whatever was found */ }
+        return out;
+      }
+
+      // Everything factual about one calendar day, at 12:00 local reference.
+      function dayInfo(dayDate, tzOffsetHours, lat, lon) {
+        const observer = observerFor(lat, lon);
+        const refUTC = localToUTC(dayDate, 12, 0, tzOffsetHours);
+        const sunP = placement(Astronomy.Body.Sun, refUTC, observer);
+        const moonP = placement(Astronomy.Body.Moon, refUTC, observer);
+        return {
+          referenceUTC: refUTC,
+          sun: { sign: sunP.sign, longitude: sunP.longitude, symbol: symbolFor(sunP.sign),
+                 transitions: transitions(Astronomy.Body.Sun, dayDate, tzOffsetHours, observer) },
+          moon: { sign: moonP.sign, longitude: moonP.longitude, symbol: symbolFor(moonP.sign),
+                  transitions: transitions(Astronomy.Body.Moon, dayDate, tzOffsetHours, observer) },
+        };
+      }
+
+      // Fast path for grid cells: Moon sign at 12:00 local only (no transitions).
+      function moonSignAtNoon(dayDate, tzOffsetHours, observer) {
+        try {
+          const refUTC = localToUTC(dayDate, 12, 0, tzOffsetHours);
+          return placement(Astronomy.Body.Moon, refUTC, observer).sign;
+        } catch (e) { return null; }
+      }
+
+      // ── Automated regression test ──────────────────────────────────────────
+      // Asserts the SBA Calendar and the chart calculator agree on Sun & Moon
+      // signs for the same date/time/timezone/location. Returns a result array.
+      function consistencyTest(cases) {
+        const list = cases || [
+          { date: "1982-11-01", tz: 0,  lat: 63.9333, lon: -21.0 },
+          { date: "1970-07-03", tz: 0,  lat: 63.9333, lon: -21.0 },
+          { date: "2026-07-10", tz: 2,  lat: 55.6761, lon: 12.5683 },
+          { date: "2000-01-01", tz: -5, lat: 40.7128, lon: -74.006 },
+          { date: "1900-06-15", tz: 1,  lat: 48.8566, lon: 2.3522 },
+        ];
+        return list.map(function (c) {
+          const out = { case: c };
+          try {
+            // Chart calculator at 12:00 local.
+            const chart = calculateSBA(c.date, "12:00", c.tz, c.lat, c.lon);
+            const chartSun = chart.planets.find(function (p) { return p.body === "Sun"; });
+            const chartMoon = chart.planets.find(function (p) { return p.body === "Moon"; });
+
+            // Calendar sky utility at 12:00 local, same inputs.
+            const parts = c.date.split("-");
+            const day = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+            const info = dayInfo(day, c.tz, c.lat, c.lon);
+
+            out.chartSun = chartSun.constellation;
+            out.calSun = info.sun.sign;
+            out.chartMoon = chartMoon.constellation;
+            out.calMoon = info.moon.sign;
+            out.sunLonDelta = Math.abs(chartSun.eclipticLon - info.sun.longitude);
+            out.moonLonDelta = Math.abs(chartMoon.eclipticLon - info.moon.longitude);
+            out.pass = (out.chartSun === out.calSun) && (out.chartMoon === out.calMoon) &&
+                       out.sunLonDelta < 1e-6 && out.moonLonDelta < 1e-6;
+          } catch (e) {
+            out.pass = false; out.error = e.message || String(e);
+          }
+          return out;
+        });
+      }
+
+      return {
+        dayInfo: dayInfo, moonSignAtNoon: moonSignAtNoon, observerFor: observerFor,
+        symbolFor: symbolFor, abbrev: abbrev, transitions: transitions,
+        consistencyTest: consistencyTest, localToUTC: localToUTC, toLocalHM: toLocalHM,
+      };
+    })();
+
+    if (typeof window !== "undefined") window.SBASky = SBASkyUtil;
+
     // ─── SBA house annotation helpers ─────────────────────────────────────────
 
     function withHouse(constellation) {
@@ -2110,9 +2298,11 @@
       }
 
       const planets = BODIES.map(({ name, body }) => {
-        const equatorial = Astronomy.Equator(body, utcDate, observer, false, true);
-        const con = Astronomy.Constellation(equatorial.ra, equatorial.dec);
-        const eclLon = equatorialToEclipticLon(equatorial.ra, equatorial.dec, eps);
+        // Shared source of truth — identical to the previous inline calls.
+        const sp = skyPlacementAt(body, utcDate, observer, eps);
+        const equatorial = sp.equatorial;
+        const con = { name: sp.sign };
+        const eclLon = sp.longitude;
         const retro = isRetrograde(name, body);
         // Canonical SBA body placement fields (additive; existing keys kept).
         const degree = Math.floor(eclLon);
@@ -5765,6 +5955,17 @@
     var MIN_YEAR, MAX_YEAR, viewYear = null, todayISO = null, todayInfo = null;
     var yearCache = {};
 
+    // Calculation settings for Sun/Moon signs (does not affect SBA date logic).
+    var settings = { tz: -(new Date().getTimezoneOffset()) / 60, lat: 0, lon: 0 };
+    try {
+      var saved = localStorage.getItem("sba_cal_settings");
+      if (saved) settings = Object.assign(settings, JSON.parse(saved));
+    } catch (e) {}
+    function saveSettings() {
+      try { localStorage.setItem("sba_cal_settings", JSON.stringify(settings)); } catch (e) {}
+    }
+    function sky() { return window.SBASky; }
+
     function cal() { return window.SBACalendar; }
 
     function todayUTCDate() {
@@ -5817,6 +6018,10 @@
     // ── One SBA month rendered as a calendar grid ─────────────────────────────
     function monthGridHTML(m, qMap) {
       var moon = window.SBAMoon;
+      var sk = sky();
+      var observer = null;
+      if (sk) { try { observer = sk.observerFor(settings.lat, settings.lon); } catch (e) {} }
+
       var lead = mondayIndex(m.days[0].date);
       var cells = "";
       for (var i = 0; i < lead; i++) cells += '<div class="cal-cell empty"></div>';
@@ -5842,8 +6047,21 @@
           } catch (e) { /* clean cell */ }
         }
 
+        // Subtle Moon-sign symbol (true-sky, at 12:00 local).
+        var signHTML = "";
+        if (sk && observer) {
+          try {
+            var msign = sk.moonSignAtNoon(d.date, settings.tz, observer);
+            if (msign) {
+              var sym = sk.symbolFor(msign);
+              signHTML = '<span class="cc-sign" aria-label="Moon in ' + esc(msign) + '" title="Moon in ' + esc(msign) + '">' +
+                (sym || esc(sk.abbrev(msign))) + '</span>';
+            }
+          } catch (e) { /* omit */ }
+        }
+
         cells += '<button type="button" class="' + cls + '" data-iso="' + esc(d.iso) + '">' +
-          moonHTML +
+          signHTML + moonHTML +
           '<span class="cc-day">' + esc(dayNum(d.iso)) + '</span>' +
           '<span class="cc-sub">' + esc(d.monthDay) + '</span></button>';
       });
@@ -5964,6 +6182,37 @@
           } catch (e) { /* omit moon rows */ }
         }
 
+        // Sun & Moon true-sky signs (same placement path as the chart calculator).
+        var skyRows = "";
+        var sk = sky();
+        if (sk) {
+          try {
+            var info = sk.dayInfo(d, settings.tz, settings.lat, settings.lon);
+            function lonTxt(x) { return (x == null) ? "—" : x.toFixed(4) + "°"; }
+            function transTxt(list, curSign) {
+              if (!list || !list.length) return "";
+              return list.map(function (t) {
+                return '<div class="cc-trans">Enters ' + esc(t.to) + ' at ' + esc(t.atLocal) + ' local</div>';
+              }).join("");
+            }
+            function signLine(b) {
+              var chain = b.sign;
+              if (b.transitions && b.transitions.length) {
+                chain = b.transitions[0].from;
+                b.transitions.forEach(function (t) { chain += " → " + t.to; });
+              }
+              return (b.symbol ? b.symbol + " " : "") + esc(chain);
+            }
+            skyRows +=
+              '<dt>Moon Sign</dt><dd>' + signLine(info.moon) + transTxt(info.moon.transitions) + '</dd>' +
+              '<dt>Moon Longitude</dt><dd>' + esc(lonTxt(info.moon.longitude)) + '</dd>' +
+              '<dt>Sun Sign</dt><dd>' + signLine(info.sun) + transTxt(info.sun.transitions) + '</dd>' +
+              '<dt>Sun Longitude</dt><dd>' + esc(lonTxt(info.sun.longitude)) + '</dd>' +
+              '<dt>Reference time</dt><dd>12:00 local</dd>' +
+              '<dt>Timezone</dt><dd>UTC' + (settings.tz >= 0 ? "+" : "") + esc(settings.tz) + '</dd>';
+          } catch (e) { /* omit sky rows */ }
+        }
+
         $("calDayModalTitle").innerHTML = esc(c.gregorianLong) +
           (isoStr === todayISO ? '<span class="cal-today-badge">Today</span>' : "");
         $("calDayModalBody").innerHTML =
@@ -5973,7 +6222,7 @@
           '<dt>SBA Month Day</dt><dd>' + esc(c.sbaMonthDay) + (m ? ' of ' + esc(m.dayCount) : "") + '</dd>' +
           '<dt>SBA Day of Year</dt><dd>' + esc(c.sbaDayOfYear) + '</dd>' +
           '<dt>SBA Month Range</dt><dd>' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</dd>' +
-          moonRows;
+          moonRows + skyRows;
         modal.hidden = false;
       } catch (e) { /* ignore */ }
     }
@@ -6021,6 +6270,48 @@
       if (close) close.addEventListener("click", closeDayModal);
       if (backdrop) backdrop.addEventListener("click", closeDayModal);
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDayModal(); });
+
+      // Calculation settings
+      var tzI = $("calTz"), latI = $("calLat"), lonI = $("calLon"), applyB = $("calApplySettings");
+      if (tzI) tzI.value = settings.tz;
+      if (latI) latI.value = settings.lat;
+      if (lonI) lonI.value = settings.lon;
+      if (applyB) applyB.addEventListener("click", function () {
+        var tz = parseFloat(tzI.value), la = parseFloat(latI.value), lo = parseFloat(lonI.value);
+        if (!isNaN(tz)) settings.tz = tz;
+        if (!isNaN(la)) settings.lat = la;
+        if (!isNaN(lo)) settings.lon = lo;
+        saveSettings();
+        yearCache = {};
+        openToday(false);
+      });
+
+      // Automated consistency check (calendar vs chart calculator)
+      var testB = $("calRunTests"), testOut = $("calTestOut");
+      if (testB) testB.addEventListener("click", function () {
+        if (!testOut) return;
+        testOut.hidden = false;
+        testOut.innerHTML = "Running…";
+        setTimeout(function () {
+          if (!sky() || typeof sky().consistencyTest !== "function") { testOut.innerHTML = "Test utility unavailable."; return; }
+          var results;
+          try { results = sky().consistencyTest(); }
+          catch (e) { testOut.innerHTML = "Test failed: " + esc(e.message || e); return; }
+          var passed = results.filter(function (r) { return r.pass; }).length;
+          testOut.innerHTML =
+            '<div class="ct-summary ' + (passed === results.length ? "ok" : "bad") + '">' +
+            passed + ' / ' + results.length + ' passed</div>' +
+            results.map(function (r) {
+              if (r.error) return '<div class="ct-row bad">' + esc(r.case.date) + ' — error: ' + esc(r.error) + '</div>';
+              return '<div class="ct-row ' + (r.pass ? "ok" : "bad") + '">' +
+                esc(r.case.date) + ' (UTC' + (r.case.tz >= 0 ? "+" : "") + esc(r.case.tz) + ') · ' +
+                'Sun ' + esc(r.chartSun) + '/' + esc(r.calSun) + ' · ' +
+                'Moon ' + esc(r.chartMoon) + '/' + esc(r.calMoon) + ' ' +
+                (r.pass ? "✓" : "✗") + '</div>';
+            }).join("") +
+            '<div class="ct-note">Format: chart / calendar. Both must match exactly.</div>';
+        }, 20);
+      });
     }
 
     function currentSbaYear() {
