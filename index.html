@@ -399,6 +399,94 @@
     /* Selected day (from Find a date) */
     .cal-cell.is-selected { outline: 2px solid #8b6f3d; outline-offset: 1px; }
 
+    /* Astronomical Events */
+    .cal-ev-body { padding: 0 0.85rem 0.85rem; }
+    .cal-keydates { background: #fdfaf2; border: 1px solid #e6d4a0; border-radius: 10px; padding: 0.7rem 0.85rem; margin-bottom: 0.8rem; }
+    .kd-title { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8a7f6c; margin-bottom: 0.5rem; }
+    .kd-row { display: flex; justify-content: space-between; gap: 0.6rem; padding: 0.25rem 0; border-top: 1px solid #f0e6cd; font-size: 0.84rem; }
+    .kd-row:first-of-type { border-top: none; }
+    .kd-row.kd-hi { background: #f7efd9; margin: 0 -0.35rem; padding: 0.3rem 0.35rem; border-radius: 6px; font-weight: 600; }
+    .kd-l { color: #5a4e3c; }
+    .kd-v { text-align: right; color: #3a3530; white-space: nowrap; }
+    .kd-t { display: block; font-size: 0.72rem; color: #8a7f6c; font-weight: 400; }
+
+    .cal-ev-filters { margin-bottom: 0.8rem; }
+    .cal-ev-filters-title { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8a7f6c; margin-bottom: 0.35rem; }
+    .cal-ev-filters label { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; color: #5a4e3c; padding: 0.2rem 0; }
+    .cal-ev-filters input { width: auto; }
+    .cal-ev-note { font-size: 0.72rem; color: #a99f8c; font-style: italic; margin-top: 0.25rem; }
+
+    .cal-ev-lookup { margin-bottom: 0.8rem; }
+    .cal-ev-lookup-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
+    .cal-ev-lookup-row label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: #8a7f6c; }
+    .cal-ev-lookup-row select { padding: 0.35rem 0.4rem; border: 1px solid #ccc7bc; border-radius: 8px; font-family: inherit; font-size: 0.85rem; }
+
+    .cal-ev-timebase { font-size: 0.78rem; color: #8a7f6c; margin-bottom: 0.6rem; }
+    .cal-ev-inline { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: 0.5rem; }
+    .cal-ev-inline input { width: auto; }
+
+    .ev-sub { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8a7f6c; margin: 0.7rem 0 0.35rem; }
+    .ev-row { display: flex; gap: 0.5rem; align-items: baseline; padding: 0.28rem 0; border-top: 1px solid #f2ece0; font-size: 0.83rem; }
+    .ev-row.ev-key { background: #f7efd9; border-radius: 6px; padding: 0.32rem 0.35rem; font-weight: 600; border-top: none; }
+    .ev-date { flex: none; width: 4.2rem; color: #8a7f6c; font-variant-numeric: tabular-nums; }
+    .ev-label { flex: 1; color: #3a3530; }
+    .ev-sign { color: #8a7f6c; font-size: 0.76rem; }
+    .ev-time { flex: none; color: #a99f8c; font-size: 0.74rem; white-space: nowrap; }
+
+    .ev-period { border: 1px solid #e6ddca; border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 0.5rem; background: #fff; }
+    .ep-title { font-weight: 700; color: #3a3530; font-size: 0.88rem; margin-bottom: 0.25rem; }
+    .ep-line { font-size: 0.83rem; color: #5a4e3c; }
+    .ep-to { font-size: 0.75rem; color: #a99f8c; margin: 0.1rem 0; }
+    .ep-signs { font-size: 0.76rem; color: #8a7f6c; margin-top: 0.35rem; line-height: 1.5; }
+
+    /* Event badges in grid cells */
+    .cc-events { position: absolute; bottom: 1px; left: 0; right: 0; text-align: center; font-size: 0.46rem; color: #8b6f3d; line-height: 1; letter-spacing: -0.02em; }
+    .cal-cell.is-today .cc-events { color: #e8dcc4; }
+
+    /* Day panel event block */
+    .df-section { grid-column: 1 / -1; font-weight: 700; color: #5a4e3c; margin-top: 0.4rem; }
+    .df-section-v { grid-column: 1 / -1; margin: 0; }
+    .df-ev { font-size: 0.82rem; color: #3a3530; font-weight: 400; padding: 0.12rem 0; }
+
+    /* Planetary Retrograde Calendar */
+    .cal-retro-body { padding: 0 0.85rem 0.85rem; }
+    .cal-retro-now { background: #f4efe6; border: 1px solid #e6ddca; border-radius: 10px; padding: 0.7rem 0.85rem; margin-bottom: 0.8rem; }
+    .rn-title { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7f6c; margin-bottom: 0.4rem; }
+    .rn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.2rem 0.8rem; }
+    .rn-row { display: flex; justify-content: space-between; font-size: 0.84rem; padding: 0.12rem 0; }
+    .rn-rx { color: #8b2020; font-weight: 600; }
+    .rn-dir { color: #8a7f6c; }
+    .cal-retro-controls { margin-bottom: 0.7rem; }
+    .cal-retro-views { display: flex; gap: 0.35rem; margin: 0.5rem 0; }
+    .rt-view { flex: 1; padding: 0.4rem; font-family: inherit; font-size: 0.82rem; border: 1px solid #c9b896; border-radius: 6px; background: #fff; color: #5a4e3c; cursor: pointer; }
+    .rt-view.active { background: #5a4e3c; color: #f5f3ef; border-color: #5a4e3c; }
+    .rt-planet { border-top: 1px solid #efe8d8; padding: 0.5rem 0; }
+    .rt-planet-name { font-weight: 700; color: #3a3530; font-size: 0.9rem; }
+    .rt-line { font-size: 0.84rem; color: #5a4e3c; padding: 0.1rem 0; }
+    .rt-dur { color: #a99f8c; font-size: 0.76rem; }
+    .rt-none { font-size: 0.82rem; color: #a99f8c; font-style: italic; }
+    .rt-detail { margin-top: 0.3rem; }
+    .rt-detail summary { font-size: 0.76rem; color: #8a7f6c; cursor: pointer; }
+    .ep-status { font-size: 0.76rem; color: #6b551f; margin-top: 0.3rem; font-style: italic; }
+
+    /* Timeline */
+    .tl-head, .tl-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.15rem 0; }
+    .tl-label { flex: none; width: 1.6rem; text-align: center; font-size: 0.95rem; color: #5a4e3c; }
+    .tl-track { position: relative; flex: 1; height: 14px; background: #f2ece0; border-radius: 4px; }
+    .tl-ticks { height: 12px; background: none; }
+    .tl-tick { position: absolute; top: 0; font-size: 0.6rem; color: #a99f8c; transform: translateX(-50%); }
+    .tl-bar { position: absolute; top: 2px; height: 10px; background: #8b2020; border-radius: 3px; opacity: 0.8; }
+    .tl-foot { display: flex; justify-content: space-between; font-size: 0.68rem; color: #a99f8c; margin-top: 0.3rem; }
+
+    /* Retrograde markers in grid cells */
+    .cc-retro-station { position: absolute; bottom: 1px; left: 0; right: 0; text-align: center; font-size: 0.44rem; color: #8b2020; font-weight: 700; line-height: 1; }
+    .cc-retro-active { position: absolute; bottom: 1px; right: 2px; font-size: 0.42rem; color: #b05a5a; line-height: 1; }
+    .cal-cell.is-today .cc-retro-station, .cal-cell.is-today .cc-retro-active { color: #e8b7b7; }
+
+    /* Day panel retrograde block */
+    .df-rx { color: #8b2020; font-weight: 600; font-size: 0.82rem; }
+    .df-none { color: #8a7f6c; font-size: 0.82rem; }
+
     /* Calculation settings */
     .cal-settings { display: flex; flex-wrap: wrap; gap: 0.5rem 0.7rem; align-items: flex-end; padding: 0 0.85rem 0.6rem; }
     .cal-settings label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: #8a7f6c; }
@@ -423,6 +511,7 @@
     .cal-today-badge { display: inline-block; font-size: 0.62rem; background: #5a4e3c; color: #f5f3ef; border-radius: 999px; padding: 0.05rem 0.4rem; margin-left: 0.35rem; vertical-align: middle; }
 
     .cal-loading { color: #8a7f6c; font-size: 0.9rem; padding: 1rem 0; }
+    .cal-error { color: #8b2020; font-size: 0.85rem; background: #fff3f3; border: 1px solid #e5b8b8; border-radius: 8px; padding: 0.6rem 0.75rem; }
 
     /* Day detail modal */
     .cal-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
@@ -1491,6 +1580,100 @@
         </span>
       </div>
 
+      <details class="cal-about cal-events" id="calEventsPanel">
+        <summary>Astronomical Events</summary>
+        <div class="cal-ev-body">
+          <div id="calKeyDates" class="cal-keydates">—</div>
+
+          <div class="cal-ev-filters">
+            <div class="cal-ev-filters-title">Show</div>
+            <label><input type="checkbox" id="evSeasons" checked> Equinoxes &amp; Solstices</label>
+            <label><input type="checkbox" id="evMoon" checked> Moon Phases</label>
+            <label><input type="checkbox" id="evRetro"> Retrogrades</label>
+            <label><input type="checkbox" id="evEclipse"> Eclipses</label>
+            <label><input type="checkbox" id="evSunSign"> Sun Sign Changes</label>
+            <label><input type="checkbox" id="evMoonSign"> Moon Sign Changes</label>
+            <div class="cal-ev-note">Retrogrades, eclipses and sign changes take a moment to compute.</div>
+          </div>
+
+          <div class="cal-ev-lookup">
+            <div class="cal-ev-filters-title">Event lookup</div>
+            <div class="cal-ev-lookup-row">
+              <label>SBA year <input type="number" id="evLookupYear" class="cal-jump-input"></label>
+              <label>Category
+                <select id="evLookupCat">
+                  <option value="all">All</option>
+                  <option value="season">Equinoxes &amp; Solstices</option>
+                  <option value="moonphase">Moon Phases</option>
+                  <option value="station">Retrogrades</option>
+                  <option value="eclipse">Eclipses</option>
+                  <option value="sunsign">Sun Sign Changes</option>
+                  <option value="moonsign">Moon Sign Changes</option>
+                </select>
+              </label>
+              <label>Planet
+                <select id="evLookupPlanet"><option value="">Any</option></select>
+              </label>
+              <button type="button" id="evLookupGo" class="cal-btn">Search</button>
+            </div>
+          </div>
+
+          <div class="cal-ev-timebase">
+            Times shown in <strong id="evTimebaseLabel">UTC</strong>.
+            <label class="cal-ev-inline"><input type="checkbox" id="evLocalTime"> show local time</label>
+          </div>
+
+          <div id="calEventList" class="cal-ev-list">—</div>
+          <p id="calDevTests" hidden><button type="button" id="evRunTests" class="cal-btn">Run event regression tests</button>
+          <button type="button" id="rtRunTests" class="cal-btn">Run retrograde tests</button></p>
+          <div id="evTestOut" class="cal-test-out" hidden></div>
+        </div>
+      </details>
+
+      <details class="cal-about cal-retro" id="calRetroPanel">
+        <summary>Planetary Retrograde Calendar</summary>
+        <div class="cal-retro-body">
+          <div id="calRetroNow" class="cal-retro-now">—</div>
+
+          <div class="cal-retro-controls">
+            <div class="cal-ev-lookup-row">
+              <label>Planets
+                <select id="rtPlanetSet">
+                  <option value="all">All planets</option>
+                  <option value="inner">Inner (☿ ♀ ♂)</option>
+                  <option value="outer">Outer (♃ ♄ ♅ ♆ ♇)</option>
+                  <option value="Mercury">☿ Mercury</option>
+                  <option value="Venus">♀ Venus</option>
+                  <option value="Mars">♂ Mars</option>
+                  <option value="Jupiter">♃ Jupiter</option>
+                  <option value="Saturn">♄ Saturn</option>
+                  <option value="Uranus">♅ Uranus</option>
+                  <option value="Neptune">♆ Neptune</option>
+                  <option value="Pluto">♇ Pluto</option>
+                </select>
+              </label>
+              <label>Stations
+                <select id="rtStationFilter">
+                  <option value="all">All</option>
+                  <option value="retrograde">Retrograde only</option>
+                  <option value="direct">Direct only</option>
+                  <option value="active">Active periods</option>
+                </select>
+              </label>
+            </div>
+            <div class="cal-retro-views">
+              <button type="button" class="rt-view active" data-view="overview">Overview</button>
+              <button type="button" class="rt-view" data-view="list">List</button>
+              <button type="button" class="rt-view" data-view="timeline">Timeline</button>
+            </div>
+            <label class="cal-ev-inline"><input type="checkbox" id="rtMarkers"> Show retrograde markers in month grid</label>
+          </div>
+
+          <div class="cal-ev-timebase">Times in <strong id="rtTimebase">UTC</strong> (follows the events time toggle).</div>
+          <div id="calRetroContent" class="cal-retro-content">—</div>
+        </div>
+      </details>
+
       <div id="calYearView" class="cal-year"></div>
     </div>
 
@@ -1772,6 +1955,16 @@
       const sign = Astronomy.Constellation(equatorial.ra, equatorial.dec).name;
       const longitude = equatorialToEclipticLon(equatorial.ra, equatorial.dec, eps);
       return { equatorial: equatorial, sign: sign, longitude: longitude };
+    }
+
+    // Shared APPARENT GEOCENTRIC ecliptic longitude (degrees) — the single source
+    // used by the chart's retrograde test AND the calendar's station finder.
+    // NOTE: Astronomy.EclipticLongitude() is HELIOCENTRIC (always prograde) and
+    // must NOT be used for retrograde detection. Retrograde is a geocentric
+    // phenomenon, so we use the geocentric vector → ecliptic longitude.
+    function geoEclipticLon(body, when) {
+      var vec = Astronomy.GeoVector(body, when, true); // geocentric, aberration-corrected
+      return Astronomy.Ecliptic(vec).elon;             // apparent geocentric ecliptic longitude
     }
 
     // ─── AC / MC ────────────────────────────────────────────────────────────────
@@ -2282,6 +2475,527 @@
 
     if (typeof window !== "undefined") window.SBASky = SBASkyUtil;
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  SBA ASTRONOMICAL EVENTS UTILITY  (factual sky events — no interpretation)
+    //  ---------------------------------------------------------------------------
+    //  Reuses the SAME engine functions as the chart/calendar:
+    //    · sbaYearStartInstant()  → SBA New Year (first New Moon after equinox)
+    //    · skyPlacementAt()       → true-sky 13-sign boundaries
+    //    · geoEclipticLon()       → the chart's own retrograde longitude source
+    //  All times are computed and stored in UTC. Nothing is hardcoded; every year
+    //  is derived independently. Does not alter any existing calculation.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const SBAEventsUtil = (function () {
+      const DAY = 86400000, HOUR = 3600000;
+      const PLANETS = [
+        { name: "Mercury", body: Astronomy.Body.Mercury, sym: "☿" },
+        { name: "Venus",   body: Astronomy.Body.Venus,   sym: "♀" },
+        { name: "Mars",    body: Astronomy.Body.Mars,    sym: "♂" },
+        { name: "Jupiter", body: Astronomy.Body.Jupiter, sym: "♃" },
+        { name: "Saturn",  body: Astronomy.Body.Saturn,  sym: "♄" },
+        { name: "Uranus",  body: Astronomy.Body.Uranus,  sym: "♅" },
+        { name: "Neptune", body: Astronomy.Body.Neptune, sym: "♆" },
+        { name: "Pluto",   body: Astronomy.Body.Pluto,   sym: "♇" },
+      ];
+      const QUARTER = [
+        { key: "new",   label: "New Moon",      icon: "🌑" },
+        { key: "first", label: "First Quarter", icon: "🌓" },
+        { key: "full",  label: "Full Moon",     icon: "🌕" },
+        { key: "last",  label: "Last Quarter",  icon: "🌗" },
+      ];
+
+      function toDate(t) { return (t && t.date) ? t.date : t; }
+      function iso(d) { return d.toISOString().substring(0, 10); }
+      function normDelta(x) { while (x > 180) x -= 360; while (x < -180) x += 360; return x; }
+      function observerFor(lat, lon) { return new Astronomy.Observer(lat, lon, 0); }
+      function signAt(body, when, observer) {
+        try { return skyPlacementAt(body, when, observer, meanObliquity(julianDate(when))).sign; }
+        catch (e) { return null; }
+      }
+      function lonAt(body, when, observer) {
+        try { return skyPlacementAt(body, when, observer, meanObliquity(julianDate(when))).longitude; }
+        catch (e) { return null; }
+      }
+
+      // ── Equinoxes & solstices (exact, from the engine) ──────────────────────
+      function seasons(gYear) {
+        try {
+          const s = Astronomy.Seasons(gYear);
+          return {
+            marEquinox: toDate(s.mar_equinox),
+            junSolstice: toDate(s.jun_solstice),
+            sepEquinox: toDate(s.sep_equinox),
+            decSolstice: toDate(s.dec_solstice),
+          };
+        } catch (e) { return null; }
+      }
+
+      // ── Moon quarters in a range ────────────────────────────────────────────
+      function moonQuarters(start, end) {
+        const out = [];
+        try {
+          let mq = Astronomy.SearchMoonQuarter(new Date(start.getTime() - DAY));
+          let guard = 0;
+          while (mq && guard++ < 120) {
+            const t = toDate(mq.time);
+            if (!t || t > end) break;
+            if (t >= start) out.push({ type: "moonphase", quarter: mq.quarter, time: t,
+              label: QUARTER[mq.quarter].label, icon: QUARTER[mq.quarter].icon });
+            mq = Astronomy.NextMoonQuarter(mq);
+          }
+        } catch (e) {}
+        return out;
+      }
+
+      // ── Eclipses in a range ────────────────────────────────────────────────
+      function eclipses(start, end) {
+        const out = [];
+        try {
+          if (typeof Astronomy.SearchGlobalSolarEclipse === "function") {
+            let e = Astronomy.SearchGlobalSolarEclipse(start);
+            let guard = 0;
+            while (e && guard++ < 20) {
+              const t = toDate(e.peak);
+              if (!t || t > end) break;
+              out.push({ type: "eclipse", sub: "solar", time: t, kind: e.kind || "", label: "Solar Eclipse", tag: "SE" });
+              e = Astronomy.NextGlobalSolarEclipse(e.peak);
+            }
+          }
+          if (typeof Astronomy.SearchLunarEclipse === "function") {
+            let l = Astronomy.SearchLunarEclipse(start);
+            let guard2 = 0;
+            while (l && guard2++ < 20) {
+              const t = toDate(l.peak);
+              if (!t || t > end) break;
+              out.push({ type: "eclipse", sub: "lunar", time: t, kind: l.kind || "", label: "Lunar Eclipse", tag: "LE" });
+              l = Astronomy.NextLunarEclipse(l.peak);
+            }
+          }
+        } catch (e) {}
+        return out;
+      }
+
+      // ── Retrograde / direct stations ───────────────────────────────────────
+      // A station is where d(longitude)/dt changes sign. Uses geoEclipticLon —
+      // the same longitude source as the chart's retrograde test.
+      function rateAt(body, t) {
+        const a = geoEclipticLon(body, new Date(t.getTime() - 6 * HOUR));
+        const b = geoEclipticLon(body, new Date(t.getTime() + 6 * HOUR));
+        return normDelta(b - a);
+      }
+      function stations(start, end, observer, padDays) {
+        const out = [];
+        // Widen so periods overlapping the range are captured.
+        const pad = (padDays || 60) * DAY;
+        const from = new Date(start.getTime() - pad);
+        const to = new Date(end.getTime() + pad);
+        PLANETS.forEach(function (p) {
+          try {
+            let tPrev = from, rPrev = rateAt(p.body, tPrev);
+            for (let t = from.getTime() + DAY; t <= to.getTime(); t += DAY) {
+              const tNow = new Date(t), rNow = rateAt(p.body, tNow);
+              if (rPrev != null && rNow != null && ((rPrev > 0 && rNow < 0) || (rPrev < 0 && rNow > 0))) {
+                // Bisect to the minute.
+                let lo = tPrev.getTime(), hi = tNow.getTime(), rLo = rPrev;
+                while (hi - lo > 60000) {
+                  const mid = Math.floor((lo + hi) / 2);
+                  const rMid = rateAt(p.body, new Date(mid));
+                  if ((rLo > 0 && rMid > 0) || (rLo < 0 && rMid < 0)) { lo = mid; rLo = rMid; } else hi = mid;
+                }
+                const at = new Date(hi);
+                out.push({
+                  planet: p.name, symbol: p.sym,
+                  kind: (rPrev > 0) ? "retrograde" : "direct",
+                  time: at, sign: signAt(p.body, at, observer), longitude: lonAt(p.body, at, observer),
+                });
+              }
+              tPrev = tNow; rPrev = rNow;
+            }
+          } catch (e) {}
+        });
+        out.sort(function (a, b) { return a.time - b.time; });
+        return out;
+      }
+
+      // Pair stations into retrograde periods (retro station → next direct station).
+      function retrogradePeriods(start, end, observer, padDays) {
+        const st = stations(start, end, observer, padDays);
+        const periods = [];
+        PLANETS.forEach(function (p) {
+          const mine = st.filter(function (s) { return s.planet === p.name; });
+          for (let i = 0; i < mine.length; i++) {
+            if (mine[i].kind !== "retrograde") continue;
+            const nxt = mine.slice(i + 1).find(function (s) { return s.kind === "direct"; });
+            if (!nxt) continue;
+            // Keep periods that intersect the SBA year range.
+            if (nxt.time < start || mine[i].time > end) continue;
+            periods.push({ planet: p.name, symbol: p.sym, retro: mine[i], direct: nxt });
+          }
+        });
+        periods.sort(function (a, b) { return a.retro.time - b.retro.time; });
+        return { stations: st, periods: periods };
+      }
+
+      // ── Sign changes (true-sky 13 signs) ───────────────────────────────────
+      function signChanges(body, start, end, observer, stepMs) {
+        const out = [];
+        try {
+          let tPrev = start, sPrev = signAt(body, tPrev, observer);
+          for (let t = start.getTime() + stepMs; t <= end.getTime(); t += stepMs) {
+            const tNow = new Date(t), sNow = signAt(body, tNow, observer);
+            if (sNow && sPrev && sNow !== sPrev) {
+              let lo = tPrev.getTime(), hi = tNow.getTime();
+              while (hi - lo > 60000) {
+                const mid = Math.floor((lo + hi) / 2);
+                if (signAt(body, new Date(mid), observer) === sPrev) lo = mid; else hi = mid;
+              }
+              out.push({ from: sPrev, to: sNow, time: new Date(hi) });
+            }
+            tPrev = tNow; sPrev = sNow;
+          }
+        } catch (e) {}
+        return out;
+      }
+
+      // ── Key SBA dates for an SBA year ──────────────────────────────────────
+      function keyDates(sbaYear) {
+        const s = seasons(sbaYear);
+        const start = sbaYearStartInstant(sbaYear);         // shared engine function
+        const nextStart = sbaYearStartInstant(sbaYear + 1);
+        const end = new Date(nextStart.getTime() - DAY);
+        return {
+          sbaYear: sbaYear,
+          marEquinox: s ? s.marEquinox : null,
+          junSolstice: s ? s.junSolstice : null,
+          sepEquinox: s ? s.sepEquinox : null,
+          decSolstice: s ? s.decSolstice : null,
+          sbaNewYear: start,
+          sbaYearEnd: end,
+          nextSbaNewYear: nextStart,
+        };
+      }
+
+      // ── Full chronological event list for an SBA year, by category ─────────
+      // cats = { seasons, moon, retro, eclipse, sunSign, moonSign }
+      function forYear(sbaYear, cats, tz, lat, lon) {
+        const k = keyDates(sbaYear);
+        const start = k.sbaNewYear, end = k.nextSbaNewYear;
+        const observer = observerFor(lat || 0, lon || 0);
+        const ev = [];
+
+        if (cats.seasons) {
+          [["March Equinox", k.marEquinox, "EQ"], ["June Solstice", k.junSolstice, "SOL"],
+           ["September Equinox", k.sepEquinox, "EQ"], ["December Solstice", k.decSolstice, "SOL"]]
+            .forEach(function (r) { if (r[1] && r[1] >= start && r[1] < end) ev.push({ type: "season", label: r[0], time: r[1], tag: r[2] }); });
+          // Also the equinox that opens this SBA year (falls just before start).
+          if (k.marEquinox && k.marEquinox < start) ev.push({ type: "season", label: "March Equinox", time: k.marEquinox, tag: "EQ", preYear: true });
+          // Next year's seasons that fall inside this SBA year (it can cross into the next Gregorian year).
+          const s2 = seasons(sbaYear + 1);
+          if (s2) [["March Equinox", s2.marEquinox, "EQ"]].forEach(function (r) {
+            if (r[1] && r[1] >= start && r[1] < end) ev.push({ type: "season", label: r[0], time: r[1], tag: r[2] });
+          });
+        }
+        if (cats.moon) moonQuarters(start, end).forEach(function (m) { ev.push(m); });
+        if (cats.eclipse) eclipses(start, end).forEach(function (e) { ev.push(e); });
+        if (cats.retro) {
+          const rp = retrogradePeriods(start, end, observer);
+          rp.stations.forEach(function (s) {
+            if (s.time >= start && s.time < end) {
+              ev.push({ type: "station", label: s.planet + (s.kind === "retrograde" ? " stations retrograde" : " stations direct"),
+                        time: s.time, planet: s.planet, symbol: s.symbol, kind: s.kind, sign: s.sign, longitude: s.longitude,
+                        tag: s.symbol + (s.kind === "retrograde" ? " Rx" : " D") });
+            }
+          });
+          ev._periods = rp.periods;
+        }
+        if (cats.sunSign) signChanges(Astronomy.Body.Sun, start, end, observer, DAY).forEach(function (c) {
+          ev.push({ type: "sunsign", label: "Sun enters " + c.to, time: c.time, from: c.from, to: c.to, tag: "☉" });
+        });
+        if (cats.moonSign) signChanges(Astronomy.Body.Moon, start, end, observer, 6 * HOUR).forEach(function (c) {
+          ev.push({ type: "moonsign", label: "Moon enters " + c.to, time: c.time, from: c.from, to: c.to, tag: "☾" });
+        });
+
+        // SBA New Year always visible.
+        ev.push({ type: "sbanewyear", label: "SBA New Year Begins", time: start, tag: "SBA" });
+
+        const periods = ev._periods || [];
+        const list = ev.filter(function (x) { return x && x.time; });
+        list.sort(function (a, b) { return a.time - b.time; });
+        return { key: k, events: list, retroPeriods: periods, start: start, end: end };
+      }
+
+      // ── Events on one specific date (cheap; used by the tapped-day panel) ──
+      function eventsOnDate(dayDate, tz, lat, lon) {
+        const observer = observerFor(lat || 0, lon || 0);
+        const dayStart = new Date(Date.UTC(dayDate.getUTCFullYear(), dayDate.getUTCMonth(), dayDate.getUTCDate()));
+        const dayEnd = new Date(dayStart.getTime() + DAY);
+        const out = [];
+        const gY = dayStart.getUTCFullYear();
+
+        const s = seasons(gY);
+        if (s) {
+          [["March Equinox", s.marEquinox], ["June Solstice", s.junSolstice],
+           ["September Equinox", s.sepEquinox], ["December Solstice", s.decSolstice]]
+            .forEach(function (r) { if (r[1] && r[1] >= dayStart && r[1] < dayEnd) out.push({ label: r[0], time: r[1] }); });
+        }
+        moonQuarters(dayStart, dayEnd).forEach(function (m) { out.push({ label: m.icon + " " + m.label, time: m.time }); });
+        eclipses(new Date(dayStart.getTime() - DAY), dayEnd).forEach(function (e) {
+          if (e.time >= dayStart && e.time < dayEnd) out.push({ label: e.label + (e.kind ? " (" + e.kind + ")" : ""), time: e.time });
+        });
+        // Stations on this date only: scan ±2 days.
+        PLANETS.forEach(function (p) {
+          try {
+            let tPrev = new Date(dayStart.getTime() - 2 * DAY), rPrev = rateAt(p.body, tPrev);
+            for (let t = tPrev.getTime() + DAY; t <= dayEnd.getTime() + DAY; t += DAY) {
+              const tNow = new Date(t), rNow = rateAt(p.body, tNow);
+              if ((rPrev > 0 && rNow < 0) || (rPrev < 0 && rNow > 0)) {
+                let lo = tPrev.getTime(), hi = tNow.getTime(), rLo = rPrev;
+                while (hi - lo > 60000) {
+                  const mid = Math.floor((lo + hi) / 2);
+                  const rMid = rateAt(p.body, new Date(mid));
+                  if ((rLo > 0 && rMid > 0) || (rLo < 0 && rMid < 0)) { lo = mid; rLo = rMid; } else hi = mid;
+                }
+                const at = new Date(hi);
+                if (at >= dayStart && at < dayEnd) {
+                  out.push({ label: p.name + " stations " + (rPrev > 0 ? "retrograde" : "direct"), time: at });
+                }
+              }
+              tPrev = tNow; rPrev = rNow;
+            }
+          } catch (e) {}
+        });
+        // Sun / Moon sign changes within the local day are already surfaced by
+        // SBASky transitions; include the UTC-day ones here for completeness.
+        signChanges(Astronomy.Body.Moon, dayStart, dayEnd, observer, 3 * HOUR).forEach(function (c) {
+          out.push({ label: "Moon enters " + c.to, time: c.time });
+        });
+        signChanges(Astronomy.Body.Sun, dayStart, dayEnd, observer, 6 * HOUR).forEach(function (c) {
+          out.push({ label: "Sun enters " + c.to, time: c.time });
+        });
+        out.sort(function (a, b) { return a.time - b.time; });
+        return out;
+      }
+
+      // ── Regression tests (structural, not hardcoded dates) ─────────────────
+      // ═════════════════════════════════════════════════════════════════════
+      //  PLANETARY RETROGRADE CALENDAR — single shared dataset for the yearly
+      //  overview, list view, timeline view, calendar markers, and date lookup.
+      //  Everything below reads from retrogradeCalendar(); nothing recomputes
+      //  its own separate retrograde set, so all views agree by construction.
+      //  Retrograde = apparent geocentric longitudinal speed is negative; a
+      //  station is where that speed crosses zero (via geoEclipticLon — the
+      //  chart's own longitude source). Outer-planet retrogrades run up to
+      //  ~160 days, so a 190-day search pad captures periods that begin before
+      //  or continue after the SBA year.
+      // ═════════════════════════════════════════════════════════════════════
+      const _rcCache = {};
+      function retrogradeCalendar(sbaYear, lat, lon) {
+        const ck = sbaYear + "|" + (lat || 0) + "|" + (lon || 0);
+        if (_rcCache[ck]) return _rcCache[ck];
+        let result;
+        try {
+          const start = sbaYearStartInstant(sbaYear);
+          const end = sbaYearStartInstant(sbaYear + 1);
+          const observer = observerFor(lat || 0, lon || 0);
+          const rp = retrogradePeriods(start, end, observer, 190);
+          const periods = rp.periods.map(function (p) {
+            const startedBefore = p.retro.time < start;
+            const continuesAfter = p.direct.time >= end;
+            let status;
+            if (startedBefore && continuesAfter) status = "Spans the entire SBA year";
+            else if (startedBefore) status = "Began before this SBA year";
+            else if (continuesAfter) status = "Continues into next SBA year";
+            else status = "Entire period occurs within SBA Year " + sbaYear;
+            return {
+              planet: p.planet, symbol: p.symbol, retro: p.retro, direct: p.direct,
+              durationDays: Math.round((p.direct.time - p.retro.time) / DAY),
+              status: status, startedBefore: startedBefore, continuesAfter: continuesAfter,
+            };
+          });
+          const byPlanet = PLANETS.map(function (pl) {
+            return { planet: pl.name, symbol: pl.sym,
+                     periods: periods.filter(function (pp) { return pp.planet === pl.name; }) };
+          });
+          const stationsInYear = rp.stations
+            .filter(function (s) { return s.time >= start && s.time < end; })
+            .sort(function (a, b) { return a.time - b.time; });
+          result = { ok: true, sbaYear: sbaYear, start: start, end: end,
+                     periods: periods, byPlanet: byPlanet, stations: stationsInYear };
+        } catch (e) {
+          // Do NOT cache failures, and do NOT return empty-as-success.
+          return { ok: false, error: e.message || String(e), sbaYear: sbaYear,
+                   periods: [], byPlanet: [], stations: [] };
+        }
+        _rcCache[ck] = result;
+        return result;
+      }
+
+      function enclosingSbaYear(date) {
+        let Y = date.getUTCFullYear();
+        if (date < sbaYearStartInstant(Y)) Y -= 1;
+        return Y;
+      }
+
+      // Which planets are retrograde on a given date — derived from the SAME
+      // period data the views render, so it can never disagree with them.
+      // Returns { ok, planets:[{planet, symbol, retrograde}], error? }. On failure
+      // ok=false so the UI can show "Calculation unavailable" (never false Direct).
+      function retrogradeStatusOn(date, lat, lon) {
+        try {
+          const Y = enclosingSbaYear(date);
+          const rc = retrogradeCalendar(Y, lat, lon);
+          if (rc.error) return { ok: false, error: rc.error, planets: [] };
+          const planets = PLANETS.map(function (pl) {
+            const grp = rc.byPlanet.find(function (g) { return g.planet === pl.name; });
+            const active = grp && grp.periods.some(function (p) {
+              return date >= p.retro.time && date <= p.direct.time;
+            });
+            return { planet: pl.name, symbol: pl.sym, retrograde: !!active };
+          });
+          return { ok: true, planets: planets };
+        } catch (e) {
+          return { ok: false, error: e.message || String(e), planets: [] };
+        }
+      }
+
+      // Regression test: confirm all retrograde views draw from one dataset and
+      // that period membership agrees with the instantaneous speed sign.
+      function retroSelfTest(years) {
+        const list = years || [1970, 1988, 2020, 2026, 2088];
+        const results = list.map(function (Y) {
+          const r = { year: Y, checks: [] };
+          function chk(n, ok, d) { r.checks.push({ name: n, ok: !!ok, detail: d || "" }); }
+          try {
+            const rc = retrogradeCalendar(Y, 0, 0);
+            chk("Calculation completed (ok)", rc.ok, rc.error || "");
+            chk("At least one retrograde period found", rc.periods.length > 0, rc.periods.length + " periods");
+            chk("All periods retro<direct & duration>0",
+                rc.periods.every(function (p) { return p.retro.time < p.direct.time && p.durationDays > 0; }),
+                rc.periods.length + " periods");
+            let shared = true;
+            rc.periods.forEach(function (p) {
+              if (p.retro.time >= rc.start && p.retro.time < rc.end && rc.stations.indexOf(p.retro) === -1) shared = false;
+              if (p.direct.time >= rc.start && p.direct.time < rc.end && rc.stations.indexOf(p.direct) === -1) shared = false;
+            });
+            chk("List stations & periods share objects", shared, rc.stations.length + " in-year stations");
+            let midOK = true, edgeOK = true;
+            rc.periods.slice(0, 6).forEach(function (p) {
+              const mid = new Date((p.retro.time.getTime() + p.direct.time.getTime()) / 2);
+              const st = retrogradeStatusOn(mid, 0, 0);
+              const status = st.ok && st.planets.find(function (s) { return s.planet === p.planet; });
+              const body = PLANETS.find(function (x) { return x.name === p.planet; }).body;
+              if (!status || !status.retrograde) midOK = false;
+              if (rateAt(body, mid) >= 0) midOK = false;
+              const before = new Date(p.retro.time.getTime() - 10 * DAY);
+              if (rateAt(body, before) <= 0) edgeOK = false;
+            });
+            chk("Mid-period = retrograde & speed<0", midOK);
+            chk("Pre-station = direct & speed>0", edgeOK);
+            chk("Date lookup reads same dataset", retrogradeCalendar(Y, 0, 0) === rc);
+          } catch (e) { r.checks.push({ name: "exception", ok: false, detail: e.message || String(e) }); }
+          r.pass = r.checks.every(function (c) { return c.ok; });
+          return r;
+        });
+
+        // ── Tests A–D: known 2026 periods (regression only — NOT production data) ──
+        const ad = { year: "2026 known periods", checks: [] };
+        function adchk(n, ok, d) { ad.checks.push({ name: n, ok: !!ok, detail: d || "" }); }
+        function fmt(d) { return d ? d.toISOString().substring(0, 10) : "—"; }
+        function planetPeriodsIn(rc, planet) {
+          const g = rc.byPlanet.find(function (x) { return x.planet === planet; });
+          return g ? g.periods : [];
+        }
+        function coversDate(rc, planet, iso) {
+          const t = new Date(iso + "T12:00:00Z");
+          return planetPeriodsIn(rc, planet).some(function (p) { return t >= p.retro.time && t <= p.direct.time; });
+        }
+        function nearestPeriod(rc, planet, retroIso, directIso) {
+          const rT = new Date(retroIso + "T00:00:00Z"), dT = new Date(directIso + "T00:00:00Z");
+          return planetPeriodsIn(rc, planet).find(function (p) {
+            return Math.abs(p.retro.time - rT) < 3 * DAY && Math.abs(p.direct.time - dT) < 3 * DAY;
+          });
+        }
+        try {
+          const rc = retrogradeCalendar(2026, 0, 0);
+          // Test A — 13 Jul 2026 status
+          const stA = retrogradeStatusOn(new Date("2026-07-13T12:00:00Z"), 0, 0);
+          function isRx(name) { return stA.ok && stA.planets.find(function (s) { return s.planet === name; }).retrograde; }
+          adchk("A: Mercury retrograde on 13 Jul 2026", isRx("Mercury"));
+          adchk("A: Neptune retrograde on 13 Jul 2026", isRx("Neptune"));
+          adchk("A: Pluto retrograde on 13 Jul 2026", isRx("Pluto"));
+          // Test B — Mercury 29 Jun → 23 Jul 2026
+          var pB = nearestPeriod(rc, "Mercury", "2026-06-29", "2026-07-23");
+          adchk("B: Mercury 29 Jun→23 Jul 2026", !!pB, pB ? (fmt(pB.retro.time) + "→" + fmt(pB.direct.time)) : "not found");
+          // Test C — Neptune 7 Jul → 12 Dec 2026
+          var pC = nearestPeriod(rc, "Neptune", "2026-07-07", "2026-12-12");
+          adchk("C: Neptune 7 Jul→12 Dec 2026", !!pC, pC ? (fmt(pC.retro.time) + "→" + fmt(pC.direct.time)) : "not found");
+          // Test D — Pluto 6 May → 15 Oct 2026
+          var pD = nearestPeriod(rc, "Pluto", "2026-05-06", "2026-10-15");
+          adchk("D: Pluto 6 May→15 Oct 2026", !!pD, pD ? (fmt(pD.retro.time) + "→" + fmt(pD.direct.time)) : "not found");
+        } catch (e) { ad.checks.push({ name: "A–D exception", ok: false, detail: e.message || String(e) }); }
+        ad.pass = ad.checks.every(function (c) { return c.ok; });
+        results.push(ad);
+        return results;
+      }
+
+      function eventsSelfTest(years) {
+        const list = years || [1926, 1970, 1982, 2026, 2100];
+        return list.map(function (Y) {
+          const r = { year: Y, checks: [] };
+          function chk(name, ok, detail) { r.checks.push({ name: name, ok: !!ok, detail: detail || "" }); }
+          try {
+            const s = seasons(Y);
+            chk("March equinox is in March", s && s.marEquinox.getUTCMonth() === 2, s ? iso(s.marEquinox) : "none");
+            chk("June solstice is in June", s && s.junSolstice.getUTCMonth() === 5, s ? iso(s.junSolstice) : "none");
+            chk("Sept equinox is in September", s && s.sepEquinox.getUTCMonth() === 8, s ? iso(s.sepEquinox) : "none");
+            chk("Dec solstice is in December", s && s.decSolstice.getUTCMonth() === 11, s ? iso(s.decSolstice) : "none");
+
+            const k = keyDates(Y);
+            chk("SBA New Year is after March equinox", k.sbaNewYear > s.marEquinox, iso(k.sbaNewYear));
+            chk("SBA New Year within 30d of equinox", (k.sbaNewYear - s.marEquinox) <= 31 * DAY);
+            // SBA New Year must be a New Moon: the quarter search on that day is 'new'.
+            const q = moonQuarters(new Date(k.sbaNewYear.getTime() - HOUR), new Date(k.sbaNewYear.getTime() + HOUR));
+            chk("SBA New Year is an exact New Moon", q.length > 0 && q[0].quarter === 0);
+            // Cross-check against the engine's own year-start function.
+            chk("Matches sbaYearStartInstant()", +k.sbaNewYear === +sbaYearStartInstant(Y));
+
+            // Lunar phases: quarters must cycle 0,1,2,3 in order.
+            const qs = moonQuarters(k.sbaNewYear, new Date(k.sbaNewYear.getTime() + 120 * DAY));
+            let seq = true;
+            for (let i = 1; i < qs.length; i++) if (qs[i].quarter !== (qs[i - 1].quarter + 1) % 4) seq = false;
+            chk("Moon quarters cycle in order", qs.length >= 4 && seq, qs.length + " quarters");
+
+            // Retrograde stations: at a Mercury station the rate must change sign.
+            const obs = observerFor(0, 0);
+            const st = stations(k.sbaNewYear, new Date(k.sbaNewYear.getTime() + 200 * DAY), obs)
+                        .filter(function (x) { return x.planet === "Mercury"; });
+            chk("Mercury stations found", st.length > 0, st.length + " stations");
+            if (st.length) {
+              const t = st[0].time;
+              const before = rateAt(Astronomy.Body.Mercury, new Date(t.getTime() - 2 * DAY));
+              const after = rateAt(Astronomy.Body.Mercury, new Date(t.getTime() + 2 * DAY));
+              chk("Rate changes sign across station", (before > 0) !== (after > 0),
+                  before.toFixed(4) + " → " + after.toFixed(4));
+              chk("Station has a true-sky sign", !!st[0].sign, st[0].sign || "");
+            }
+          } catch (e) { r.checks.push({ name: "exception", ok: false, detail: e.message || String(e) }); }
+          r.pass = r.checks.every(function (c) { return c.ok; });
+          return r;
+        });
+      }
+
+      return {
+        PLANETS: PLANETS, seasons: seasons, moonQuarters: moonQuarters, eclipses: eclipses,
+        stations: stations, retrogradePeriods: retrogradePeriods, signChanges: signChanges,
+        keyDates: keyDates, forYear: forYear, eventsOnDate: eventsOnDate,
+        eventsSelfTest: eventsSelfTest, observerFor: observerFor, iso: iso,
+        retrogradeCalendar: retrogradeCalendar, retrogradeStatusOn: retrogradeStatusOn,
+        enclosingSbaYear: enclosingSbaYear, retroSelfTest: retroSelfTest,
+      };
+    })();
+
+    if (typeof window !== "undefined") window.SBAEvents = SBAEventsUtil;
+
     // ─── SBA house annotation helpers ─────────────────────────────────────────
 
     function withHouse(constellation) {
@@ -2315,15 +3029,6 @@
       // would otherwise swamp the small daily motion of the outer planets).
       // We sample symmetrically ±12h around the birth moment and take the sign
       // of the centred change in longitude. Per SBA, Sun and Moon are Direct.
-      function geoEclipticLon(body, when) {
-        // Preferred: documented geocentric apparent ecliptic longitude (degrees).
-        if (typeof Astronomy.EclipticLongitude === "function") {
-          return Astronomy.EclipticLongitude(body, when);
-        }
-        // Fallback: geocentric vector → ecliptic longitude (also geocentric).
-        var vec = Astronomy.GeoVector(body, when, true);
-        return Astronomy.Ecliptic(vec).elon;
-      }
       function isRetrograde(name, body) {
         if (name === "Sun" || name === "Moon") return false;
         var half = 43200000; // 12 hours in ms
@@ -5999,6 +6704,62 @@
       try { localStorage.setItem("sba_cal_settings", JSON.stringify(settings)); } catch (e) {}
     }
     function sky() { return window.SBASky; }
+    function evs() { return window.SBAEvents; }
+
+    // Astronomical Events state
+    var evCats = { seasons: true, moon: true, retro: false, eclipse: false, sunSign: false, moonSign: false };
+    var evLocal = false;
+    var evCache = {};              // key: year|catKey -> { key, events, retroPeriods }
+    var evByDate = {};             // iso -> [event tags] for the current year/filters
+
+    function evCatKey() {
+      return [evCats.seasons, evCats.moon, evCats.retro, evCats.eclipse, evCats.sunSign, evCats.moonSign]
+        .map(function (b) { return b ? 1 : 0; }).join("");
+    }
+    function fmtTime(d) {
+      if (!d) return "—";
+      if (evLocal) {
+        var l = new Date(d.getTime() + settings.tz * 3600000);
+        return String(l.getUTCHours()).padStart(2, "0") + ":" + String(l.getUTCMinutes()).padStart(2, "0") + " local";
+      }
+      return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0") + " UTC";
+    }
+    function fmtDay(d) {
+      if (!d) return "—";
+      return d.toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" });
+    }
+    function fmtShort(d) {
+      return d.toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short" });
+    }
+    function evIso(d) { return d.toISOString().substring(0, 10); }
+
+    // ── Planetary Retrograde Calendar state (all views read one dataset) ──────
+    var rtView = "overview";
+    var rtPlanetSet = "all";
+    var rtStationFilter = "all";
+    var rtMarkersOn = false;
+    var rtActiveByDate = {};   // iso -> [symbols] active retrograde that day
+    var rtStationByDate = {};  // iso -> [{symbol, kind}] station that day
+    var INNER = ["Mercury", "Venus", "Mars"];
+
+    function getRetro(Y) {
+      // Uses the util's own cache; returns the single shared dataset.
+      return evs().retrogradeCalendar(Y, settings.lat, settings.lon);
+    }
+    function planetAllowed(name) {
+      if (rtPlanetSet === "all") return true;
+      if (rtPlanetSet === "inner") return INNER.indexOf(name) !== -1;
+      if (rtPlanetSet === "outer") return INNER.indexOf(name) === -1;
+      return rtPlanetSet === name;
+    }
+
+    function getEvents(Y) {
+      var k = Y + "|" + evCatKey();
+      if (!evCache[k]) {
+        evCache[k] = evs().forYear(Y, evCats, settings.tz, settings.lat, settings.lon);
+      }
+      return evCache[k];
+    }
 
     function cal() { return window.SBACalendar; }
 
@@ -6050,6 +6811,28 @@
     }
 
     // ── One SBA month rendered as a calendar grid ─────────────────────────────
+    function evBadges(isoStr) {
+      var tags = evByDate[isoStr];
+      var out = "";
+      if (tags && tags.length) {
+        var show = tags.filter(function (t) { return t !== "🌑" && t !== "🌕" && t !== "🌓" && t !== "🌗"; }).slice(0, 2);
+        if (show.length) out += '<span class="cc-events">' + show.map(function (t) { return esc(t); }).join(" ") + '</span>';
+      }
+      // Planetary retrograde markers (only when the section's toggle is on).
+      if (rtMarkersOn) {
+        var st = rtStationByDate[isoStr];
+        if (st && st.length) {
+          out += '<span class="cc-retro-station">' + st.slice(0, 2).map(function (s) {
+            return esc(s.symbol) + (s.kind === "retrograde" ? " Rx" : " D");
+          }).join(" ") + '</span>';
+        } else {
+          var act = rtActiveByDate[isoStr];
+          if (act && act.length) out += '<span class="cc-retro-active" title="' + act.length + ' retrograde">Rx</span>';
+        }
+      }
+      return out;
+    }
+
     function monthGridHTML(m, qMap) {
       var moon = window.SBAMoon;
       var sk = sky();
@@ -6098,7 +6881,8 @@
         cells += '<button type="button" class="' + cls + '" data-iso="' + esc(d.iso) + '">' +
           signHTML + moonHTML +
           '<span class="cc-day">' + esc(dayNum(d.iso)) + '</span>' +
-          '<span class="cc-sub">' + esc(d.monthDay) + '</span></button>';
+          '<span class="cc-sub">' + esc(d.monthDay) + '</span>' +
+          evBadges(d.iso) + '</button>';
       });
       return '<div class="cal-weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>' +
         '<span>Fri</span><span>Sat</span><span>Sun</span></div>' +
@@ -6247,6 +7031,37 @@
         } catch (e) { /* omit */ }
       }
 
+      // Astronomical events falling on this date (computed for this date only).
+      var eventRows = "";
+      if (evs()) {
+        try {
+          var list = evs().eventsOnDate(d, settings.tz, settings.lat, settings.lon);
+          if (list.length) {
+            eventRows = '<dt class="df-section">Astronomical Events</dt><dd class="df-section-v">' +
+              list.map(function (e) {
+                return '<div class="df-ev">' + esc(e.label) + ' — ' + esc(fmtTime(e.time)) + '</div>';
+              }).join("") + '</dd>';
+          }
+        } catch (e) { /* omit */ }
+      }
+
+      // Planets retrograde on this date (from the shared retrograde dataset).
+      var retroRow = "";
+      if (evs()) {
+        try {
+          var rs = evs().retrogradeStatusOn(d, settings.lat, settings.lon);
+          if (!rs.ok) {
+            retroRow = '<dt class="df-section">Planets Retrograde</dt><dd class="df-section-v">' +
+              '<span class="df-none">Calculation unavailable</span></dd>';
+          } else {
+            var rx = rs.planets.filter(function (s) { return s.retrograde; });
+            retroRow = '<dt class="df-section">Planets Retrograde</dt><dd class="df-section-v">' +
+              (rx.length ? rx.map(function (s) { return '<span class="df-rx">' + esc(s.symbol + " " + s.planet) + '</span>'; }).join(" ")
+                         : '<span class="df-none">None — all direct</span>') + '</dd>';
+          }
+        } catch (e) { /* omit */ }
+      }
+
       return {
         date: d,
         sbaYear: c.sbaYear,
@@ -6259,7 +7074,7 @@
           '<dt>SBA Month Day</dt><dd>' + esc(c.sbaMonthDay) + (m ? ' of ' + esc(m.dayCount) : "") + '</dd>' +
           '<dt>SBA Day of Year</dt><dd>' + esc(c.sbaDayOfYear) + '</dd>' +
           '<dt>SBA Month Range</dt><dd>' + esc(mStartISO) + ' → ' + esc(mEndISO) + '</dd>' +
-          moonRows + skyRows,
+          moonRows + skyRows + eventRows + retroRow,
       };
     }
 
@@ -6357,6 +7172,246 @@
         });
       } catch (e) { /* ignore */ }
     }
+    // ── Planetary Retrograde Calendar rendering ──────────────────────────────
+    function buildRetroMarkerMaps(Y) {
+      rtActiveByDate = {}; rtStationByDate = {};
+      try {
+        var rc = getRetro(Y);
+        rc.periods.forEach(function (p) {
+          if (!planetAllowed(p.planet)) return;
+          // Mark active days within the visible SBA year range.
+          var from = Math.max(p.retro.time.getTime(), rc.start.getTime());
+          var to = Math.min(p.direct.time.getTime(), rc.end.getTime() - 1);
+          for (var t = from; t <= to; t += 86400000) {
+            var key = evIso(new Date(t));
+            (rtActiveByDate[key] = rtActiveByDate[key] || []).push(p.symbol);
+          }
+        });
+        rc.stations.forEach(function (s) {
+          if (!planetAllowed(s.planet)) return;
+          var key = evIso(s.time);
+          (rtStationByDate[key] = rtStationByDate[key] || []).push({ symbol: s.symbol, kind: s.kind });
+        });
+      } catch (e) {}
+    }
+
+    function renderRetroNow() {
+      var host = $("calRetroNow");
+      if (!host || !evs()) return;
+      try {
+        var d = todayUTCDate();
+        var res = evs().retrogradeStatusOn(d, settings.lat, settings.lon);
+        var longDate = d.toLocaleDateString("en-GB", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+        if (!res.ok) {
+          host.innerHTML = '<div class="rn-title">Planets Retrograde on ' + esc(longDate) + '</div>' +
+            '<div class="cal-loading">Calculation unavailable' + (res.error ? ': ' + esc(res.error) : '') + '</div>';
+          return;
+        }
+        host.innerHTML =
+          '<div class="rn-title">Planets Retrograde on ' + esc(longDate) + '</div>' +
+          '<div class="rn-grid">' +
+          res.planets.map(function (s) {
+            return '<div class="rn-row"><span>' + esc(s.symbol + " " + s.planet) + '</span>' +
+              '<span class="' + (s.retrograde ? "rn-rx" : "rn-dir") + '">' +
+              (s.retrograde ? "Retrograde" : "Direct") + '</span></div>';
+          }).join("") + '</div>';
+      } catch (e) { host.innerHTML = '<div class="cal-loading">Calculation unavailable: ' + esc(e.message || e) + '</div>'; }
+    }
+
+    function retroPeriodCard(p, Y) {
+      var lon = function (x) { return (x == null) ? "" : " (" + x.toFixed(2) + "°)"; };
+      return '<div class="ev-period">' +
+        '<div class="ep-title">' + esc(p.symbol + " " + p.planet) + ' Retrograde</div>' +
+        '<div class="ep-line">' + esc(fmtDay(p.retro.time)) + ', ' + esc(fmtTime(p.retro.time)) + '</div>' +
+        '<div class="ep-to">→</div>' +
+        '<div class="ep-line">' + esc(fmtDay(p.direct.time)) + ', ' + esc(fmtTime(p.direct.time)) + '</div>' +
+        '<div class="ep-signs">Duration: ' + esc(p.durationDays) + ' days<br>' +
+        'Retrograde station: ' + esc(p.retro.sign || "—") + esc(lon(p.retro.longitude)) + '<br>' +
+        'Direct station: ' + esc(p.direct.sign || "—") + esc(lon(p.direct.longitude)) + '</div>' +
+        '<div class="ep-status">Status: ' + esc(p.status) + '</div>' +
+        '</div>';
+    }
+
+    function renderRetroOverview(rc, Y) {
+      return '<div class="ev-sub">Planetary Retrogrades — SBA Year ' + esc(Y) + '</div>' +
+        rc.byPlanet.filter(function (g) { return planetAllowed(g.planet); }).map(function (g) {
+          if (!g.periods.length) {
+            return '<div class="rt-planet"><div class="rt-planet-name">' + esc(g.symbol + " " + g.planet) + '</div>' +
+              '<div class="rt-none">No retrograde during this SBA year</div></div>';
+          }
+          return '<div class="rt-planet"><div class="rt-planet-name">' + esc(g.symbol + " " + g.planet) + '</div>' +
+            g.periods.map(function (p) {
+              return '<div class="rt-line">' + esc(fmtDay(p.retro.time)) + ' → ' + esc(fmtDay(p.direct.time)) +
+                ' <span class="rt-dur">(' + esc(p.durationDays) + 'd)</span></div>';
+            }).join("") +
+            '<details class="rt-detail"><summary>details</summary>' +
+            g.periods.map(function (p) { return retroPeriodCard(p, Y); }).join("") + '</details>' +
+            '</div>';
+        }).join("");
+    }
+
+    function renderRetroList(rc, Y) {
+      var rows = rc.stations.filter(function (s) {
+        if (!planetAllowed(s.planet)) return false;
+        if (rtStationFilter === "retrograde") return s.kind === "retrograde";
+        if (rtStationFilter === "direct") return s.kind === "direct";
+        return true; // "all" and "active" both list stations here
+      });
+      return '<div class="ev-sub">Stations — SBA Year ' + esc(Y) + '</div>' +
+        (rows.length ? rows.map(function (s) {
+          return '<div class="ev-row"><span class="ev-date">' + esc(fmtShort(s.time)) + '</span>' +
+            '<span class="ev-label">' + esc(s.symbol + " " + s.planet) + ' stations ' +
+            (s.kind === "retrograde" ? "retrograde" : "direct") +
+            (s.sign ? ' <span class="ev-sign">' + esc(s.sign) + '</span>' : "") + '</span>' +
+            '<span class="ev-time">' + esc(fmtTime(s.time)) + '</span></div>';
+        }).join("") : '<div class="cal-loading">No stations for this filter.</div>');
+    }
+
+    function renderRetroTimeline(rc, Y) {
+      var span = rc.end.getTime() - rc.start.getTime();
+      function pct(t) { return Math.max(0, Math.min(100, (t - rc.start.getTime()) / span * 100)); }
+      // Month ticks
+      var ticks = "";
+      var cur = new Date(Date.UTC(rc.start.getUTCFullYear(), rc.start.getUTCMonth(), 1));
+      while (cur.getTime() < rc.end.getTime()) {
+        var next = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth() + 1, 1));
+        if (next.getTime() > rc.start.getTime()) {
+          ticks += '<span class="tl-tick" style="left:' + pct(Math.max(cur.getTime(), rc.start.getTime())) + '%">' +
+            cur.toLocaleDateString("en-GB", { timeZone: "UTC", month: "short" }) + '</span>';
+        }
+        cur = next;
+      }
+      var rows = rc.byPlanet.filter(function (g) { return planetAllowed(g.planet); }).map(function (g) {
+        var bars = g.periods.map(function (p) {
+          var l = pct(Math.max(p.retro.time.getTime(), rc.start.getTime()));
+          var rr = pct(Math.min(p.direct.time.getTime(), rc.end.getTime()));
+          return '<span class="tl-bar" style="left:' + l + '%;width:' + Math.max(0.6, rr - l) + '%" ' +
+            'title="' + esc(g.planet + " " + fmtDay(p.retro.time) + " → " + fmtDay(p.direct.time)) + '"></span>';
+        }).join("");
+        return '<div class="tl-row"><span class="tl-label">' + esc(g.symbol) + '</span>' +
+          '<span class="tl-track">' + bars + '</span></div>';
+      }).join("");
+      return '<div class="ev-sub">Timeline — ' + esc(rc.iso ? "" : "") + 'SBA Year ' + esc(Y) + '</div>' +
+        '<div class="tl-head"><span class="tl-label"></span><span class="tl-track tl-ticks">' + ticks + '</span></div>' +
+        rows +
+        '<div class="tl-foot"><span>' + esc(evIso(rc.start)) + '</span><span>' + esc(evIso(new Date(rc.end.getTime() - 86400000))) + '</span></div>';
+    }
+
+    function renderRetro(Y) {
+      var host = $("calRetroContent");
+      if (!host || !evs()) return;
+      host.innerHTML = '<div class="cal-loading">Calculating retrogrades…</div>';
+      setTimeout(function () {
+        try {
+          var rc = getRetro(Y);
+          renderRetroNow();
+          if (!rc.ok) {
+            host.innerHTML = '<div class="cal-error">Retrograde calculation unavailable' +
+              (rc.error ? ': ' + esc(rc.error) : '') + '. Please retry.</div>';
+            return;
+          }
+          if (rtView === "list") host.innerHTML = renderRetroList(rc, Y);
+          else if (rtView === "timeline") host.innerHTML = renderRetroTimeline(rc, Y);
+          else host.innerHTML = renderRetroOverview(rc, Y);
+          if (rtMarkersOn) { buildRetroMarkerMaps(Y); renderYear(Y); }
+        } catch (e) {
+          host.innerHTML = '<div class="cal-error">Could not compute retrogrades: ' + esc(e.message || e) + '</div>';
+        }
+      }, 20);
+    }
+
+    // ── Astronomical Events rendering ────────────────────────────────────────
+    function renderKeyDates(Y) {
+      var host = $("calKeyDates");
+      if (!host || !evs()) return;
+      try {
+        var k = evs().keyDates(Y);
+        function row(label, d, extra) {
+          if (!d) return '<div class="kd-row"><span class="kd-l">' + esc(label) + '</span><span class="kd-v">—</span></div>';
+          return '<div class="kd-row' + (extra ? " kd-hi" : "") + '">' +
+            '<span class="kd-l">' + esc(label) + '</span>' +
+            '<span class="kd-v">' + esc(fmtDay(d)) + '<span class="kd-t">' + esc(fmtTime(d)) + '</span></span></div>';
+        }
+        host.innerHTML =
+          '<div class="kd-title">Key SBA Dates</div>' +
+          row("March Equinox", k.marEquinox, true) +
+          row("First New Moon after March Equinox", k.sbaNewYear) +
+          row("SBA New Year Begins", k.sbaNewYear, true) +
+          row("June Solstice", k.junSolstice) +
+          row("September Equinox", k.sepEquinox) +
+          row("December Solstice", k.decSolstice) +
+          '<div class="kd-row"><span class="kd-l">SBA Year Ends</span><span class="kd-v">' + esc(fmtDay(k.sbaYearEnd)) + '</span></div>';
+      } catch (e) {
+        host.innerHTML = '<div class="kd-title">Key SBA Dates</div><div class="cal-loading">Unavailable: ' + esc(e.message || e) + '</div>';
+      }
+    }
+
+    function eventTag(e) {
+      if (e.type === "season") return e.tag;
+      if (e.type === "moonphase") return e.icon;
+      if (e.type === "eclipse") return e.tag;
+      if (e.type === "station") return e.tag;
+      if (e.type === "sunsign") return "☉";
+      if (e.type === "moonsign") return "☾";
+      if (e.type === "sbanewyear") return "SBA";
+      return "•";
+    }
+
+    function renderEventList(Y, afterRender) {
+      var host = $("calEventList");
+      if (!host || !evs()) { renderYear(Y, afterRender); return; }
+      host.innerHTML = '<div class="cal-loading">Calculating events…</div>';
+      setTimeout(function () {
+        try {
+          var data = getEvents(Y);
+          evByDate = {};
+          data.events.forEach(function (e) {
+            var key = evIso(e.time);
+            (evByDate[key] = evByDate[key] || []).push(eventTag(e));
+          });
+
+          var periodsHTML = "";
+          if (evCats.retro && data.retroPeriods && data.retroPeriods.length) {
+            periodsHTML = '<div class="ev-sub">Retrograde periods</div>' +
+              data.retroPeriods.map(function (p) {
+                return '<div class="ev-period">' +
+                  '<div class="ep-title">' + esc(p.symbol + " " + p.planet) + ' Retrograde</div>' +
+                  '<div class="ep-line">' + esc(fmtDay(p.retro.time)) + ', ' + esc(fmtTime(p.retro.time)) + '</div>' +
+                  '<div class="ep-to">to</div>' +
+                  '<div class="ep-line">' + esc(fmtDay(p.direct.time)) + ', ' + esc(fmtTime(p.direct.time)) + '</div>' +
+                  '<div class="ep-signs">Retrograde station: ' + esc(p.retro.sign || "—") +
+                  (p.retro.longitude != null ? ' (' + p.retro.longitude.toFixed(2) + '°)' : "") +
+                  '<br>Direct station: ' + esc(p.direct.sign || "—") +
+                  (p.direct.longitude != null ? ' (' + p.direct.longitude.toFixed(2) + '°)' : "") + '</div>' +
+                  '</div>';
+              }).join("");
+          }
+
+          var listHTML = data.events.map(function (e) {
+            var label = e.label;
+            if (e.type === "moonphase") label = e.icon + " " + e.label;
+            if (e.type === "sbanewyear") label = "SBA New Year Begins";
+            var isKey = (e.type === "sbanewyear") || (e.type === "season" && e.label === "March Equinox");
+            return '<div class="ev-row' + (isKey ? " ev-key" : "") + '">' +
+              '<span class="ev-date">' + esc(fmtShort(e.time)) + '</span>' +
+              '<span class="ev-label">' + esc(label) + '</span>' +
+              '<span class="ev-time">' + esc(fmtTime(e.time)) + '</span></div>';
+          }).join("");
+
+          host.innerHTML =
+            periodsHTML +
+            '<div class="ev-sub">Astronomical Events — SBA Year ' + esc(Y) + '</div>' +
+            (listHTML || '<div class="cal-loading">No events for the selected categories.</div>');
+
+          // Re-render the grid so the new badges appear.
+          renderYear(Y, afterRender);
+        } catch (e) {
+          host.innerHTML = '<div class="cal-loading">Could not compute events: ' + esc(e.message || e) + '</div>';
+          renderYear(Y, afterRender);
+        }
+      }, 20);
+    }
+
     // ── Navigation ───────────────────────────────────────────────────────────
     function setNavLabels(Y) {
       var p = $("calPrevLabel"), c = $("calCurrentLabel"), n = $("calNextLabel");
@@ -6373,8 +7428,11 @@
       if (Y > MAX_YEAR) Y = MAX_YEAR;
       viewYear = Y;
       var ji = $("calJumpInput"); if (ji) ji.value = Y;
+      var ly = $("evLookupYear"); if (ly && !ly.value) ly.value = Y;
       setNavLabels(Y);
-      renderYear(Y, afterRender);
+      renderKeyDates(Y);
+      renderRetro(Y);
+      renderEventList(Y, afterRender);
       if (scrollToToday && todayInfo && todayInfo.sbaYear === Y) {
         setTimeout(function () {
           var el = $("calMonth" + todayInfo.sbaMonth);
@@ -6410,6 +7468,150 @@
       });
       if (findNative) findNative.addEventListener("change", function () {
         if (findNative.value) { if (findText) findText.value = ""; runLookup(findNative.value); }
+      });
+
+      // ── Astronomical Events wiring ──────────────────────────────────────────
+      var catMap = { evSeasons: "seasons", evMoon: "moon", evRetro: "retro",
+                     evEclipse: "eclipse", evSunSign: "sunSign", evMoonSign: "moonSign" };
+      Object.keys(catMap).forEach(function (id) {
+        var el = $(id);
+        if (!el) return;
+        el.checked = evCats[catMap[id]];
+        el.addEventListener("change", function () {
+          evCats[catMap[id]] = el.checked;
+          if (viewYear != null) { renderEventList(viewYear); }
+        });
+      });
+
+      var localT = $("evLocalTime"), tbLabel = $("evTimebaseLabel");
+      if (localT) localT.addEventListener("change", function () {
+        evLocal = localT.checked;
+        var lbl = evLocal ? ("local (UTC" + (settings.tz >= 0 ? "+" : "") + settings.tz + ")") : "UTC";
+        if (tbLabel) tbLabel.textContent = lbl;
+        var rtTb = $("rtTimebase"); if (rtTb) rtTb.textContent = lbl;
+        if (viewYear != null) { renderKeyDates(viewYear); renderEventList(viewYear); renderRetro(viewYear); }
+      });
+
+      // Planet dropdown from the shared planet list
+      var planetSel = $("evLookupPlanet");
+      if (planetSel && evs()) {
+        evs().PLANETS.forEach(function (p) {
+          var o = document.createElement("option");
+          o.value = p.name;                       // stable planet id
+          o.textContent = p.sym + " " + p.name;   // symbol + name (p.sym, not p.symbol)
+          planetSel.appendChild(o);
+        });
+      }
+
+      var lookGo = $("evLookupGo");
+      if (lookGo) lookGo.addEventListener("click", function () {
+        var Y = parseInt(($("evLookupYear") || {}).value, 10);
+        if (isNaN(Y)) Y = viewYear;
+        var cat = ($("evLookupCat") || {}).value || "all";
+        var planet = ($("evLookupPlanet") || {}).value || "";
+        var host = $("calEventList");
+        if (!host || !evs()) return;
+        host.innerHTML = '<div class="cal-loading">Searching…</div>';
+        setTimeout(function () {
+          try {
+            // Enable whichever category is being searched, without changing checkboxes.
+            var cats = {
+              seasons: cat === "all" || cat === "season",
+              moon: cat === "all" || cat === "moonphase",
+              retro: cat === "all" || cat === "station",
+              eclipse: cat === "all" || cat === "eclipse",
+              sunSign: cat === "sunsign",
+              moonSign: cat === "moonsign",
+            };
+            var data = evs().forYear(Y, cats, settings.tz, settings.lat, settings.lon);
+            var list = data.events.filter(function (e) {
+              if (cat !== "all" && e.type !== cat && !(cat === "season" && e.type === "sbanewyear")) return false;
+              if (planet && e.planet !== planet) return false;
+              return true;
+            });
+            host.innerHTML =
+              '<div class="ev-sub">Lookup — SBA Year ' + esc(Y) + (planet ? " · " + esc(planet) : "") + '</div>' +
+              (list.length ? list.map(function (e) {
+                var label = (e.type === "moonphase") ? (e.icon + " " + e.label) : e.label;
+                return '<div class="ev-row"><span class="ev-date">' + esc(fmtShort(e.time)) + '</span>' +
+                  '<span class="ev-label">' + esc(label) +
+                  (e.sign ? ' <span class="ev-sign">' + esc(e.sign) + '</span>' : "") + '</span>' +
+                  '<span class="ev-time">' + esc(fmtTime(e.time)) + '</span></div>';
+              }).join("") : '<div class="cal-loading">No matching events.</div>');
+          } catch (err) {
+            host.innerHTML = '<div class="cal-loading">Lookup failed: ' + esc(err.message || err) + '</div>';
+          }
+        }, 20);
+      });
+
+      var evTestB = $("evRunTests"), evTestOut = $("evTestOut");
+      // Dev-only: reveal the regression-test buttons with #dev in the URL, or
+      // localStorage sba_dev="1". Hidden in normal production use.
+      try {
+        var devOn = (location.hash.indexOf("dev") !== -1) || localStorage.getItem("sba_dev") === "1";
+        var devWrap = $("calDevTests");
+        if (devOn && devWrap) devWrap.hidden = false;
+      } catch (e) {}
+      var rtTestB = $("rtRunTests");
+      if (rtTestB) rtTestB.addEventListener("click", function () {
+        if (!evTestOut || !evs()) return;
+        evTestOut.hidden = false;
+        evTestOut.innerHTML = "Running retrograde tests… (a few seconds)";
+        setTimeout(function () {
+          try {
+            var res = evs().retroSelfTest();
+            var passed = res.filter(function (r) { return r.pass; }).length;
+            evTestOut.innerHTML =
+              '<div class="ct-summary ' + (passed === res.length ? "ok" : "bad") + '">Retrograde: ' + passed + ' / ' + res.length + ' years passed</div>' +
+              res.map(function (r) {
+                return '<div class="ct-row ' + (r.pass ? "ok" : "bad") + '">' + esc(r.year) + ' ' + (r.pass ? "✓" : "✗") + '</div>' +
+                  r.checks.filter(function (c) { return !c.ok; })
+                    .map(function (c) { return '<div class="ct-row bad">   ✗ ' + esc(c.name) + (c.detail ? " — " + esc(c.detail) : "") + '</div>'; }).join("");
+              }).join("") +
+              '<div class="ct-note">Confirms overview, list, timeline, markers &amp; date lookup share one dataset.</div>';
+          } catch (e) { evTestOut.innerHTML = "Tests failed: " + esc(e.message || e); }
+        }, 20);
+      });
+
+      if (evTestB) evTestB.addEventListener("click", function () {
+        if (!evTestOut || !evs()) return;
+        evTestOut.hidden = false;
+        evTestOut.innerHTML = "Running… (this takes a few seconds)";
+        setTimeout(function () {
+          try {
+            var res = evs().eventsSelfTest();
+            var passed = res.filter(function (r) { return r.pass; }).length;
+            evTestOut.innerHTML =
+              '<div class="ct-summary ' + (passed === res.length ? "ok" : "bad") + '">' + passed + ' / ' + res.length + ' years passed</div>' +
+              res.map(function (r) {
+                return '<div class="ct-row ' + (r.pass ? "ok" : "bad") + '">' + esc(r.year) + ' ' + (r.pass ? "✓" : "✗") + '</div>' +
+                  r.checks.filter(function (c) { return !c.ok; })
+                    .map(function (c) { return '<div class="ct-row bad">   ✗ ' + esc(c.name) + (c.detail ? " — " + esc(c.detail) : "") + '</div>'; }).join("");
+              }).join("") +
+              '<div class="ct-note">Structural checks — no dates are hardcoded.</div>';
+          } catch (e) { evTestOut.innerHTML = "Tests failed: " + esc(e.message || e); }
+        }, 20);
+      });
+
+      // ── Planetary Retrograde Calendar wiring ────────────────────────────────
+      var rtPS = $("rtPlanetSet"), rtSF = $("rtStationFilter"), rtMk = $("rtMarkers");
+      if (rtPS) rtPS.addEventListener("change", function () { rtPlanetSet = rtPS.value; if (viewYear != null) renderRetro(viewYear); });
+      if (rtSF) rtSF.addEventListener("change", function () { rtStationFilter = rtSF.value; if (viewYear != null) renderRetro(viewYear); });
+      if (rtMk) rtMk.addEventListener("change", function () {
+        rtMarkersOn = rtMk.checked;
+        if (viewYear != null) {
+          if (rtMarkersOn) buildRetroMarkerMaps(viewYear); else { rtActiveByDate = {}; rtStationByDate = {}; }
+          renderYear(viewYear);
+        }
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".rt-view"), function (b) {
+        b.addEventListener("click", function () {
+          rtView = b.getAttribute("data-view");
+          Array.prototype.forEach.call(document.querySelectorAll(".rt-view"), function (x) {
+            x.classList.toggle("active", x === b);
+          });
+          if (viewYear != null) renderRetro(viewYear);
+        });
       });
 
       // Calculation settings
