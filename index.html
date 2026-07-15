@@ -2836,15 +2836,24 @@
         return Y;
       }
 
+      // Has the (heavy) retrograde dataset for this year already been built?
+      function hasRetrogradeCache(sbaYear, lat, lon) {
+        return !!_rcCache[sbaYear + "|" + (lat || 0) + "|" + (lon || 0)];
+      }
+
       // Which planets are retrograde on a given date — derived from the SAME
       // period data the views render, so it can never disagree with them.
-      // Returns { ok, planets:[{planet, symbol, retrograde}], error? }. On failure
-      // ok=false so the UI can show "Calculation unavailable" (never false Direct).
-      function retrogradeStatusOn(date, lat, lon) {
+      // Returns { ok, planets:[...], error?, notComputed? }. On failure ok=false
+      // so the UI can show "Calculation unavailable" (never a false "Direct").
+      // cachedOnly=true returns notComputed instead of running the heavy build.
+      function retrogradeStatusOn(date, lat, lon, cachedOnly) {
         try {
           const Y = enclosingSbaYear(date);
+          if (cachedOnly && !hasRetrogradeCache(Y, lat, lon)) {
+            return { ok: false, notComputed: true, planets: [] };
+          }
           const rc = retrogradeCalendar(Y, lat, lon);
-          if (rc.error) return { ok: false, error: rc.error, planets: [] };
+          if (!rc.ok) return { ok: false, error: rc.error, planets: [] };
           const planets = PLANETS.map(function (pl) {
             const grp = rc.byPlanet.find(function (g) { return g.planet === pl.name; });
             const active = grp && grp.periods.some(function (p) {
@@ -2990,6 +2999,7 @@
         keyDates: keyDates, forYear: forYear, eventsOnDate: eventsOnDate,
         eventsSelfTest: eventsSelfTest, observerFor: observerFor, iso: iso,
         retrogradeCalendar: retrogradeCalendar, retrogradeStatusOn: retrogradeStatusOn,
+        hasRetrogradeCache: hasRetrogradeCache,
         enclosingSbaYear: enclosingSbaYear, retroSelfTest: retroSelfTest,
       };
     })();
@@ -6740,7 +6750,13 @@
     var rtMarkersOn = false;
     var rtActiveByDate = {};   // iso -> [symbols] active retrograde that day
     var rtStationByDate = {};  // iso -> [{symbol, kind}] station that day
+    var rtRenderedYear = null; // which year the retrograde panel has rendered
     var INNER = ["Mercury", "Venus", "Mars"];
+
+    function isRetroPanelOpen() {
+      var p = $("calRetroPanel");
+      return !!(p && p.open);
+    }
 
     function getRetro(Y) {
       // Uses the util's own cache; returns the single shared dataset.
@@ -7046,11 +7062,15 @@
       }
 
       // Planets retrograde on this date (from the shared retrograde dataset).
+      // cachedOnly: tapping a date must never trigger the heavy year build.
       var retroRow = "";
       if (evs()) {
         try {
-          var rs = evs().retrogradeStatusOn(d, settings.lat, settings.lon);
-          if (!rs.ok) {
+          var rs = evs().retrogradeStatusOn(d, settings.lat, settings.lon, true);
+          if (rs.notComputed) {
+            retroRow = '<dt class="df-section">Planets Retrograde</dt><dd class="df-section-v">' +
+              '<span class="df-none">Open the Planetary Retrograde Calendar to compute this year.</span></dd>';
+          } else if (!rs.ok) {
             retroRow = '<dt class="df-section">Planets Retrograde</dt><dd class="df-section-v">' +
               '<span class="df-none">Calculation unavailable</span></dd>';
           } else {
@@ -7313,6 +7333,7 @@
           if (rtView === "list") host.innerHTML = renderRetroList(rc, Y);
           else if (rtView === "timeline") host.innerHTML = renderRetroTimeline(rc, Y);
           else host.innerHTML = renderRetroOverview(rc, Y);
+          rtRenderedYear = Y;
           if (rtMarkersOn) { buildRetroMarkerMaps(Y); renderYear(Y); }
         } catch (e) {
           host.innerHTML = '<div class="cal-error">Could not compute retrogrades: ' + esc(e.message || e) + '</div>';
@@ -7431,7 +7452,12 @@
       var ly = $("evLookupYear"); if (ly && !ly.value) ly.value = Y;
       setNavLabels(Y);
       renderKeyDates(Y);
-      renderRetro(Y);
+      // NOTE: renderRetro() is deliberately NOT called here. The retrograde
+      // calculation is very heavy (~12k ephemeris calls) and would freeze the
+      // page on every calendar open / year change. It runs only when the
+      // Planetary Retrograde Calendar panel is actually opened.
+      rtRenderedYear = null;
+      if (isRetroPanelOpen()) renderRetro(Y);
       renderEventList(Y, afterRender);
       if (scrollToToday && todayInfo && todayInfo.sbaYear === Y) {
         setTimeout(function () {
@@ -7489,7 +7515,7 @@
         var lbl = evLocal ? ("local (UTC" + (settings.tz >= 0 ? "+" : "") + settings.tz + ")") : "UTC";
         if (tbLabel) tbLabel.textContent = lbl;
         var rtTb = $("rtTimebase"); if (rtTb) rtTb.textContent = lbl;
-        if (viewYear != null) { renderKeyDates(viewYear); renderEventList(viewYear); renderRetro(viewYear); }
+        if (viewYear != null) { renderKeyDates(viewYear); renderEventList(viewYear); if (isRetroPanelOpen()) renderRetro(viewYear); }
       });
 
       // Planet dropdown from the shared planet list
@@ -7594,9 +7620,14 @@
       });
 
       // ── Planetary Retrograde Calendar wiring ────────────────────────────────
+      // Heavy compute is deferred until the panel is actually opened.
+      var retroPanel = $("calRetroPanel");
+      if (retroPanel) retroPanel.addEventListener("toggle", function () {
+        if (retroPanel.open && viewYear != null && rtRenderedYear !== viewYear) renderRetro(viewYear);
+      });
       var rtPS = $("rtPlanetSet"), rtSF = $("rtStationFilter"), rtMk = $("rtMarkers");
-      if (rtPS) rtPS.addEventListener("change", function () { rtPlanetSet = rtPS.value; if (viewYear != null) renderRetro(viewYear); });
-      if (rtSF) rtSF.addEventListener("change", function () { rtStationFilter = rtSF.value; if (viewYear != null) renderRetro(viewYear); });
+      if (rtPS) rtPS.addEventListener("change", function () { rtPlanetSet = rtPS.value; if (viewYear != null && isRetroPanelOpen()) renderRetro(viewYear); });
+      if (rtSF) rtSF.addEventListener("change", function () { rtStationFilter = rtSF.value; if (viewYear != null && isRetroPanelOpen()) renderRetro(viewYear); });
       if (rtMk) rtMk.addEventListener("change", function () {
         rtMarkersOn = rtMk.checked;
         if (viewYear != null) {
