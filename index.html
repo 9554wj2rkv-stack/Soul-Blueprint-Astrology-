@@ -5001,6 +5001,22 @@
 
       var BODY_KEYS = ["Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto"];
 
+      // Full ordered set of bodies + points used in every House + Planet section.
+      // The visible section keeps the name "House + Planet" for simplicity, but
+      // each entry carries its accurate internal classification (bodyType).
+      var HOUSE_BODY_KEYS = [
+        "Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Uranus","Neptune","Pluto",
+        "Chiron","North Node","South Node","Lilith","Part of Fortune","Vertex"
+      ];
+      // Accurate internal type for each House + Planet entry (not a display change).
+      var HOUSE_BODY_TYPE = {
+        "Sun": "body", "Moon": "body", "Mercury": "body", "Venus": "body", "Mars": "body",
+        "Jupiter": "body", "Saturn": "body", "Uranus": "body", "Neptune": "body", "Pluto": "body",
+        "Chiron": "body",
+        "North Node": "point", "South Node": "point", "Lilith": "point",
+        "Part of Fortune": "point", "Vertex": "point"
+      };
+
       // Non-editable reference banners shown under each Body title (like the
       // House reference line). Supplied text; not interpretation content.
       var BODY_BANNERS = {
@@ -5098,7 +5114,7 @@
         });
 
         // ── Interpretation Matrix placeholder items (empty; AJ writes meanings) ──
-        function addMatrix(catKey, title) {
+        function addMatrix(catKey, title, bodyType) {
           var id = "matrix:" + catKey + ":" + slugify(title);
           cards[id] = {
             id: id,
@@ -5108,13 +5124,19 @@
             title: title,
             fields: blankFields()
           };
+          // Accurate internal classification (body vs point) without changing the
+          // visible "House + Planet" grouping. Only set when provided.
+          if (bodyType) cards[id].bodyType = bodyType;
         }
 
         HOUSE_NUMS.forEach(function (h) {
           SIGN_KEYS.forEach(function (s) { addMatrix("house-sign", "House " + h + " + " + s); });
         });
         HOUSE_NUMS.forEach(function (h) {
-          BODY_KEYS.forEach(function (p) { addMatrix("house-planet", "House " + h + " + " + p); });
+          // Full 16-entry set (bodies + points) for every house, in fixed order.
+          HOUSE_BODY_KEYS.forEach(function (p) {
+            addMatrix("house-planet", "House " + h + " + " + p, HOUSE_BODY_TYPE[p]);
+          });
         });
         HOUSE_NUMS.forEach(function (h) { addMatrix("empty-houses", "Empty House " + h); });
         HOUSE_NUMS.forEach(function (h) { addMatrix("house-rulers", "House " + h + " Ruler in House " + h); });
