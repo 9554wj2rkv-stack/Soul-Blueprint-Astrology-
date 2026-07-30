@@ -1116,6 +1116,26 @@
     .matrix-folder .lc-title { color: #3a3530; }
     #libMatrixItems .prac-back { margin-top: 0.25rem; }
 
+    /* Matrix accordion (groups collapse to reduce mobile scrolling) */
+    .mx-accordion { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+    .mx-group { border: 1px solid #e0dbd3; border-radius: 6px; overflow: hidden; background: #fff; }
+    .mx-group.open { border-color: #c9b896; }
+    .mx-group-head {
+      display: flex; align-items: center; gap: 0.55rem; width: 100%;
+      padding: 0.7rem 0.85rem; min-height: 44px;               /* comfortable touch target */
+      background: #faf7f1; border: none; border-left: 3px solid #c9b896;
+      font-family: inherit; text-align: left; cursor: pointer;
+    }
+    .mx-group-head.open { background: #f3ede2; }
+    .mx-chev { flex: none; width: 1em; color: #8a7f6c; font-size: 0.9rem; }
+    .mx-group-name { flex: 1; min-width: 0; color: #3a3530; font-size: 0.92rem; font-weight: 600;
+      overflow-wrap: anywhere; }                               /* long names wrap, never clip */
+    .mx-group-count { flex: none; font-size: 0.7rem; letter-spacing: 0.03em; white-space: nowrap; }
+    .mx-group-count.muted { color: #999; }
+    .mx-group-count.written { color: #5a8a5a; }
+    .mx-group-body { padding: 0.6rem 0.7rem 0.75rem; border-top: 1px solid #eee6d9; }
+    .mx-group-body .card-grid { margin: 0; }
+
     .interp-panel {
       margin-top: 1.5rem; background: #fff; border: 1px solid #e0dbd3;
       border-radius: 6px; padding: 1rem 1.1rem;
@@ -4601,8 +4621,61 @@
         renderMatrix(q);
       }
 
-      // ── Interpretation Matrix (folders → drill-in → item cards) ──────────────
-      var matrixOpenCat = null;
+      // ── Interpretation Matrix (folders → drill-in → accordion groups) ────────
+      // Navigation/UI state only. NEVER written to records or exported data.
+      var matrixOpenCat = null;     // which category is drilled into
+      var matrixOpenGroup = null;   // which accordion group is expanded (one at a time)
+      var matrixLastCardId = null;  // last edited card, for scroll restore after save
+
+      // Reusable, configuration-driven accordion spec. Each category declares how
+      // its flat items split into groups + children. Grouping is derived from the
+      // item title's first entity (before " + "), and order is taken from the
+      // existing DEFAULTS insertion order — so no records, ids, or content change.
+      // The `orders`, `groupType`, `childType`, `expectedPerGroup` fields are here
+      // so future search / quick-jump / filters can read them without a rewrite.
+      var MATRIX_ACCORDION = {
+        "house-sign":   { groupType: "house", childType: "sign",      expectedPerGroup: 13 },
+        "house-planet": { groupType: "house", childType: "bodyPoint", expectedPerGroup: 16 },
+        "planet-sign":  { groupType: "bodyPoint", childType: "sign",  expectedPerGroup: 13 },
+        "planet-house": { groupType: "bodyPoint", childType: "house", expectedPerGroup: 13 },
+        "angle-cases":  { groupType: "angle", childType: "sign",      expectedPerGroup: 13 },
+        "point-cases":  { groupType: "point", childType: "house",     expectedPerGroup: 13 }
+      };
+
+      // Split a category's flat item list into ordered groups. Group label = the
+      // entity before " + " in the title (e.g. "House 1", "Sun", "Ascendant").
+      // Falls back to a single implicit group for categories without " + ".
+      function matrixGroupsFor(catKey) {
+        var items = L.matrixList(catKey);
+        var order = [];
+        var byGroup = {};
+        items.forEach(function (it) {
+          var idx = it.title.indexOf(" + ");
+          var g = (idx === -1) ? it.title : it.title.slice(0, idx);
+          if (!byGroup[g]) { byGroup[g] = []; order.push(g); }
+          byGroup[g].push(it);
+        });
+        return order.map(function (g) {
+          var groupItems = byGroup[g];
+          var written = groupItems.filter(function (x) { return x.written; }).length;
+          return {
+            key: g,                                   // stable group id (its label)
+            groupId: "mxgrp:" + catKey + ":" + g,     // stable, externally addressable
+            label: g,
+            items: groupItems,
+            written: written,
+            total: groupItems.length
+          };
+        });
+      }
+
+      // Is this category eligible for accordion grouping? (has the config AND
+      // every item is a two-entity "A + B" title.)
+      function matrixUsesAccordion(catKey) {
+        if (!MATRIX_ACCORDION[catKey]) return false;
+        var items = L.matrixList(catKey);
+        return items.length > 0 && items.every(function (it) { return it.title.indexOf(" + ") !== -1; });
+      }
 
       function matrixItemCardHTML(it) {
         return '<button class="lib-card" data-card="' + esc(it.id) + '">' +
@@ -4614,6 +4687,7 @@
 
       function renderMatrixFolders() {
         matrixOpenCat = null;
+        matrixOpenGroup = null;
         var counts = L.matrixCounts();
         $("libMatrixFolders").innerHTML = L.matrixCats().map(function (c) {
           var ct = counts[c.key] || { total: 0, written: 0 };
@@ -4625,19 +4699,66 @@
         $("libMatrixItems").innerHTML = "";
       }
 
-      function openMatrixCat(catKey) {
+      // Header for one accordion group (compact, tappable, progress + chevron).
+      function matrixGroupHeaderHTML(g, isOpen) {
+        var done = g.total > 0 && g.written === g.total;
+        return '<button class="mx-group-head' + (isOpen ? " open" : "") + '" data-mxgroup="' + esc(g.key) + '" aria-expanded="' + (isOpen ? "true" : "false") + '">' +
+          '<span class="mx-chev" aria-hidden="true">' + (isOpen ? "▾" : "▸") + '</span>' +
+          '<span class="mx-group-name">' + esc(g.label) + '</span>' +
+          '<span class="mx-group-count ' + (done ? "written" : "muted") + '">' + g.written + ' / ' + g.total + ' written</span>' +
+          '</button>';
+      }
+
+      function matrixGroupHTML(g, isOpen) {
+        var body = isOpen
+          ? '<div class="mx-group-body"><div class="card-grid">' +
+              g.items.map(matrixItemCardHTML).join("") + '</div></div>'
+          : '';
+        return '<div class="mx-group' + (isOpen ? " open" : "") + '" data-mxgroupwrap="' + esc(g.key) + '">' +
+          matrixGroupHeaderHTML(g, isOpen) + body + '</div>';
+      }
+
+      function openMatrixCat(catKey, keepGroup) {
         matrixOpenCat = catKey;
+        if (!keepGroup) matrixOpenGroup = null;
         var cats = L.matrixCats();
         var label = (cats.filter(function (c) { return c.key === catKey; })[0] || {}).label || catKey;
-        var items = L.matrixList(catKey);
-        var grid = items.length
-          ? items.map(matrixItemCardHTML).join("")
-          : '<div class="empty-note">No items in this category yet.</div>';
         $("libMatrixFolders").hidden = true;
-        $("libMatrixItems").innerHTML =
-          '<button class="prac-back" id="matrixBack">‹ All matrix categories</button>' +
-          '<div class="prac-section-head">' + esc(label) + ' <span class="muted">' + items.length + '</span></div>' +
-          '<div class="card-grid">' + grid + '</div>';
+
+        if (matrixUsesAccordion(catKey)) {
+          var groups = matrixGroupsFor(catKey);
+          var totalWritten = groups.reduce(function (a, g) { return a + g.written; }, 0);
+          var totalItems = groups.reduce(function (a, g) { return a + g.total; }, 0);
+          // If the remembered open group no longer exists, collapse all.
+          if (matrixOpenGroup && !groups.some(function (g) { return g.key === matrixOpenGroup; })) matrixOpenGroup = null;
+          var body = groups.map(function (g) { return matrixGroupHTML(g, g.key === matrixOpenGroup); }).join("");
+          $("libMatrixItems").innerHTML =
+            '<button class="prac-back" id="matrixBack">‹ All matrix categories</button>' +
+            '<div class="prac-section-head">' + esc(label) +
+            ' <span class="muted">' + totalWritten + ' / ' + totalItems + ' written</span></div>' +
+            '<div class="mx-accordion">' + body + '</div>';
+        } else {
+          // Small categories keep the simple flat list.
+          var items = L.matrixList(catKey);
+          var grid = items.length
+            ? items.map(matrixItemCardHTML).join("")
+            : '<div class="empty-note">No items in this category yet.</div>';
+          $("libMatrixItems").innerHTML =
+            '<button class="prac-back" id="matrixBack">‹ All matrix categories</button>' +
+            '<div class="prac-section-head">' + esc(label) + ' <span class="muted">' + items.length + '</span></div>' +
+            '<div class="card-grid">' + grid + '</div>';
+        }
+      }
+
+      // Toggle a group (accordion: only one open at a time), re-render, and keep
+      // the header in view.
+      function toggleMatrixGroup(groupKey) {
+        matrixOpenGroup = (matrixOpenGroup === groupKey) ? null : groupKey;
+        openMatrixCat(matrixOpenCat, true);
+        if (matrixOpenGroup) {
+          var head = document.querySelector('.mx-group-head[data-mxgroup="' + (window.CSS && CSS.escape ? CSS.escape(matrixOpenGroup) : matrixOpenGroup) + '"]');
+          if (head) head.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       }
 
       function renderMatrixSearch(q) {
@@ -4652,8 +4773,20 @@
       }
 
       function renderMatrix(query) {
-        if ((query || "").trim()) renderMatrixSearch(query);
-        else renderMatrixFolders();
+        if ((query || "").trim()) { renderMatrixSearch(query); return; }
+        // Restore the drilled-in category + expanded group after a save/close, so
+        // the user isn't thrown back to the top of the matrix. Falls back to the
+        // folder list when nothing is open.
+        if (matrixOpenCat) {
+          openMatrixCat(matrixOpenCat, true);
+          if (matrixLastCardId) {
+            var sel = '.lib-card[data-card="' + (window.CSS && CSS.escape ? CSS.escape(matrixLastCardId) : matrixLastCardId) + '"]';
+            var el = document.querySelector(sel);
+            if (el) el.scrollIntoView({ behavior: "auto", block: "center" });
+          }
+          return;
+        }
+        renderMatrixFolders();
       }
 
       // ── Post-calculation Interpretation panel ────────────────────────────────
@@ -4834,9 +4967,15 @@
         // click handler below, exactly like every other library page.)
         $("matrixSection").addEventListener("click", function (e) {
           var folder = e.target.closest(".matrix-folder");
-          if (folder) { openMatrixCat(folder.getAttribute("data-matrixcat")); return; }
+          if (folder) { matrixLastCardId = null; openMatrixCat(folder.getAttribute("data-matrixcat")); return; }
           var back = e.target.closest("#matrixBack");
           if (back) { renderMatrixFolders(); return; }
+          var groupHead = e.target.closest(".mx-group-head");
+          if (groupHead) { toggleMatrixGroup(groupHead.getAttribute("data-mxgroup")); return; }
+          // Remember which matrix card is being opened, so we can scroll back to
+          // it after editing. (Records/IDs are untouched; this is nav state only.)
+          var mxCard = e.target.closest(".mx-accordion .lib-card[data-card], #libMatrixItems .lib-card[data-card]");
+          if (mxCard) { matrixLastCardId = mxCard.getAttribute("data-card"); }
         });
 
         // delegated open from library + panel (guard if leaving a dirty edit)
