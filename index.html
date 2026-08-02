@@ -969,6 +969,38 @@
     .client-card .cc-name { font-size: 1rem; color: #2c2820; }
     .client-card .cc-meta { font-size: 0.78rem; color: #888; margin-top: 0.15rem; }
     .client-card .cc-right { text-align: right; font-size: 0.74rem; color: #aaa; white-space: nowrap; }
+    .client-card .cc-group { color: #6b5e44; }
+
+    /* Client groups (collapsible on the dashboard) */
+    .cg-accordion { display: flex; flex-direction: column; gap: 0.4rem; }
+    .cg-group { border: 1px solid #e0dbd3; border-radius: 6px; overflow: hidden; background: #fff; }
+    .cg-group.open { border-color: #c9b896; }
+    .cg-head {
+      display: flex; align-items: center; gap: 0.55rem; width: 100%;
+      padding: 0.7rem 0.85rem; min-height: 44px;
+      background: #faf7f1; border: none; border-left: 3px solid #c9b896;
+      font-family: inherit; text-align: left; cursor: pointer;
+    }
+    .cg-head.open { background: #f3ede2; }
+    .cg-chev { flex: none; width: 1em; color: #8a7f6c; font-size: 0.9rem; }
+    .cg-name { flex: 1; min-width: 0; color: #3a3530; font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere; }
+    .cg-count { flex: none; font-size: 0.72rem; letter-spacing: 0.03em; white-space: nowrap; }
+    .cg-count.muted { color: #999; }
+    .cg-body { padding: 0.55rem 0.6rem 0.7rem; border-top: 1px solid #eee6d9; display: flex; flex-direction: column; gap: 0.5rem; }
+
+    /* Group multi-select (checkbox chips) in New Client + Edit Client */
+    .grp-checks { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.15rem; }
+    .grp-check {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.82rem; color: #5a4e3c; padding: 0.35rem 0.6rem; min-height: 40px;
+      border: 1px solid #d9d2c6; border-radius: 999px; background: #fff; cursor: pointer;
+    }
+    .grp-check.on { background: #f3ede2; border-color: #c9a24a; color: #3a3530; }
+    .grp-check input { width: auto; margin: 0; }
+    .grp-hint { font-size: 0.72rem; margin-top: 0.3rem; }
+    .grp-sep { font-size: 0.8rem; color: #5a4e3c; font-weight: 600; margin: 0.2rem 0 0.3rem; }
+    .chip.archived-chip { background: #efe4e4; color: #8b5a5a; }
+    .chip.muted-chip { background: #eee; color: #999; }
 
     .tag-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem; }
     .chip {
@@ -1380,7 +1412,7 @@
     </div>
 
     <div class="prac-section">
-      <div class="prac-section-head">All Clients</div>
+      <div class="prac-section-head">Client Directory</div>
       <div id="clientList" class="client-list"></div>
     </div>
 
@@ -1432,6 +1464,7 @@
           <div class="tag-chips" id="saveTagChips"></div>
           <input id="saveTags" type="text" placeholder="Comma-separated, e.g. Follow-up, VIP" />
         </div>
+        <div id="saveGroupField" hidden></div>
         <div class="prac-field">
           <label for="saveNotes">Practitioner notes</label>
           <textarea id="saveNotes" rows="4" placeholder="Private notes for this reading…"></textarea>
@@ -5612,13 +5645,68 @@
         el.innerHTML = recent.map(clientCardHTML).join("");
       }
 
-      function renderClientList(clients) {
+      // Which single directory row is expanded (UI state only; never persisted
+      // or exported). null = all collapsed (the default).
+      var openClientGroup = null;
+      var clientListSearching = false;
+
+      function groupLabel(id) {
+        var d = S.GROUP_DEFS.filter(function (x) { return x.id === id; })[0];
+        return d ? d.label : id;
+      }
+      function clientGroupChips(c) {
+        var ids = (c.groups || []);
+        if (!ids.length && !c.archived) ids = [];
+        var chips = ids.map(function (id) { return '<span class="chip static">' + esc(groupLabel(id)) + '</span>'; });
+        if (c.archived) chips.push('<span class="chip static archived-chip">Archived</span>');
+        if (!chips.length) chips.push('<span class="chip static muted-chip">Ungrouped</span>');
+        return chips.join("");
+      }
+
+      function renderClientList(clients, opts) {
         var el = $("clientList");
-        if (!clients.length) { el.innerHTML = '<div class="empty-note">No matching clients.</div>'; return; }
-        var sorted = clients.slice().sort(function (a, b) {
-          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-        });
-        el.innerHTML = sorted.map(clientCardHTML).join("");
+        clientListSearching = !!(opts && opts.searching);
+
+        // While searching: one flat SEARCH RESULTS list, no accordion chrome.
+        if (clientListSearching) {
+          if (!clients.length) { el.innerHTML = '<div class="empty-note">No matching clients.</div>'; return; }
+          var flat = clients.slice().sort(function (a, b) {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          });
+          el.innerHTML =
+            '<div class="prac-subhead">Search results <span class="muted">' + flat.length + '</span></div>' +
+            flat.map(clientCardHTML).join("");
+          return;
+        }
+
+        // Normal view: the fixed Client Directory. All rows visible, all collapsed
+        // by default, only the one matching openClientGroup is expanded.
+        var all = S.getClients();
+        var defs = S.directoryDefs();
+        el.innerHTML = '<div class="cg-accordion">' + defs.map(function (def) {
+          var members = all.filter(def.match).sort(function (a, b) {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          });
+          var isOpen = (openClientGroup === def.id);
+          var body = isOpen
+            ? '<div class="cg-body">' + (members.length
+                ? members.map(clientCardHTML).join("")
+                : '<div class="empty-note">No clients in this group yet.</div>') + '</div>'
+            : '';
+          return '<div class="cg-group' + (isOpen ? " open" : "") + '" data-cgwrap="' + esc(def.id) + '">' +
+            '<button class="cg-head' + (isOpen ? " open" : "") + '" data-cggroup="' + esc(def.id) + '" ' +
+            'aria-expanded="' + (isOpen ? "true" : "false") + '" aria-controls="cgbody-' + esc(def.id) + '">' +
+            '<span class="cg-chev" aria-hidden="true">' + (isOpen ? "▾" : "▸") + '</span>' +
+            '<span class="cg-name">' + esc(def.label) + '</span>' +
+            '<span class="cg-count muted">' + members.length + '</span>' +
+            '</button>' + body + '</div>';
+        }).join("") + '</div>';
+      }
+
+      // Single-open accordion: opening one closes the others.
+      function toggleClientGroup(groupId) {
+        openClientGroup = (openClientGroup === groupId) ? null : groupId;
+        renderClientList(S.getClients());
       }
 
       function clientCardHTML(c) {
@@ -5626,10 +5714,14 @@
         var last = (c.sessions || []).reduce(function (m, s) {
           return (!m || (s.consultationDate || "") > m) ? (s.consultationDate || "") : m;
         }, "");
+        var groupBits = (c.groups || []).map(function (id) { return groupLabel(id); });
+        if (c.archived) groupBits.push("Archived");
+        var groupText = groupBits.length ? groupBits.join(", ") : "Ungrouped";
         return '<div class="client-card" data-client="' + esc(c.id) + '">' +
           '<div><div class="cc-name">' + esc(c.name || "(unnamed)") + '</div>' +
           '<div class="cc-meta">' + esc(c.birthDate || "—") +
           (c.birthPlace ? ' · ' + esc(c.birthPlace) : '') +
+          ' · <span class="cc-group">' + esc(groupText) + '</span>' +
           (c.tags && c.tags.length ? ' · ' + esc(c.tags.join(", ")) : '') + '</div></div>' +
           '<div class="cc-right">' + sessions + ' session' + (sessions === 1 ? '' : 's') +
           (last ? '<br>last ' + esc(last) : '') + '</div>' +
@@ -5643,15 +5735,19 @@
         if (!c) { showScreen("dashboard"); return; }
         ctx.clientId = id;
 
+        var hdrGroups = (c.groups || []).map(function (id) { return groupLabel(id); });
+        if (c.archived) hdrGroups.push("Archived");
         $("clientHeader").innerHTML =
           '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
-          '<p class="subtitle">Client ID: ' + esc(c.id) + '</p>' +
+          '<p class="subtitle">Client ID: ' + esc(c.id) +
+          ' · Groups: ' + esc(hdrGroups.length ? hdrGroups.join(", ") : "Ungrouped") + '</p>' +
           birthDataCardHTML(c) +
           (c.tags && c.tags.length ? tagChipsHTML(c.tags) : '');
 
         $("clientActions").innerHTML =
           '<button class="btn-prac primary" data-act="new-session">+ New Session</button>' +
-          '<button class="btn-prac" data-act="edit-birth">Edit Birth Data</button>' +
+          '<button class="btn-prac" data-act="edit-birth">Edit Birth Data &amp; Groups</button>' +
+          '<button class="btn-prac" data-act="toggle-archive">' + (c.archived ? "Unarchive" : "Archive") + '</button>' +
           '<button class="btn-prac danger" data-act="delete-client">Delete Client</button>';
 
         $("clientBirthEdit").hidden = true;
@@ -5810,6 +5906,19 @@
         $("saveTagChips").innerHTML = QUICK_TAGS.map(function (t) {
           return '<span class="chip" data-tag="' + esc(t) + '">' + esc(t) + '</span>';
         }).join("");
+        // Client groups apply only when this save will CREATE a new client.
+        // (Existing clients keep their groups; change them from the client screen.)
+        var gf = $("saveGroupField");
+        if (gf) {
+          if (ctx.saveClientId) {
+            gf.hidden = true; gf.innerHTML = "";
+          } else {
+            gf.hidden = false;
+            gf.innerHTML =
+              '<div class="grp-sep">Client groups <span class="muted">(new client — separate from session tags)</span></div>' +
+              groupSelectHTML("svg", []);
+          }
+        }
         $("saveModal").hidden = false;
       }
 
@@ -5877,7 +5986,7 @@
             }
             clientId = existing.id;
           } else {
-            var created = S.createClient(birth);
+            var created = S.createClient(Object.assign({}, birth, { groups: collectGroups("svg") }));
             clientId = created.id;
           }
         }
@@ -5937,6 +6046,7 @@
           field("eb_latitude", "Latitude", c.latitude, "number") +
           field("eb_longitude", "Longitude", c.longitude, "number") +
           field("eb_tzOffset", "Timezone offset", c.tzOffset, "number") +
+          groupSelectHTML("ebg", c.groups) +
           field("eb_tags", "Tags (comma-separated)", (c.tags || []).join(", ")) +
           '<div class="prac-actions-row" style="margin-top:0.75rem;">' +
           '<button class="btn-prac primary" data-act="save-birth">Save Birth Data</button>' +
@@ -5948,6 +6058,30 @@
         return '<div class="prac-field"><label for="' + id + '">' + label + '</label>' +
           '<input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val == null ? "" : val) + '" /></div>';
       }
+      // Reusable group multi-select (checkbox chips). `prefix` namespaces the
+      // checkbox ids so the same control can appear in more than one form.
+      // Archived is intentionally NOT here (controlled by the archive action).
+      function groupSelectHTML(prefix, selectedIds) {
+        var sel = Array.isArray(selectedIds) ? selectedIds : [];
+        var boxes = S.GROUP_DEFS.map(function (d) {
+          var on = sel.indexOf(d.id) !== -1;
+          return '<label class="grp-check' + (on ? " on" : "") + '">' +
+            '<input type="checkbox" data-grp="' + prefix + '" value="' + esc(d.id) + '"' + (on ? " checked" : "") + '> ' +
+            esc(d.label) + '</label>';
+        }).join("");
+        return '<div class="prac-field"><label>Client groups</label>' +
+          '<div class="grp-checks" data-grpset="' + prefix + '">' + boxes + '</div>' +
+          '<div class="grp-hint muted">Leave all unticked for Ungrouped. A client can be in more than one group.</div></div>';
+      }
+      // Collect the checked group ids for a given prefix.
+      function collectGroups(prefix) {
+        var out = [];
+        Array.prototype.forEach.call(
+          document.querySelectorAll('input[data-grp="' + prefix + '"]:checked'),
+          function (el) { out.push(el.value); }
+        );
+        return out; // [] ⇒ Ungrouped (handled by store)
+      }
       function saveBirthEdit(clientId) {
         var tags = ($("eb_tags").value || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
         S.updateClient(clientId, {
@@ -5958,6 +6092,7 @@
           latitude: $("eb_latitude").value,
           longitude: $("eb_longitude").value,
           tzOffset: $("eb_tzOffset").value,
+          groups: collectGroups("ebg"),
           tags: tags,
         });
         openClient(clientId);
@@ -6002,7 +6137,8 @@
         if (navCal) navCal.addEventListener("click", guarded(function () { SBACalendarUI.open(); showScreen("calendar"); }));
 
         $("clientSearch").addEventListener("input", function () {
-          renderClientList(S.searchClients(this.value));
+          var q = this.value;
+          renderClientList(S.searchClients(q), { searching: !!q.trim() });
         });
         $("btnNewClient").addEventListener("click", startNewClient);
         $("btnExportBackup").addEventListener("click", exportBackup);
@@ -6014,7 +6150,19 @@
 
         // Delegated clicks for client cards
         $("recentList").addEventListener("click", cardClick);
-        $("clientList").addEventListener("click", cardClick);
+        $("clientList").addEventListener("click", function (e) {
+          var head = e.target.closest(".cg-head");
+          if (head) { toggleClientGroup(head.getAttribute("data-cggroup")); return; }
+          cardClick(e);
+        });
+        // Group checkbox visual state (works in both the save modal and edit form)
+        document.addEventListener("change", function (e) {
+          var cb = e.target.closest ? e.target.closest('input[data-grp]') : null;
+          if (cb) {
+            var lab = cb.closest(".grp-check");
+            if (lab) lab.classList.toggle("on", cb.checked);
+          }
+        });
         function cardClick(e) {
           var card = e.target.closest("[data-client]");
           if (card) openClient(card.getAttribute("data-client"));
@@ -6026,6 +6174,10 @@
           var act = b.getAttribute("data-act");
           if (act === "new-session") startNewSession(ctx.clientId);
           else if (act === "edit-birth") renderBirthEdit(S.getClient(ctx.clientId));
+          else if (act === "toggle-archive") {
+            var cc = S.getClient(ctx.clientId);
+            if (cc) { S.setArchived(ctx.clientId, !cc.archived); openClient(ctx.clientId); }
+          }
           else if (act === "delete-client") {
             var c = S.getClient(ctx.clientId);
             if (c && window.confirm("Delete client “" + c.name + "” and ALL their sessions?\nThis cannot be undone.")) {
@@ -6137,6 +6289,33 @@
       var DB_KEY = "sba_practitioner_db_v1";
       var DB_VERSION = 1;
 
+      // ── Fixed client-directory model ─────────────────────────────────────────
+      // Selectable, "meaningful" groups (assignable in the New Client + Edit forms).
+      // "All Clients" is a computed view (not stored). "Ungrouped" is automatic
+      // (no meaningful group). "Archived" is driven by the archive action, never a
+      // manually selectable group. Stable ids are the source of truth; labels are
+      // display-only. Session tags are a SEPARATE concept and never touched here.
+      var CLIENT_GROUP_DEFS = [
+        { id: "active",   label: "Active Clients" },
+        { id: "followup", label: "Follow-up Needed" },
+        { id: "family",   label: "Family" },
+        { id: "vip",      label: "VIP" },
+        { id: "research", label: "Research / Public Profiles" }
+      ];
+      function isMeaningfulGroup(id) {
+        return CLIENT_GROUP_DEFS.some(function (d) { return d.id === id; });
+      }
+      // Normalise a proposed group set: keep only known ids, unique; if none
+      // remain the client is Ungrouped (represented by an empty array).
+      function normaliseGroups(ids) {
+        if (!Array.isArray(ids)) return [];
+        var out = [];
+        ids.forEach(function (id) {
+          if (isMeaningfulGroup(id) && out.indexOf(id) === -1) out.push(id);
+        });
+        return out;
+      }
+
       function nowISO() { return new Date().toISOString(); }
 
       function uid(prefix) {
@@ -6158,6 +6337,32 @@
             return emptyDB();
           }
           if (typeof parsed.version !== "number") parsed.version = DB_VERSION;
+          // Backward-compatible migration to the fixed client-directory model.
+          // Adds `groups` (array of stable ids) + `archived` (bool) without
+          // deleting anything. An older single `group` string, if present, is
+          // mapped to a known directory id when possible and LEFT ON THE RECORD
+          // (never removed), so no data is lost.
+          parsed.clients.forEach(function (c) {
+            if (!c) return;
+            if (!Array.isArray(c.groups)) {
+              var arr = [];
+              if (typeof c.group === "string" && c.group.trim()) {
+                var g = c.group.trim().toLowerCase();
+                CLIENT_GROUP_DEFS.forEach(function (def) {
+                  if (def.id === g || def.label.toLowerCase() === g) {
+                    if (arr.indexOf(def.id) === -1) arr.push(def.id);
+                  }
+                });
+              }
+              c.groups = arr;                 // empty ⇒ rendered under "Ungrouped"
+            } else {
+              // sanitise: only known ids, unique
+              c.groups = c.groups.filter(function (id, i) {
+                return isMeaningfulGroup(id) && c.groups.indexOf(id) === i;
+              });
+            }
+            if (typeof c.archived !== "boolean") c.archived = false;
+          });
           return parsed;
         } catch (err) {
           console.error("[SBAStore] Failed to load DB:", err);
@@ -6197,6 +6402,8 @@
           longitude: data.longitude,
           tzOffset: data.tzOffset,
           tags: Array.isArray(data.tags) ? data.tags.slice() : [],
+          groups: normaliseGroups(data.groups),
+          archived: data.archived === true,
           createdAt: nowISO(),
           updatedAt: nowISO(),
           sessions: []
@@ -6215,10 +6422,22 @@
           .forEach(function (k) {
             if (patch[k] !== undefined) c[k] = patch[k];
           });
+        if (patch.groups !== undefined) c.groups = normaliseGroups(patch.groups);
+        if (patch.archived !== undefined) c.archived = (patch.archived === true);
         if (patch.tags !== undefined && Array.isArray(patch.tags)) c.tags = patch.tags.slice();
         c.updatedAt = nowISO();
         save(db);
         return c;
+      }
+
+      // Change ONLY a client's group membership (leaves sessions/readings/notes
+      // and all other fields untouched). Persists immediately.
+      function setClientGroups(id, ids) {
+        return updateClient(id, { groups: normaliseGroups(ids) });
+      }
+      // Archive / unarchive (the archive action, distinct from group selection).
+      function setArchived(id, flag) {
+        return updateClient(id, { archived: flag === true });
       }
 
       function deleteClient(id) {
@@ -6321,9 +6540,33 @@
         return clients.filter(function (c) {
           if (c.name.toLowerCase().indexOf(q) !== -1) return true;
           if ((c.birthPlace || "").toLowerCase().indexOf(q) !== -1) return true;
+          if ((c.birthDate || "").toLowerCase().indexOf(q) !== -1) return true;
+          // groups: match by id AND by human label
+          var labels = (c.groups || []).map(function (id) {
+            var d = CLIENT_GROUP_DEFS.filter(function (x) { return x.id === id; })[0];
+            return d ? d.label.toLowerCase() : id;
+          });
+          if ((c.groups || []).some(function (id) { return id.indexOf(q) !== -1; })) return true;
+          if (labels.some(function (l) { return l.indexOf(q) !== -1; })) return true;
+          if (c.archived && "archived".indexOf(q) !== -1) return true;
           if ((c.tags || []).some(function (t) { return t.toLowerCase().indexOf(q) !== -1; })) return true;
           return false;
         });
+      }
+
+      // Directory definitions (fixed order) used by the dashboard accordion.
+      // Each row exposes a stable id, label, and a predicate over a client.
+      function directoryDefs() {
+        return [
+          { id: "all",       label: "All Clients",                match: function (c) { return !c.archived; } },
+          { id: "active",    label: "Active Clients",             match: function (c) { return !c.archived && (c.groups || []).indexOf("active") !== -1; } },
+          { id: "followup",  label: "Follow-up Needed",           match: function (c) { return !c.archived && (c.groups || []).indexOf("followup") !== -1; } },
+          { id: "family",    label: "Family",                     match: function (c) { return !c.archived && (c.groups || []).indexOf("family") !== -1; } },
+          { id: "vip",       label: "VIP",                        match: function (c) { return !c.archived && (c.groups || []).indexOf("vip") !== -1; } },
+          { id: "research",  label: "Research / Public Profiles", match: function (c) { return !c.archived && (c.groups || []).indexOf("research") !== -1; } },
+          { id: "ungrouped", label: "Ungrouped",                  match: function (c) { return !c.archived && normaliseGroups(c.groups).length === 0; } },
+          { id: "archived",  label: "Archived",                   match: function (c) { return c.archived === true; } }
+        ];
       }
 
       function recentClients(limit) {
@@ -6451,6 +6694,11 @@
         stats: stats,
         searchClients: searchClients,
         recentClients: recentClients,
+        GROUP_DEFS: CLIENT_GROUP_DEFS,
+        directoryDefs: directoryDefs,
+        setClientGroups: setClientGroups,
+        setArchived: setArchived,
+        normaliseGroups: normaliseGroups,
         exportJSON: exportJSON,
         downloadBackup: downloadBackup,
         importJSON: importJSON,
