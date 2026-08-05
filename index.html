@@ -4462,6 +4462,30 @@
           return;
         }
 
+        // ── House Rulers: category-specific layout ──────────────────────────
+        // Reads from card.extra (hr_* keys). Falls back to legacy standard fields
+        // for display only, so previously-written content is never lost.
+        if (card.matrixCat === "house-rulers") {
+          var hx = card.extra || {};
+          var hf = card.fields || {};
+          function hrView(key, legacy) {
+            var v = (hx[key] || "").trim();
+            if (!v && legacy) v = (hf[legacy] || "").trim();
+            return viewField(L.EXTRA_LABELS[key], v);
+          }
+          html += hrView("hr_overview", "meaning");
+          html += hrView("hr_energyBeingCarried", "coreTheme");
+          html += hrView("hr_energyExpression", null);
+          html += hrView("hr_lifeLesson", "growth");
+          html += hrView("hr_strengths", null);
+          html += hrView("hr_challenges", "shadow");
+          html += hrView("hr_rulingPlanetModifiers", null);
+          html += hrView("hr_practitionerReadingOrder", "practitionerNote");
+          html += linksViewHTML();
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
         // Non-house cards: unchanged generic layout.
         fieldOrder().forEach(function (k) {
           html += viewField(L.FIELD_LABELS[k], card.fields[k]);
@@ -4546,6 +4570,31 @@
 
           html += linksPickerHTML();
 
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
+        // ── House Rulers: category-specific edit layout ─────────────────────
+        // Edits map to extra:hr_* keys (saved by the existing extra: pipeline).
+        // Empty hr_ fields prefill from legacy fields so old content stays and
+        // becomes the starting point (originals remain in storage regardless).
+        if (card.matrixCat === "house-rulers") {
+          var hxe = card.extra || {};
+          var hfe = card.fields || {};
+          function hrEdit(key, legacy) {
+            var v = hxe[key];
+            if (!(v || "").trim() && legacy) v = hfe[legacy] || "";
+            return editField("extra:" + key, L.EXTRA_LABELS[key], v);
+          }
+          html += hrEdit("hr_overview", "meaning");
+          html += hrEdit("hr_energyBeingCarried", "coreTheme");
+          html += hrEdit("hr_energyExpression", null);
+          html += hrEdit("hr_lifeLesson", "growth");
+          html += hrEdit("hr_strengths", null);
+          html += hrEdit("hr_challenges", "shadow");
+          html += hrEdit("hr_rulingPlanetModifiers", null);
+          html += hrEdit("hr_practitionerReadingOrder", "practitionerNote");
+          html += linksPickerHTML();
           $("interpBody").innerHTML = html;
           return;
         }
@@ -5532,7 +5581,17 @@
           relationships: "Relationships", career: "Career & calling", money: "Money",
           health: "Health & body", spiritualDevelopment: "Spiritual development",
           underStress: "Under stress", matureExpression: "Mature expression",
-          giftsToOthers: "Gifts to others"
+          giftsToOthers: "Gifts to others",
+          // House-Rulers-only fields (namespaced hr_ so they never collide with
+          // other categories' extra data).
+          hr_overview: "OVERVIEW",
+          hr_energyBeingCarried: "ENERGY BEING CARRIED",
+          hr_energyExpression: "WHERE THE ENERGY IS EXPRESSED",
+          hr_lifeLesson: "LIFE LESSON",
+          hr_strengths: "STRENGTHS",
+          hr_challenges: "CHALLENGES",
+          hr_rulingPlanetModifiers: "HOW THE RULING PLANET CHANGES THE STORY",
+          hr_practitionerReadingOrder: "PRACTITIONER READING ORDER"
         },
         ARCH_PLACEHOLDER: "[AJ to write archetypal energy here]",
         ENTRY_PLACEHOLDER: "[AJ to write entry theme here]",
