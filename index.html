@@ -1215,6 +1215,11 @@
     }
     .mx-doctrine { margin: 0.5rem 0 0.75rem; }
     .mx-doctrine .lib-card { border-left: 3px solid #c9a24a; background: #fbf7ef; }
+    .hr-context {
+      font-size: 0.78rem; color: #6b5e44; background: #f7f4ee;
+      border-radius: 4px; padding: 0.45rem 0.65rem; margin-bottom: 0.9rem;
+      font-style: italic;
+    }
 
     /* House three-level section headers */
     .interp-level-head {
@@ -4475,15 +4480,18 @@
         if (card.matrixCat === "house-rulers" && !card.doctrine) {
           var hx = card.extra || {};
           var hf = card.fields || {};
+          var rH = card.ruledHouse, dH = card.destinationHouse;
           function hrView(key, legacy) {
             var v = (hx[key] || "").trim();
             if (!v && legacy) v = (hf[legacy] || "").trim();
             return viewField(L.EXTRA_LABELS[key], v);
           }
+          if (rH != null && dH != null) {
+            html += '<div class="hr-context">House ' + rH + ' themes \u2192 expressed through House ' + dH + '</div>';
+          }
           html += hrView("hr_overview", "meaning");
           html += hrView("hr_energyBeingCarried", "coreTheme");
           html += hrView("hr_energyExpression", null);
-          html += '<div class="interp-hint">This is a general reference page. The ruling planet\u2019s destination house is not fixed \u2014 the house\u2019s energy is expressed in whichever house contains the ruling planet in the individual chart (e.g. Aries on House 1 \u2192 Mars rules House 1; Mars in House 10 \u2192 House 1 energy is directed into House 10).</div>';
           html += hrView("hr_lifeLesson", "growth");
           html += hrView("hr_strengths", null);
           html += hrView("hr_challenges", "shadow");
@@ -4589,15 +4597,30 @@
         if (card.matrixCat === "house-rulers" && !card.doctrine) {
           var hxe = card.extra || {};
           var hfe = card.fields || {};
-          function hrEdit(key, legacy, placeholder) {
+          var erH = card.ruledHouse, edH = card.destinationHouse;
+          // Field-specific placeholders (display-only guidance; never saved and
+          // never counted as written). Uses this entry's ruled/destination house.
+          var HR_PLACEHOLDERS = {
+            hr_overview: "[Summarise what it means when the ruler of House " + erH + " is located in House " + edH + ".]",
+            hr_energyBeingCarried: "[Describe the core themes, needs and responsibilities of House " + erH + " that the ruling planet carries.]",
+            hr_energyExpression: "[Describe how the carried House " + erH + " themes are directed into and experienced through House " + edH + ".]",
+            hr_lifeLesson: "[Describe the central developmental lesson created by the connection between House " + erH + " and House " + edH + ".]",
+            hr_strengths: "[Describe the constructive potential and natural strengths of this house-ruler connection.]",
+            hr_challenges: "[Describe possible imbalance, conflict, avoidance or shadow expression within this house-ruler connection.]",
+            hr_rulingPlanetModifiers: "[Explain that the specific ruling planet, its sign, aspects, motion and condition modify how this combination operates. Do not assign one fixed planet.]",
+            hr_practitionerReadingOrder: "[Explain the correct order for interpreting this combination in a client chart.]"
+          };
+          function hrEdit(key, legacy) {
             var v = hxe[key];
-            if (!(v || "").trim() && legacy) v = hfe[legacy] || "";
-            return editField("extra:" + key, L.EXTRA_LABELS[key], v, placeholder);
+            if (!(v || "").trim() && legacy) v = hfe[legacy] || "";   // migrate genuine old content only
+            return editField("extra:" + key, L.EXTRA_LABELS[key], v, HR_PLACEHOLDERS[key]);
+          }
+          if (erH != null && edH != null) {
+            html += '<div class="hr-context">House ' + erH + ' themes \u2192 expressed through House ' + edH + '</div>';
           }
           html += hrEdit("hr_overview", "meaning");
           html += hrEdit("hr_energyBeingCarried", "coreTheme");
-          html += hrEdit("hr_energyExpression", null,
-            "General page \u2014 do not fix one destination house. Explain that the energy goes to whichever house holds the ruling planet in the chart.");
+          html += hrEdit("hr_energyExpression", null);
           html += hrEdit("hr_lifeLesson", "growth");
           html += hrEdit("hr_strengths", null);
           html += hrEdit("hr_challenges", "shadow");
@@ -5474,6 +5497,39 @@
         try { localStorage.setItem(LIB_KEY, JSON.stringify(overlay)); return true; }
         catch (e) { console.error("[SBALibrary] save failed", e); return false; }
       }
+
+      // One-time, idempotent cleanup: earlier builds could only ever SHOW the old
+      // "general page" instruction as a placeholder / view hint (never saved). As
+      // a safety net we also clear it from any saved value that exactly contains
+      // the known generated wording — and NOTHING else, so genuine AJ text stays.
+      var LEGACY_HR_PATTERNS = [
+        "general page",
+        "do not fix one destination house",
+        "whichever house holds the ruling planet"
+      ];
+      function isLegacyGeneratedText(value) {
+        var n = (value || "").trim().toLowerCase();
+        if (!n) return false;
+        return LEGACY_HR_PATTERNS.some(function (p) { return n.indexOf(p) !== -1; });
+      }
+      function normaliseLegacyHouseRulers() {
+        try {
+          if (localStorage.getItem("sba_hr_legacy_cleaned_v1") === "1") return;
+          var ov = loadOverlay(), changed = false;
+          Object.keys(ov).forEach(function (id) {
+            if (id.indexOf("matrix:house-rulers:") !== 0) return;
+            var e = ov[id]; if (!e || !e.extra) return;
+            Object.keys(e.extra).forEach(function (k) {
+              if (k.indexOf("hr_") === 0 && isLegacyGeneratedText(e.extra[k])) {
+                e.extra[k] = ""; changed = true;
+              }
+            });
+          });
+          if (changed) saveOverlay(ov);
+          localStorage.setItem("sba_hr_legacy_cleaned_v1", "1");
+        } catch (e) { console.error("[SBALibrary] HR cleanup failed", e); }
+      }
+      normaliseLegacyHouseRulers();
 
       // Merge a default card with an overlay entry. Single, reusable.
       function mergeCard(base, overlayEntry) {
