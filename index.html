@@ -5540,10 +5540,11 @@
             if (typeof ov.fields[k] === "string") merged.fields[k] = ov.fields[k];
           });
         }
-        if (merged.extra && ov.extra) {
-          Object.keys(merged.extra).forEach(function (k) {
-            if (typeof ov.extra[k] === "string") merged.extra[k] = ov.extra[k];
-          });
+        // Overlay content must be applied even when the base card has no `extra`
+        // object (e.g. matrix cards created without one, like House Rulers). Merge
+        // order is base-then-overlay so saved values win over blank defaults.
+        if (ov.extra && typeof ov.extra === "object") {
+          merged.extra = Object.assign({}, merged.extra || {}, ov.extra);
         }
         merged.links = Array.isArray(ov.links) ? ov.links.slice() : [];
         return merged;
