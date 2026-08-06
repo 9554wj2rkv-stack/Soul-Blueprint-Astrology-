@@ -1208,6 +1208,13 @@
       font-size: 0.8rem; color: #777; background: #f7f4ee;
       border-radius: 4px; padding: 0.5rem 0.7rem; margin-bottom: 0.9rem;
     }
+    .interp-hint {
+      font-size: 0.76rem; color: #8a7f6c; background: #fbf7ef;
+      border-left: 3px solid #d9cba6; border-radius: 4px;
+      padding: 0.45rem 0.65rem; margin: -0.4rem 0 0.9rem;
+    }
+    .mx-doctrine { margin: 0.5rem 0 0.75rem; }
+    .mx-doctrine .lib-card { border-left: 3px solid #c9a24a; background: #fbf7ef; }
 
     /* House three-level section headers */
     .interp-level-head {
@@ -4465,7 +4472,7 @@
         // ── House Rulers: category-specific layout ──────────────────────────
         // Reads from card.extra (hr_* keys). Falls back to legacy standard fields
         // for display only, so previously-written content is never lost.
-        if (card.matrixCat === "house-rulers") {
+        if (card.matrixCat === "house-rulers" && !card.doctrine) {
           var hx = card.extra || {};
           var hf = card.fields || {};
           function hrView(key, legacy) {
@@ -4476,6 +4483,7 @@
           html += hrView("hr_overview", "meaning");
           html += hrView("hr_energyBeingCarried", "coreTheme");
           html += hrView("hr_energyExpression", null);
+          html += '<div class="interp-hint">This is a general reference page. The ruling planet\u2019s destination house is not fixed \u2014 the house\u2019s energy is expressed in whichever house contains the ruling planet in the individual chart (e.g. Aries on House 1 \u2192 Mars rules House 1; Mars in House 10 \u2192 House 1 energy is directed into House 10).</div>';
           html += hrView("hr_lifeLesson", "growth");
           html += hrView("hr_strengths", null);
           html += hrView("hr_challenges", "shadow");
@@ -4578,17 +4586,18 @@
         // Edits map to extra:hr_* keys (saved by the existing extra: pipeline).
         // Empty hr_ fields prefill from legacy fields so old content stays and
         // becomes the starting point (originals remain in storage regardless).
-        if (card.matrixCat === "house-rulers") {
+        if (card.matrixCat === "house-rulers" && !card.doctrine) {
           var hxe = card.extra || {};
           var hfe = card.fields || {};
-          function hrEdit(key, legacy) {
+          function hrEdit(key, legacy, placeholder) {
             var v = hxe[key];
             if (!(v || "").trim() && legacy) v = hfe[legacy] || "";
-            return editField("extra:" + key, L.EXTRA_LABELS[key], v);
+            return editField("extra:" + key, L.EXTRA_LABELS[key], v, placeholder);
           }
           html += hrEdit("hr_overview", "meaning");
           html += hrEdit("hr_energyBeingCarried", "coreTheme");
-          html += hrEdit("hr_energyExpression", null);
+          html += hrEdit("hr_energyExpression", null,
+            "General page \u2014 do not fix one destination house. Explain that the energy goes to whichever house holds the ruling planet in the chart.");
           html += hrEdit("hr_lifeLesson", "growth");
           html += hrEdit("hr_strengths", null);
           html += hrEdit("hr_challenges", "shadow");
@@ -4721,23 +4730,53 @@
         "planet-sign":  { groupType: "bodyPoint", childType: "sign",  expectedPerGroup: 13 },
         "planet-house": { groupType: "bodyPoint", childType: "house", expectedPerGroup: 13 },
         "angle-cases":  { groupType: "angle", childType: "sign",      expectedPerGroup: 13 },
-        "point-cases":  { groupType: "point", childType: "house",     expectedPerGroup: 13 }
+        "point-cases":  { groupType: "point", childType: "house",     expectedPerGroup: 13 },
+        // House Rulers group by ruled house ("House N Ruler"); titles are
+        // "House R Ruler in House D" (no " + "), so a custom groupOf is supplied.
+        "house-rulers": {
+          groupType: "house", childType: "house", expectedPerGroup: 13,
+          groupOf: function (it) {
+            var r = it.ruledHouse;
+            if (r == null) {
+              var m = /^House\s+(\d+)\s+Ruler/.exec(it.title);
+              r = m ? parseInt(m[1], 10) : null;
+            }
+            return r == null ? it.title : ("House " + r + " Ruler");
+          },
+          groupRank: function (label) {
+            var m = /House\s+(\d+)/.exec(label);
+            return m ? parseInt(m[1], 10) : 999;
+          }
+        }
       };
 
-      // Split a category's flat item list into ordered groups. Group label = the
-      // entity before " + " in the title (e.g. "House 1", "Sun", "Ascendant").
-      // Falls back to a single implicit group for categories without " + ".
+      // Split a category's flat item list into ordered groups. By default the
+      // group label is the entity before " + "; a category may supply a custom
+      // groupOf(item) in MATRIX_ACCORDION (e.g. House Rulers → "House N Ruler").
+      // Items flagged doctrine are pinned separately (returned as `doctrine`),
+      // never inside a counted group.
       function matrixGroupsFor(catKey) {
+        var cfg = MATRIX_ACCORDION[catKey] || {};
         var items = L.matrixList(catKey);
+        var doctrine = [];
         var order = [];
         var byGroup = {};
         items.forEach(function (it) {
-          var idx = it.title.indexOf(" + ");
-          var g = (idx === -1) ? it.title : it.title.slice(0, idx);
+          if (it.doctrine) { doctrine.push(it); return; }
+          var g;
+          if (typeof cfg.groupOf === "function") {
+            g = cfg.groupOf(it);
+          } else {
+            var idx = it.title.indexOf(" + ");
+            g = (idx === -1) ? it.title : it.title.slice(0, idx);
+          }
           if (!byGroup[g]) { byGroup[g] = []; order.push(g); }
           byGroup[g].push(it);
         });
-        return order.map(function (g) {
+        if (typeof cfg.groupRank === "function") {
+          order.sort(function (a, b) { return cfg.groupRank(a) - cfg.groupRank(b); });
+        }
+        var groups = order.map(function (g) {
           var groupItems = byGroup[g];
           var written = groupItems.filter(function (x) { return x.written; }).length;
           return {
@@ -4749,14 +4788,19 @@
             total: groupItems.length
           };
         });
+        groups.doctrine = doctrine;
+        return groups;
       }
 
-      // Is this category eligible for accordion grouping? (has the config AND
-      // every item is a two-entity "A + B" title.)
+      // Is this category eligible for accordion grouping? (config exists AND its
+      // non-doctrine items all resolve to a group — via " + " or a custom groupOf.)
       function matrixUsesAccordion(catKey) {
-        if (!MATRIX_ACCORDION[catKey]) return false;
-        var items = L.matrixList(catKey);
-        return items.length > 0 && items.every(function (it) { return it.title.indexOf(" + ") !== -1; });
+        var cfg = MATRIX_ACCORDION[catKey];
+        if (!cfg) return false;
+        var items = L.matrixList(catKey).filter(function (it) { return !it.doctrine; });
+        if (!items.length) return false;
+        if (typeof cfg.groupOf === "function") return true;
+        return items.every(function (it) { return it.title.indexOf(" + ") !== -1; });
       }
 
       function matrixItemCardHTML(it) {
@@ -4811,6 +4855,12 @@
           var groups = matrixGroupsFor(catKey);
           var totalWritten = groups.reduce(function (a, g) { return a + g.written; }, 0);
           var totalItems = groups.reduce(function (a, g) { return a + g.total; }, 0);
+          // Doctrine/reference pages are pinned on top and excluded from the count.
+          var doctrineHTML = "";
+          if (groups.doctrine && groups.doctrine.length) {
+            doctrineHTML = '<div class="mx-doctrine">' +
+              groups.doctrine.map(matrixItemCardHTML).join("") + '</div>';
+          }
           // If the remembered open group no longer exists, collapse all.
           if (matrixOpenGroup && !groups.some(function (g) { return g.key === matrixOpenGroup; })) matrixOpenGroup = null;
           var body = groups.map(function (g) { return matrixGroupHTML(g, g.key === matrixOpenGroup); }).join("");
@@ -4818,6 +4868,7 @@
             '<button class="prac-back" id="matrixBack">‹ All matrix categories</button>' +
             '<div class="prac-section-head">' + esc(label) +
             ' <span class="muted">' + totalWritten + ' / ' + totalItems + ' written</span></div>' +
+            doctrineHTML +
             '<div class="mx-accordion">' + body + '</div>';
         } else {
           // Small categories keep the simple flat list.
@@ -5335,14 +5386,14 @@
         });
 
         // ── Interpretation Matrix placeholder items (empty; AJ writes meanings) ──
-        function addMatrix(catKey, title, bodyType) {
+        function addMatrix(catKey, title, bodyType, displayTitle) {
           var id = "matrix:" + catKey + ":" + slugify(title);
           cards[id] = {
             id: id,
             slug: slugify(catKey + " " + title),
             kind: "matrix",
             matrixCat: catKey,
-            title: title,
+            title: displayTitle || title,   // visible label (ID stays from `title`)
             fields: blankFields()
           };
           // Accurate internal classification (body vs point) without changing the
@@ -5360,7 +5411,37 @@
           });
         });
         HOUSE_NUMS.forEach(function (h) { addMatrix("empty-houses", "Empty House " + h); });
-        HOUSE_NUMS.forEach(function (h) { addMatrix("house-rulers", "House " + h + " Ruler in House " + h); });
+        // House Rulers: general reference page for the ruler of each house.
+        // The ID-generating title is kept ("House N Ruler in House N") so existing
+        // saved content, overlay keys, and internal links are never broken; only
+        // the *displayed* title changes to "Ruler of House N".
+        // House Rulers: full 13×13 = 169 "House R Ruler in House D" combinations
+        // describing energy flow from a ruled house into its destination house.
+        // The diagonal (R==D) reuses the EXACT ids the old 13 entries had
+        // (slugify("House N Ruler in House N")), so any content already written in
+        // those pages is preserved automatically — no data migration required.
+        HOUSE_NUMS.forEach(function (r) {
+          HOUSE_NUMS.forEach(function (d) {
+            var title = "House " + r + " Ruler in House " + d;
+            addMatrix("house-rulers", title, null);
+            var id = "matrix:house-rulers:" + slugify(title);
+            cards[id].ruledHouse = r;
+            cards[id].destinationHouse = d;
+          });
+        });
+        // Doctrine / reference page — editable, but NOT part of the 169 count.
+        (function () {
+          var did = "matrix:house-rulers:doctrine";
+          cards[did] = {
+            id: did,
+            slug: "house-rulers-doctrine",
+            kind: "matrix",
+            matrixCat: "house-rulers",
+            doctrine: true,                    // excluded from counts + the 169
+            title: "House Rulers · How to Read the Energy Flow",
+            fields: blankFields()
+          };
+        })();
         BODY_KEYS.forEach(function (p) {
           SIGN_KEYS.forEach(function (s) { addMatrix("planet-sign", p + " + " + s); });
         });
@@ -5499,7 +5580,8 @@
         Object.keys(DEFAULTS).forEach(function (id) {
           var d = DEFAULTS[id];
           if (d.kind === "matrix" && d.matrixCat === catKey) {
-            out.push({ id: id, title: d.title, slug: d.slug, written: overlayEntryWritten(ov[id]) });
+            out.push({ id: id, title: d.title, slug: d.slug, written: overlayEntryWritten(ov[id]),
+                       doctrine: !!d.doctrine, ruledHouse: d.ruledHouse, destinationHouse: d.destinationHouse });
           }
         });
         return out;
@@ -5510,7 +5592,7 @@
         MATRIX_CATS.forEach(function (c) { counts[c.key] = { total: 0, written: 0 }; });
         Object.keys(DEFAULTS).forEach(function (id) {
           var d = DEFAULTS[id];
-          if (d.kind === "matrix") {
+          if (d.kind === "matrix" && !d.doctrine) {
             var c = counts[d.matrixCat];
             if (c) { c.total++; if (overlayEntryWritten(ov[id])) c.written++; }
           }
