@@ -1220,6 +1220,23 @@
       border-radius: 4px; padding: 0.45rem 0.65rem; margin-bottom: 0.9rem;
       font-style: italic;
     }
+    /* Body Blueprint */
+    .bb-disclaimer {
+      font-size: 0.72rem; color: #8a7f6c; background: #f7f4ee;
+      border-left: 3px solid #cbb98a; border-radius: 4px;
+      padding: 0.4rem 0.6rem; margin: 0.2rem 0 0.9rem;
+    }
+    .client-bb-body { padding: 0.2rem 0 0.2rem; }
+    .bb-intro { font-size: 0.78rem; color: #8a7f6c; margin-bottom: 0.6rem; }
+    .bb-cat { border: 1px solid #e0dbd3; border-radius: 6px; margin-bottom: 0.4rem; background: #fff; }
+    .bb-cat > summary { padding: 0.6rem 0.8rem; min-height: 44px; display: flex; align-items: center;
+      font-size: 0.9rem; color: #3a3530; cursor: pointer; list-style: none; }
+    .bb-cat > summary::-webkit-details-marker { display: none; }
+    .bb-cat-body { padding: 0.2rem 0.8rem 0.7rem; }
+    .bb-empty { font-size: 0.82rem; color: #b08a8a; font-style: italic; }
+    .bb-src { font-size: 0.85rem; color: #2c2820; margin-bottom: 0.5rem; white-space: pre-wrap; }
+    .bb-src-tag { display: inline-block; font-size: 0.68rem; color: #6b5e44; background: #f3ede2;
+      border-radius: 999px; padding: 0.1rem 0.5rem; margin-right: 0.4rem; }
 
     /* House three-level section headers */
     .interp-level-head {
@@ -1444,6 +1461,12 @@
     <div class="prac-section">
       <div class="prac-section-head">Sessions <span class="muted" id="sessionCount"></span></div>
       <div id="sessionHistory" class="session-history"></div>
+    </div>
+    <div class="prac-section">
+      <details class="cal-about" id="clientBodyBlueprintPanel">
+        <summary>Body Blueprint</summary>
+        <div id="clientBodyBlueprint" class="client-bb-body"></div>
+      </details>
     </div>
     <div class="prac-section">
       <div class="prac-section-head">Timeline</div>
@@ -4477,6 +4500,19 @@
         // ── House Rulers: category-specific layout ──────────────────────────
         // Reads from card.extra (hr_* keys). Falls back to legacy standard fields
         // for display only, so previously-written content is never lost.
+        if (card.bbEntry) {
+          var bbx = card.extra || {};
+          BB_FIELDS.forEach(function (f) {
+            html += viewField(L.EXTRA_LABELS[f.key], (bbx[f.key] || "").trim());
+            if (f.key === "bb_vitamins") {
+              html += '<div class="bb-disclaimer">' + esc(BB_NUTRIENT_DISCLAIMER) + '</div>';
+            }
+          });
+          html += linksViewHTML();
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
         if (card.matrixCat === "house-rulers" && !card.doctrine) {
           var hx = card.extra || {};
           var hf = card.fields || {};
@@ -4594,6 +4630,20 @@
         // Edits map to extra:hr_* keys (saved by the existing extra: pipeline).
         // Empty hr_ fields prefill from legacy fields so old content stays and
         // becomes the starting point (originals remain in storage regardless).
+        if (card.bbEntry) {
+          var bbe = card.extra || {};
+          BB_FIELDS.forEach(function (f) {
+            html += editField("extra:" + f.key, L.EXTRA_LABELS[f.key], bbe[f.key],
+              "[Write the SBA Body Blueprint interpretation for " + card.title + " \u2014 " + f.label + ". Themes only, no medical claims.]");
+            if (f.key === "bb_vitamins") {
+              html += '<div class="bb-disclaimer">' + esc(BB_NUTRIENT_DISCLAIMER) + '</div>';
+            }
+          });
+          html += linksPickerHTML();
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
         if (card.matrixCat === "house-rulers" && !card.doctrine) {
           var hxe = card.extra || {};
           var hfe = card.fields || {};
@@ -5352,8 +5402,65 @@
         { key: "planet-house",     label: "Planet + House" },
         { key: "angle-cases",      label: "Angle Cases" },
         { key: "point-cases",      label: "Point Cases" },
-        { key: "complex-examples", label: "Complex Examples" }
+        { key: "complex-examples", label: "Complex Examples" },
+        // ── SBA Body Blueprint library (health/body-oriented interpretation) ──
+        { key: "bb-sign",       label: "Body Blueprint · Signs",        group: "body-blueprint" },
+        { key: "bb-house",      label: "Body Blueprint · Houses",       group: "body-blueprint" },
+        { key: "bb-planet",     label: "Body Blueprint · Planets & Points", group: "body-blueprint" },
+        { key: "bb-element",    label: "Body Blueprint · Elements",     group: "body-blueprint" },
+        { key: "bb-retro",      label: "Body Blueprint · Retrogrades",  group: "body-blueprint" },
+        { key: "bb-houseruler", label: "Body Blueprint · House Rulers", group: "body-blueprint" }
       ];
+
+      // ── SBA Body Blueprint configuration (data-driven; edit freely) ──────────
+      // Field schema for every Body Blueprint entry. Stored as extra:bb_* keys so
+      // they ride the SAME proven overlay persistence + export/import the matrices
+      // use (nothing new to migrate; old backups stay compatible).
+      var BB_FIELDS = [
+        { key: "bb_bodyConstitution", label: "Body Constitution" },
+        { key: "bb_movement",         label: "Movement & Training" },
+        { key: "bb_trainingStyle",    label: "Training Style" },
+        { key: "bb_restRecovery",     label: "Rest & Recovery" },
+        { key: "bb_nervousSystem",    label: "Nervous-System Regulation" },
+        { key: "bb_nutritionStyle",   label: "Nutrition Style" },
+        { key: "bb_minerals",         label: "Mineral Focus" },
+        { key: "bb_vitamins",         label: "Vitamin Focus" },
+        { key: "bb_energyManagement", label: "Energy Management" },
+        { key: "bb_stressPattern",    label: "Stress & Overload Pattern" },
+        { key: "bb_recoveryPattern",  label: "Recovery Pattern" },
+        { key: "bb_watchFor",         label: "Watch For" },
+        { key: "bb_bodyStrategy",     label: "Personal Body Strategy" },
+        { key: "bb_notes",            label: "Notes" }
+      ];
+      // SBA synthesis weighting priorities (internal priorities, NOT measurements).
+      // Stored here so they can be tuned in one place.
+      var BB_WEIGHTS = {
+        moon: 10, ascendant: 9, firstHouse: 8, sixthHouse: 8, mars: 7, saturn: 6,
+        venus: 5, mercury: 5, jupiter: 4, elements: 4, supportingPlacements: 2
+      };
+      // Movement-style vocabulary the synthesis layer can classify into later.
+      var BB_MOVEMENT_STYLES = [
+        "Strength dominant", "Endurance dominant", "Rhythmic movement",
+        "Exploratory movement", "Mobility focused", "Competitive",
+        "Restorative", "Mixed"
+      ];
+      // The 11 client-facing Body Blueprint categories (display order).
+      var BB_CLIENT_CATEGORIES = [
+        { key: "bb_bodyConstitution", label: "Body Nature" },
+        { key: "bb_movement",         label: "Movement" },
+        { key: "bb_trainingStyle",    label: "Training Style" },
+        { key: "bb_nutritionStyle",   label: "Nutrition" },
+        { key: "bb_minerals",         label: "Mineral Focus" },
+        { key: "bb_vitamins",         label: "Vitamin Focus" },
+        { key: "bb_restRecovery",     label: "Rest & Recovery" },
+        { key: "bb_nervousSystem",    label: "Nervous-System Regulation" },
+        { key: "bb_energyManagement", label: "Energy Management" },
+        { key: "bb_stressPattern",    label: "Stress Pattern" },
+        { key: "bb_recoveryPattern",  label: "Recovery Pattern" },
+        { key: "bb_watchFor",         label: "Watch For" },
+        { key: "bb_bodyStrategy",     label: "Personal Body Strategy" }
+      ];
+      var BB_NUTRIENT_DISCLAIMER = "An SBA chart cannot diagnose a vitamin or mineral deficiency. Nutrient status depends on diet, physiology, health conditions and, where appropriate, clinical testing.";
 
       // Build the default catalogue: a flat map keyed by stable ids.
       // id formats:  house:1 … house:13 | body:Sun | angle:Ascendant (AC) |
@@ -5465,6 +5572,25 @@
             fields: blankFields()
           };
         })();
+
+        // ── SBA Body Blueprint library entries (empty; AJ writes doctrine) ──────
+        // Each carries a bbEntry flag so the editor shows the Body Blueprint field
+        // template. Content saves to extra:bb_* keys — same proven overlay
+        // persistence + export/import as the matrices (nothing new to migrate).
+        function addBB(catKey, title) {
+          var id = "matrix:" + catKey + ":" + slugify(title);
+          cards[id] = {
+            id: id, slug: slugify(catKey + " " + title), kind: "matrix",
+            matrixCat: catKey, bbEntry: true, title: title, fields: blankFields()
+          };
+        }
+        SIGN_KEYS.forEach(function (s) { addBB("bb-sign", s); });                        // 13 signs (first matrix)
+        HOUSE_NUMS.forEach(function (h) { addBB("bb-house", "House " + h); });           // 13 houses
+        HOUSE_BODY_KEYS.forEach(function (p) { addBB("bb-planet", p); });                // planets + points
+        ELEMENT_KEYS.forEach(function (e) { addBB("bb-element", e); });                  // elements
+        addBB("bb-retro", "Retrograde · General");
+        BODY_KEYS.forEach(function (p) { addBB("bb-retro", p + " Retrograde"); });       // per-planet retrograde
+        HOUSE_NUMS.forEach(function (h) { addBB("bb-houseruler", "Ruler of House " + h); }); // house-ruler body themes
         BODY_KEYS.forEach(function (p) {
           SIGN_KEYS.forEach(function (s) { addMatrix("planet-sign", p + " + " + s); });
         });
@@ -5730,11 +5856,27 @@
           hr_strengths: "STRENGTHS",
           hr_challenges: "CHALLENGES",
           hr_rulingPlanetModifiers: "HOW THE RULING PLANET CHANGES THE STORY",
-          hr_practitionerReadingOrder: "PRACTITIONER READING ORDER"
+          hr_practitionerReadingOrder: "PRACTITIONER READING ORDER",
+          // Body Blueprint fields (bb_ namespaced).
+          bb_bodyConstitution: "BODY CONSTITUTION",
+          bb_movement: "MOVEMENT & TRAINING",
+          bb_trainingStyle: "TRAINING STYLE",
+          bb_restRecovery: "REST & RECOVERY",
+          bb_nervousSystem: "NERVOUS-SYSTEM REGULATION",
+          bb_nutritionStyle: "NUTRITION STYLE",
+          bb_minerals: "MINERAL FOCUS",
+          bb_vitamins: "VITAMIN FOCUS",
+          bb_energyManagement: "ENERGY MANAGEMENT",
+          bb_stressPattern: "STRESS & OVERLOAD PATTERN",
+          bb_recoveryPattern: "RECOVERY PATTERN",
+          bb_watchFor: "WATCH FOR",
+          bb_bodyStrategy: "PERSONAL BODY STRATEGY",
+          bb_notes: "NOTES"
         },
         ARCH_PLACEHOLDER: "[AJ to write archetypal energy here]",
         ENTRY_PLACEHOLDER: "[AJ to write entry theme here]",
         getCard: getCard,
+        slugify: slugify,
         saveCard: saveCard,
         allCards: allCards,
         coreCards: coreCards,
@@ -5953,7 +6095,77 @@
 
         renderSessionHistory(c);
         renderTimeline(c);
+        renderClientBodyBlueprint(c);
         showScreen("client");
+      }
+
+      // Client Body Blueprint — synthesis SCAFFOLD. Reads the Body Blueprint
+      // library (window.SBALibrary) for the client's resolvable sign placements
+      // and shows written doctrine per category, or an honest empty state. It
+      // NEVER invents results and makes no medical claims. Weighting config
+      // (BB_WEIGHTS) is exposed for a future weighted synthesis pass.
+      function renderClientBodyBlueprint(c) {
+        var host = $("clientBodyBlueprint");
+        if (!host) return;
+        var Lib = window.SBALibrary;
+        if (!Lib || !Lib.getCard) { host.innerHTML = '<div class="empty-note">Body Blueprint library unavailable.</div>'; return; }
+
+        // Try to resolve the client's signs from their most recent session snapshot.
+        var signs = resolveClientSigns(c); // { Sun, Moon, Ascendant } or {}
+        var haveAny = signs && Object.keys(signs).length > 0;
+
+        // Pull written bb-sign doctrine for whichever signs we could resolve.
+        function bbSignCard(sign) {
+          try { return Lib.getCard("matrix:bb-sign:" + Lib.slugify(sign)); } catch (e) { return null; }
+        }
+        var sources = [];
+        ["Moon", "Ascendant", "Sun"].forEach(function (which) {
+          if (signs[which]) { var card = bbSignCard(signs[which]); if (card) sources.push({ which: which, sign: signs[which], card: card }); }
+        });
+
+        var intro = '<div class="bb-intro">SBA Body Blueprint themes — not medical advice. ' +
+          (haveAny ? 'Based on this client\u2019s resolved sign placements.' :
+            'Add a saved reading with sign placements to generate this profile.') + '</div>';
+
+        var body = BB_CLIENT_CATEGORIES.map(function (cat) {
+          // Collect any written doctrine for this category across the source signs.
+          var parts = sources.map(function (s) {
+            var v = ((s.card.extra || {})[cat.key] || "").trim();
+            return v ? { label: s.which + " in " + s.sign, text: v } : null;
+          }).filter(Boolean);
+          var inner = parts.length
+            ? parts.map(function (p) { return '<div class="bb-src"><span class="bb-src-tag">' + esc(p.label) + '</span>' + esc(p.text) + '</div>'; }).join("")
+            : '<div class="bb-empty">Body Blueprint interpretation not yet written.</div>';
+          var extra = (cat.key === "bb_vitamins" || cat.key === "bb_minerals")
+            ? '<div class="bb-disclaimer">' + esc(BB_NUTRIENT_DISCLAIMER) + '</div>' : '';
+          return '<details class="bb-cat"><summary>' + esc(cat.label) + '</summary>' +
+            '<div class="bb-cat-body">' + inner + extra + '</div></details>';
+        }).join("");
+
+        host.innerHTML = intro + body;
+      }
+
+      // Best-effort: read the client's Sun/Moon/Ascendant sign from the latest
+      // session snapshot's stored input/result, if present. Returns {} otherwise.
+      function resolveClientSigns(c) {
+        var out = {};
+        try {
+          var sessions = (c.sessions || []);
+          for (var i = sessions.length - 1; i >= 0; i--) {
+            var snap = sessions[i] && sessions[i].input && sessions[i].input.result;
+            if (snap && snap.placements) {
+              snap.placements.forEach(function (p) {
+                if (p && p.body && p.sign) {
+                  if (p.body === "Sun" && !out.Sun) out.Sun = p.sign;
+                  if (p.body === "Moon" && !out.Moon) out.Moon = p.sign;
+                }
+              });
+              if (snap.ascendant && snap.ascendant.sign && !out.Ascendant) out.Ascendant = snap.ascendant.sign;
+              if (out.Sun || out.Moon || out.Ascendant) break;
+            }
+          }
+        } catch (e) { /* resolve is best-effort only */ }
+        return out;
       }
 
       function birthDataCardHTML(c) {
