@@ -5610,6 +5610,13 @@
 
       var DEFAULTS = buildDefaults();
 
+      // Module-scope slug helper (same rule as the one inside buildDefaults) so
+      // window.SBALibrary can expose it for id lookups (e.g. client Body Blueprint).
+      function libSlugify(s) {
+        return String(s).toLowerCase().replace(/\(.*?\)/g, " ")
+          .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      }
+
       // ── localStorage overlay (AJ's written content) ──────────────────────────
       function loadOverlay() {
         try {
@@ -5876,7 +5883,7 @@
         ARCH_PLACEHOLDER: "[AJ to write archetypal energy here]",
         ENTRY_PLACEHOLDER: "[AJ to write entry theme here]",
         getCard: getCard,
-        slugify: slugify,
+        slugify: libSlugify,
         saveCard: saveCard,
         allCards: allCards,
         coreCards: coreCards,
