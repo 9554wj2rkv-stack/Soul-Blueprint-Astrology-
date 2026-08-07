@@ -1148,6 +1148,24 @@
     .matrix-folder .lc-title { color: #3a3530; }
     #libMatrixItems .prac-back { margin-top: 0.25rem; }
 
+    /* Collapsible Library section (Houses) — reuses existing section styling */
+    .lib-fold { }
+    .lib-fold-head {
+      display: flex; align-items: center; gap: 0.55rem;
+      min-height: 44px; padding: 0.15rem 0; cursor: pointer;
+      list-style: none;
+    }
+    .lib-fold-head::-webkit-details-marker { display: none; }
+    .lib-fold-chev { flex: none; width: 1em; color: #8a7f6c; font-size: 0.85rem;
+      transition: transform 0.12s ease; }
+    .lib-fold[open] .lib-fold-chev { transform: rotate(90deg); }
+    .lib-fold-title {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: #666; font-weight: 600;
+    }
+    .lib-fold-count { flex: 1; font-size: 0.72rem; white-space: nowrap; }
+    .lib-fold > .card-grid { margin-top: 0.6rem; }
+
     /* Matrix accordion (groups collapse to reduce mobile scrolling) */
     .mx-accordion { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
     .mx-group { border: 1px solid #e0dbd3; border-radius: 6px; overflow: hidden; background: #fff; }
@@ -1534,37 +1552,79 @@
       <input id="librarySearch" type="text" placeholder="Search houses, planets, points, angles…" autocomplete="off" />
     </div>
     <div class="prac-section">
-      <div class="prac-section-head">Houses</div>
-      <div id="libHouses" class="card-grid"></div>
+      <details class="lib-fold" id="libHousesFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Houses</span>
+          <span class="lib-fold-count muted" id="libHousesCount"></span>
+        </summary>
+        <div id="libHouses" class="card-grid"></div>
+      </details>
     </div>
     <div class="prac-section">
       <div class="prac-section-head">Cycles</div>
       <div id="libCycles" class="card-grid"></div>
     </div>
     <div class="prac-section" id="matrixSection">
-      <div class="prac-section-head">Interpretation Matrix <span class="muted">applied combinations</span></div>
-      <div id="libMatrixFolders" class="card-grid"></div>
+      <details class="lib-fold" id="libMatrixFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Interpretation Matrix</span>
+          <span class="lib-fold-count muted" id="libMatrixCount"></span>
+        </summary>
+        <div id="libMatrixFolders" class="card-grid"></div>
+      </details>
       <div id="libMatrixItems"></div>
     </div>
     <div class="prac-section">
-      <div class="prac-section-head">Bodies</div>
-      <div id="libBodies" class="card-grid"></div>
+      <details class="lib-fold" id="libBodiesFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Bodies</span>
+          <span class="lib-fold-count muted" id="libBodiesCount"></span>
+        </summary>
+        <div id="libBodies" class="card-grid"></div>
+      </details>
     </div>
     <div class="prac-section">
-      <div class="prac-section-head">Angles</div>
-      <div id="libAngles" class="card-grid"></div>
+      <details class="lib-fold" id="libAnglesFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Angles</span>
+          <span class="lib-fold-count muted" id="libAnglesCount"></span>
+        </summary>
+        <div id="libAngles" class="card-grid"></div>
+      </details>
     </div>
     <div class="prac-section">
-      <div class="prac-section-head">Points</div>
-      <div id="libPoints" class="card-grid"></div>
+      <details class="lib-fold" id="libPointsFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Points</span>
+          <span class="lib-fold-count muted" id="libPointsCount"></span>
+        </summary>
+        <div id="libPoints" class="card-grid"></div>
+      </details>
     </div>
     <div class="prac-section">
-      <div class="prac-section-head">Elements</div>
-      <div id="libElements" class="card-grid"></div>
+      <details class="lib-fold" id="libElementsFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Elements</span>
+          <span class="lib-fold-count muted" id="libElementsCount"></span>
+        </summary>
+        <div id="libElements" class="card-grid"></div>
+      </details>
     </div>
     <div class="prac-section">
-      <div class="prac-section-head">Retrogrades</div>
-      <div id="libRetros" class="card-grid"></div>
+      <details class="lib-fold" id="libRetrosFold">
+        <summary class="lib-fold-head">
+          <span class="lib-fold-chev" aria-hidden="true">▶</span>
+          <span class="lib-fold-title">Retrogrades</span>
+          <span class="lib-fold-count muted" id="libRetrosCount"></span>
+        </summary>
+        <div id="libRetros" class="card-grid"></div>
+      </details>
     </div>
   </div>
 
@@ -4775,6 +4835,31 @@
         $("libHouses").innerHTML = groups.house.map(function (c) {
           return libCardHTML(c, "“" + c.ref.phrase + "”");
         }).join("") || '<div class="empty-note">No matches.</div>';
+        // Collapsed-header progress, derived from the same card data (no dup state).
+        var hcEl = $("libHousesCount");
+        if (hcEl) {
+          var hWritten = groups.house.filter(function (c) { return !L.isCardEmpty(c); }).length;
+          hcEl.textContent = groups.house.length + " houses • " + hWritten + " written";
+        }
+        // Progress counts for the other collapsible Library sections (same source).
+        function foldCount(elId, arr, noun) {
+          var el = $(elId); if (!el) return;
+          var w = arr.filter(function (c) { return !L.isCardEmpty(c); }).length;
+          el.textContent = arr.length + " " + noun + " • " + w + " written";
+        }
+        foldCount("libBodiesCount", groups.body, "bodies");
+        foldCount("libAnglesCount", groups.angle, "angles");
+        foldCount("libPointsCount", groups.point, "points");
+        foldCount("libElementsCount", groups.element, "elements");
+        foldCount("libRetrosCount", groups.retro, "entries");
+
+        // When searching, open the folds so matches are visible; when the search
+        // is cleared, return them to the compact collapsed state. (UI-only.)
+        var searching = !!q;
+        ["libHousesFold", "libBodiesFold", "libAnglesFold", "libPointsFold",
+         "libElementsFold", "libRetrosFold", "libMatrixFold"].forEach(function (id) {
+          var el = $(id); if (el) el.open = searching;
+        });
         $("libCycles").innerHTML = groups.cycle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libBodies").innerHTML = groups.body.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libAngles").innerHTML = groups.angle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
@@ -4888,6 +4973,10 @@
         matrixOpenCat = null;
         matrixOpenGroup = null;
         var counts = L.matrixCounts();
+        var mTotal = 0, mWritten = 0;
+        Object.keys(counts).forEach(function (k) { mTotal += counts[k].total; mWritten += counts[k].written; });
+        var mcEl = $("libMatrixCount");
+        if (mcEl) mcEl.textContent = mWritten + " / " + mTotal + " written";
         $("libMatrixFolders").innerHTML = L.matrixCats().map(function (c) {
           var ct = counts[c.key] || { total: 0, written: 0 };
           return '<button class="lib-card matrix-folder" data-matrixcat="' + esc(c.key) + '">' +
@@ -4920,6 +5009,7 @@
       function openMatrixCat(catKey, keepGroup) {
         matrixOpenCat = catKey;
         if (!keepGroup) matrixOpenGroup = null;
+        var mf = $("libMatrixFold"); if (mf) mf.open = true;   // keep drill-in visible under the fold
         var cats = L.matrixCats();
         var label = (cats.filter(function (c) { return c.key === catKey; })[0] || {}).label || catKey;
         $("libMatrixFolders").hidden = true;
@@ -6717,7 +6807,9 @@
         { id: "followup", label: "Follow-up Needed" },
         { id: "family",   label: "Family" },
         { id: "vip",      label: "VIP" },
-        { id: "research", label: "Research / Public Profiles" }
+        { id: "research", label: "Research / Public Profiles" },
+        { id: "friends",  label: "Friends" },
+        { id: "sport",    label: "Sport" }
       ];
       function isMeaningfulGroup(id) {
         return CLIENT_GROUP_DEFS.some(function (d) { return d.id === id; });
@@ -6981,6 +7073,8 @@
           { id: "family",    label: "Family",                     match: function (c) { return !c.archived && (c.groups || []).indexOf("family") !== -1; } },
           { id: "vip",       label: "VIP",                        match: function (c) { return !c.archived && (c.groups || []).indexOf("vip") !== -1; } },
           { id: "research",  label: "Research / Public Profiles", match: function (c) { return !c.archived && (c.groups || []).indexOf("research") !== -1; } },
+          { id: "friends",   label: "Friends",                    match: function (c) { return !c.archived && (c.groups || []).indexOf("friends") !== -1; } },
+          { id: "sport",     label: "Sport",                      match: function (c) { return !c.archived && (c.groups || []).indexOf("sport") !== -1; } },
           { id: "ungrouped", label: "Ungrouped",                  match: function (c) { return !c.archived && normaliseGroups(c.groups).length === 0; } },
           { id: "archived",  label: "Archived",                   match: function (c) { return c.archived === true; } }
         ];
