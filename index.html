@@ -6169,30 +6169,51 @@
 
       function openClient(id) {
         var c = S.getClient(id);
-        if (!c) { showScreen("dashboard"); return; }
+        if (!c) {
+          console.error("SBA Client Load Error: client exists but linked profile/session data could not be resolved. clientId=" + id + " (getClient returned null)");
+          showScreen("dashboard");
+          return;
+        }
         ctx.clientId = id;
 
-        var hdrGroups = (c.groups || []).map(function (id) { return groupLabel(id); });
-        if (c.archived) hdrGroups.push("Archived");
-        $("clientHeader").innerHTML =
-          '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
-          '<p class="subtitle">Client ID: ' + esc(c.id) +
-          ' · Groups: ' + esc(hdrGroups.length ? hdrGroups.join(", ") : "Ungrouped") + '</p>' +
-          birthDataCardHTML(c) +
-          (c.tags && c.tags.length ? tagChipsHTML(c.tags) : '');
+        // Each hydration step is isolated so a single malformed field in an
+        // imported/legacy record can never prevent the profile from opening.
+        // Failures are logged with the client id + the step that failed.
+        function step(name, fn) {
+          try { fn(); }
+          catch (e) {
+            console.error("SBA Client Load Error: client '" + (c && c.name) + "' (id=" + id +
+              ") — step '" + name + "' failed to hydrate:", e);
+          }
+        }
 
-        $("clientActions").innerHTML =
-          '<button class="btn-prac primary" data-act="new-session">+ New Session</button>' +
-          '<button class="btn-prac" data-act="edit-birth">Edit Birth Data &amp; Groups</button>' +
-          '<button class="btn-prac" data-act="toggle-archive">' + (c.archived ? "Unarchive" : "Archive") + '</button>' +
-          '<button class="btn-prac danger" data-act="delete-client">Delete Client</button>';
+        step("header", function () {
+          var hdrGroups = (c.groups || []).map(function (gid) { return groupLabel(gid); });
+          if (c.archived) hdrGroups.push("Archived");
+          $("clientHeader").innerHTML =
+            '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
+            '<p class="subtitle">Client ID: ' + esc(c.id) +
+            ' · Groups: ' + esc(hdrGroups.length ? hdrGroups.join(", ") : "Ungrouped") + '</p>' +
+            birthDataCardHTML(c) +
+            (c.tags && c.tags.length ? tagChipsHTML(c.tags) : '');
+        });
+
+        step("actions", function () {
+          $("clientActions").innerHTML =
+            '<button class="btn-prac primary" data-act="new-session">+ New Session</button>' +
+            '<button class="btn-prac" data-act="edit-birth">Edit Birth Data &amp; Groups</button>' +
+            '<button class="btn-prac" data-act="toggle-archive">' + (c.archived ? "Unarchive" : "Archive") + '</button>' +
+            '<button class="btn-prac danger" data-act="delete-client">Delete Client</button>';
+        });
 
         $("clientBirthEdit").hidden = true;
         $("clientBirthEdit").innerHTML = "";
 
-        renderSessionHistory(c);
-        renderTimeline(c);
-        renderClientBodyBlueprint(c);
+        step("sessions", function () { renderSessionHistory(c); });
+        step("timeline", function () { renderTimeline(c); });
+        step("bodyBlueprint", function () { renderClientBodyBlueprint(c); });
+
+        // Always show the screen — even if a step above failed, the profile opens.
         showScreen("client");
       }
 
@@ -6320,33 +6341,46 @@
         var c = S.getClient(clientId);
         if (!c) { showScreen("dashboard"); return; }
         var s = (c.sessions || []).find(function (x) { return x.id === sessionId; });
-        if (!s) { openClient(clientId); return; }
+        if (!s) {
+          console.error("SBA Client Load Error: session not found. clientId=" + clientId + " sessionId=" + sessionId);
+          openClient(clientId); return;
+        }
         ctx.clientId = clientId; ctx.sessionId = sessionId;
 
-        $("sessionHeader").innerHTML =
-          '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
-          '<p class="subtitle">Consultation · ' + esc(s.consultationDate || "—") + '</p>';
-
-        $("sessionActions").innerHTML =
-          '<button class="btn-prac" data-act="print-session">🖨 Print / Save PDF</button>' +
-          '<button class="btn-prac danger" data-act="delete-session">Delete Session</button>';
-
-        var meta = "";
-        function block(label, text) {
-          if (!text) return "";
-          return '<div class="sm-block"><div class="sm-label">' + label + '</div>' +
-            '<div class="sm-text">' + esc(text) + '</div></div>';
+        function sstep(name, fn) {
+          try { fn(); }
+          catch (e) { console.error("SBA Client Load Error: session '" + sessionId + "' (client " + clientId + ") — step '" + name + "' failed:", e); }
         }
-        meta += block("Date of consultation", s.consultationDate);
-        if (s.tags && s.tags.length) meta += '<div class="sm-block"><div class="sm-label">Tags</div>' + tagChipsHTML(s.tags) + '</div>';
-        meta += block("Practitioner notes", s.notes);
-        meta += block("Reading summary", s.readingSummary);
-        meta += block("Client-facing notes", s.clientFacingNotes);
-        meta += block("Follow-up date", s.followUpDate);
-        $("sessionMeta").innerHTML = meta || '<div class="empty-note">No notes recorded for this session.</div>';
+
+        sstep("header", function () {
+          $("sessionHeader").innerHTML =
+            '<h1>' + esc(c.name || "(unnamed)") + '</h1>' +
+            '<p class="subtitle">Consultation · ' + esc(s.consultationDate || "—") + '</p>';
+          $("sessionActions").innerHTML =
+            '<button class="btn-prac" data-act="print-session">🖨 Print / Save PDF</button>' +
+            '<button class="btn-prac danger" data-act="delete-session">Delete Session</button>';
+        });
+
+        sstep("meta", function () {
+          var meta = "";
+          function block(label, text) {
+            if (!text) return "";
+            return '<div class="sm-block"><div class="sm-label">' + label + '</div>' +
+              '<div class="sm-text">' + esc(text) + '</div></div>';
+          }
+          meta += block("Date of consultation", s.consultationDate);
+          if (s.tags && s.tags.length) meta += '<div class="sm-block"><div class="sm-label">Tags</div>' + tagChipsHTML(s.tags) + '</div>';
+          meta += block("Practitioner notes", s.notes);
+          meta += block("Reading summary", s.readingSummary);
+          meta += block("Client-facing notes", s.clientFacingNotes);
+          meta += block("Follow-up date", s.followUpDate);
+          $("sessionMeta").innerHTML = meta || '<div class="empty-note">No notes recorded for this session.</div>';
+        });
 
         // Inject the saved immutable HTML snapshot exactly as it was saved.
-        $("sessionSnapshot").innerHTML = s.snapshotHTML || '<div class="empty-note">No rendered snapshot stored for this session.</div>';
+        sstep("snapshot", function () {
+          $("sessionSnapshot").innerHTML = s.snapshotHTML || '<div class="empty-note">No rendered snapshot stored for this session.</div>';
+        });
 
         showScreen("session");
       }
@@ -7152,6 +7186,20 @@
         }
 
         var libResult = "not included";
+
+        // Non-destructive, idempotent normalization of incoming records so legacy
+        // backups link correctly: guarantee sessions is an array and every session
+        // has a stable id (preserving existing ids). Never alters content.
+        function normImported(list) {
+          (list || []).forEach(function (inc) {
+            if (!inc || typeof inc !== "object") return;
+            if (!Array.isArray(inc.sessions)) inc.sessions = inc.sessions ? [inc.sessions] : [];
+            inc.sessions.forEach(function (s) {
+              if (s && typeof s === "object" && !s.id) s.id = uid("session");
+            });
+          });
+        }
+        normImported(clientsObj.clients);
 
         if (mode === "replace") {
           save({ version: DB_VERSION, clients: clientsObj.clients });
