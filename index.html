@@ -1247,6 +1247,46 @@
     .lv-summary.ok { color: #3c5a32; } .lv-summary.bad { color: #8b2020; }
     .lv-row { font-size: 0.78rem; padding: 0.1rem 0; }
     .lv-row.ok { color: #3c5a32; } .lv-row.bad { color: #8b2020; }
+
+    /* Bulk importer */
+    .bulk-modal { max-width: 640px; width: 94vw; max-height: 88vh; display: flex; flex-direction: column; }
+    .bulk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+    .bulk-head h2 { font-size: 1.15rem; margin: 0; color: #2c2820; }
+    .prac-modal-x { background: none; border: none; font-size: 1.4rem; color: #8a7f6c; cursor: pointer; line-height: 1; padding: 0.2rem 0.4rem; }
+    .bulk-help { font-size: 0.82rem; color: #5a4e3c; margin: 0 0 0.6rem; }
+    .bulk-help code { background: #f2ece0; padding: 0.05rem 0.3rem; border-radius: 4px; font-size: 0.78rem; }
+    #bulkInput { width: 100%; font-family: ui-monospace, Menlo, monospace; font-size: 0.8rem;
+      border: 1px solid #ccc7bc; border-radius: 8px; padding: 0.6rem; box-sizing: border-box; }
+    .bulk-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+    .bulk-actions .primary { margin-left: auto; }
+    .bulk-summary { margin-bottom: 0.6rem; }
+    .bulk-sum-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; font-size: 0.78rem; font-weight: 700; }
+    .bulk-sum-grid span { padding: 0.2rem 0.55rem; border-radius: 999px; }
+    .bs-fill { background: #eef3ea; color: #3c5a32; }
+    .bs-over { background: #f6ecd9; color: #7a5a1a; }
+    .bs-conf { background: #fbeede; color: #8a5a20; }
+    .bs-id { background: #eee; color: #777; }
+    .bs-err { background: #fff3f3; color: #8b2020; }
+    .bulk-sum-note { font-size: 0.78rem; color: #6b5e44; margin-top: 0.4rem; }
+    .bulk-overwrite { display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem;
+      color: #8a5a20; background: #fbf4e8; border: 1px solid #e6d4a8; border-radius: 6px;
+      padding: 0.5rem 0.65rem; margin-bottom: 0.6rem; }
+    .bulk-overwrite input { width: auto; }
+    .bulk-preview-list { overflow-y: auto; flex: 1; border-top: 1px solid #eee6d9; padding-top: 0.5rem; }
+    .bp-card { border: 1px solid #e0dbd3; border-radius: 8px; padding: 0.55rem 0.7rem; margin-bottom: 0.5rem; background: #fff; }
+    .bp-title { font-weight: 700; color: #2c2820; font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .bp-id { font-family: ui-monospace, Menlo, monospace; font-size: 0.68rem; color: #a99f8c; font-weight: 400; }
+    .bp-field { font-size: 0.8rem; color: #3a3530; padding: 0.15rem 0; }
+    .bulk-chip { display: inline-block; font-size: 0.66rem; font-weight: 700; padding: 0.05rem 0.4rem;
+      border-radius: 999px; margin-right: 0.35rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .bulk-chip.fill { background: #eef3ea; color: #3c5a32; }
+    .bulk-chip.overwrite { background: #f6ecd9; color: #7a5a1a; }
+    .bulk-chip.identical { background: #eee; color: #888; }
+    .bulk-chip.conflict { background: #fbeede; color: #8a5a20; }
+    .bulk-chip.error { background: #fff3f3; color: #8b2020; }
+    .bp-diff { margin: 0.2rem 0 0.1rem; font-size: 0.74rem; }
+    .bp-old { color: #8b2020; } .bp-new { color: #3c5a32; }
+    .bulk-rep-line { font-size: 0.84rem; color: #3a3530; padding: 0.12rem 0; }
     /* Body Blueprint */
     .bb-disclaimer {
       font-size: 0.72rem; color: #8a7f6c; background: #f7f4ee;
@@ -1563,10 +1603,46 @@
     <div class="lib-backup-row">
       <button class="btn-prac" id="btnExportLibrary" type="button">⬇ Export Library (JSON)</button>
       <button class="btn-prac" id="btnRestoreLibrary" type="button">⬆ Restore Library (JSON)</button>
+      <button class="btn-prac primary" id="btnBulkImport" type="button">＋ Bulk Import Interpretations</button>
       <input type="file" id="libraryFile" accept="application/json,.json" hidden />
       <button class="btn-prac" id="btnVerifyLibrary" type="button" hidden>✔ Run backup verification</button>
     </div>
     <div id="libBackupOut" class="lib-backup-out" hidden></div>
+
+  <!-- ── Bulk Library Importer modal ─────────────────────────────────────── -->
+  <div class="prac-modal-overlay" id="bulkModal" hidden>
+    <div class="prac-modal bulk-modal">
+      <div class="bulk-head">
+        <h2>Bulk Import Interpretations</h2>
+        <button class="prac-modal-x" id="bulkClose" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="bulkStep1">
+        <p class="bulk-help">Paste a JSON batch of interpretations below. Each entry needs a card <code>id</code> and one or more fields. Empty fields are filled automatically; your existing writing is never overwritten without your approval.</p>
+        <textarea id="bulkInput" rows="10" placeholder='{ "format": "sba-bulk-interpretations", "entries": [ { "id": "matrix:house-planet:house-1-sun", "meaning": "..." } ] }' autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+        <div class="bulk-actions">
+          <button class="btn-prac" id="bulkLoadFile" type="button">Load from file</button>
+          <input type="file" id="bulkFile" accept="application/json,.json" hidden />
+          <button class="btn-prac primary" id="bulkPreview" type="button">Preview changes →</button>
+        </div>
+        <div id="bulkInputMsg" class="lib-backup-out" hidden></div>
+      </div>
+      <div id="bulkStep2" hidden>
+        <div id="bulkSummary" class="bulk-summary"></div>
+        <label class="bulk-overwrite"><input type="checkbox" id="bulkAllowOverwrite"> Also overwrite conflicting fields (replaces your existing text)</label>
+        <div id="bulkPreviewList" class="bulk-preview-list"></div>
+        <div class="bulk-actions">
+          <button class="btn-prac" id="bulkBack" type="button">← Back</button>
+          <button class="btn-prac primary" id="bulkApply" type="button">Back up &amp; apply</button>
+        </div>
+      </div>
+      <div id="bulkStep3" hidden>
+        <div id="bulkReport" class="bulk-report"></div>
+        <div class="bulk-actions">
+          <button class="btn-prac primary" id="bulkDone" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
     <div class="prac-section">
       <details class="lib-fold" id="libHousesFold">
         <summary class="lib-fold-head">
@@ -5325,6 +5401,127 @@
             r.pass ? "ok" : "bad");
         });
 
+        // ── Bulk importer controller ──────────────────────────────────────────
+        var bulkPlan = null;  // last analyzed plan
+        function bulkShow(step) {
+          $("bulkStep1").hidden = step !== 1;
+          $("bulkStep2").hidden = step !== 2;
+          $("bulkStep3").hidden = step !== 3;
+        }
+        function openBulk() {
+          bulkPlan = null;
+          $("bulkInput").value = "";
+          $("bulkInputMsg").hidden = true;
+          if ($("bulkAllowOverwrite")) $("bulkAllowOverwrite").checked = false;
+          bulkShow(1);
+          $("bulkModal").hidden = false;
+        }
+        function closeBulk() { $("bulkModal").hidden = true; }
+        if ($("btnBulkImport")) $("btnBulkImport").addEventListener("click", openBulk);
+        if ($("bulkClose")) $("bulkClose").addEventListener("click", closeBulk);
+        if ($("bulkDone")) $("bulkDone").addEventListener("click", function () {
+          closeBulk();
+          renderLibrary($("librarySearch") ? $("librarySearch").value : "");
+        });
+        if ($("bulkBack")) $("bulkBack").addEventListener("click", function () { bulkShow(1); });
+        if ($("bulkLoadFile")) $("bulkLoadFile").addEventListener("click", function () { $("bulkFile").click(); });
+        if ($("bulkFile")) $("bulkFile").addEventListener("change", function () {
+          var f = this.files && this.files[0]; if (!f) return; var self = this;
+          var reader = new FileReader();
+          reader.onload = function () { $("bulkInput").value = String(reader.result); self.value = ""; };
+          reader.readAsText(f);
+        });
+
+        function bulkInputMsg(html, kind) {
+          var el = $("bulkInputMsg"); if (!el) return;
+          el.hidden = false; el.className = "lib-backup-out " + (kind || "");
+          el.innerHTML = html;
+        }
+
+        function runPreview() {
+          $("bulkInputMsg").hidden = true;
+          var text = $("bulkInput").value.trim();
+          if (!text) { bulkInputMsg("Paste a JSON batch first.", "bad"); return; }
+          var parsed;
+          try { parsed = JSON.parse(text); }
+          catch (e) { bulkInputMsg("Not valid JSON: " + esc(e.message || e), "bad"); return; }
+          var allow = $("bulkAllowOverwrite") && $("bulkAllowOverwrite").checked;
+          var res = window.SBAStore.analyzeBulkImport(parsed, allow);
+          if (!res.ok) { bulkInputMsg(esc(res.error), "bad"); return; }
+          bulkPlan = res;
+          renderPreview();
+          bulkShow(2);
+        }
+        if ($("bulkPreview")) $("bulkPreview").addEventListener("click", runPreview);
+        if ($("bulkAllowOverwrite")) $("bulkAllowOverwrite").addEventListener("change", function () {
+          // Re-analyze with the new overwrite setting so conflicts re-bucket live.
+          if (!bulkPlan) return;
+          var parsed; try { parsed = JSON.parse($("bulkInput").value); } catch (e) { return; }
+          var res = window.SBAStore.analyzeBulkImport(parsed, this.checked);
+          if (res.ok) { bulkPlan = res; renderPreview(); }
+        });
+
+        function statusChip(s) {
+          var map = { fill: "fill", overwrite: "overwrite", identical: "identical",
+            conflict: "conflict", error: "error", "skip-empty": "identical" };
+          return '<span class="bulk-chip ' + (map[s] || "") + '">' + esc(s) + '</span>';
+        }
+        function renderPreview() {
+          var c = bulkPlan.counts;
+          $("bulkSummary").innerHTML =
+            '<div class="bulk-sum-grid">' +
+            '<span class="bs-fill">' + c.fill + ' to fill</span>' +
+            '<span class="bs-over">' + c.overwrite + ' to overwrite</span>' +
+            '<span class="bs-conf">' + c.conflict + ' conflict' + (c.conflict === 1 ? '' : 's') + '</span>' +
+            '<span class="bs-id">' + c.identical + ' identical</span>' +
+            '<span class="bs-err">' + c.error + ' error' + (c.error === 1 ? '' : 's') + '</span>' +
+            '</div>' +
+            '<div class="bulk-sum-note">' + c.entriesWithWrites + ' of ' + bulkPlan.total +
+            ' entries will be written. Fields you already wrote are protected' +
+            (c.conflict ? '; ' + c.conflict + ' conflicting field' + (c.conflict === 1 ? '' : 's') + ' will be kept unless you tick overwrite above.' : '.') + '</div>';
+
+          var html = bulkPlan.plan.map(function (row) {
+            var head = '<div class="bp-card"><div class="bp-title">' +
+              (row.title ? esc(row.title) : '<span class="bad">(unresolved)</span>') +
+              (row.id ? ' <span class="bp-id">' + esc(row.id) + '</span>' : '') + '</div>';
+            var errs = row.errors.map(function (e) { return '<div class="bp-field error">⚠ ' + esc(e) + '</div>'; }).join("");
+            var fields = row.fields.map(function (f) {
+              var line = '<div class="bp-field ' + f.status + '">' + statusChip(f.status) + ' <b>' + esc(f.field) + '</b>';
+              if (f.status === "conflict") line += '<div class="bp-diff"><div class="bp-old">keeps: ' + esc(trim120(f.previewOld)) + '</div><div class="bp-new">offered: ' + esc(trim120(f.previewNew)) + '</div></div>';
+              else if (f.status === "overwrite") line += '<div class="bp-diff"><div class="bp-old">was: ' + esc(trim120(f.previous)) + '</div><div class="bp-new">now: ' + esc(trim120(f.value)) + '</div></div>';
+              else if (f.status === "fill") line += ' <span class="muted">' + esc(trim120(f.value)) + '</span>';
+              else if (f.status === "error") line += ' <span class="bad">' + esc(f.reason) + '</span>';
+              return line + '</div>';
+            }).join("");
+            return head + errs + fields + '</div>';
+          }).join("");
+          $("bulkPreviewList").innerHTML = html;
+
+          var willWrite = c.fill + c.overwrite;
+          $("bulkApply").disabled = willWrite === 0;
+          $("bulkApply").textContent = willWrite ? ("Back up & apply (" + willWrite + " field" + (willWrite === 1 ? '' : 's') + ")") : "Nothing to apply";
+        }
+        function trim120(s) { s = String(s || ""); return s.length > 120 ? s.slice(0, 120) + "…" : s; }
+
+        if ($("bulkApply")) $("bulkApply").addEventListener("click", function () {
+          if (!bulkPlan) return;
+          // Requirement 7: always take a downloadable backup BEFORE applying.
+          try { window.SBAStore.downloadLibraryBackup(); } catch (e) {}
+          var rep = window.SBAStore.applyBulkImport(bulkPlan.plan);
+          var c = bulkPlan.counts;
+          $("bulkReport").innerHTML =
+            '<div class="lv-summary ' + (rep.ok ? "ok" : "bad") + '">' +
+            (rep.ok ? "Import complete" : "Import finished with errors") + '</div>' +
+            '<div class="bulk-rep-line">✅ Imported: <b>' + rep.applied + '</b> field' + (rep.applied === 1 ? '' : 's') +
+            ' across <b>' + rep.cardsChanged + '</b> card' + (rep.cardsChanged === 1 ? '' : 's') + '</div>' +
+            '<div class="bulk-rep-line">⏭ Skipped identical: <b>' + c.identical + '</b></div>' +
+            '<div class="bulk-rep-line">⚠ Conflicts kept (not overwritten): <b>' + c.conflict + '</b></div>' +
+            '<div class="bulk-rep-line">❌ Errors: <b>' + c.error + '</b>' +
+            (rep.failed.length ? ' · write-failed ids: ' + esc(rep.failed.join(", ")) : '') + '</div>' +
+            '<div class="bulk-sum-note">A library backup was downloaded before applying, so you can restore the previous state anytime.</div>';
+          bulkShow(3);
+        });
+
         // Interpretation Matrix: open a category folder, or go back to folders.
         // (Item cards use .lib-card[data-card] and are opened by the global
         // click handler below, exactly like every other library page.)
@@ -7291,6 +7488,120 @@
         };
       }
 
+      // ── SBA Bulk Library Importer (Step 1) ───────────────────────────────────
+      // Pure analysis: takes a batch and returns a per-field plan WITHOUT writing
+      // anything. Field-level protection lives here:
+      //   • empty existing field + incoming text  → "fill"   (applied by default)
+      //   • existing field == incoming (trimmed)   → "identical" (skipped)
+      //   • existing non-empty, differs            → "conflict" (needs opt-in)
+      //   • unknown id / unknown field name        → "error"
+      // allowOverwrite=true promotes conflicts to "overwrite" (applied).
+      function analyzeBulkImport(batch, allowOverwrite) {
+        var Lib = window.SBALibrary;
+        if (!Lib) return { ok: false, error: "Library not ready." };
+
+        // Accept {entries:[...]} bundle, or a bare array of entries.
+        var entries = Array.isArray(batch) ? batch
+          : (batch && Array.isArray(batch.entries)) ? batch.entries : null;
+        if (!entries) return { ok: false, error: "No \"entries\" array found in the batch." };
+
+        // Valid field vocabulary.
+        var STD = ["meaning", "coreTheme", "shadow", "growth", "clientQuestions", "practitionerNote"];
+        var EXTRA = Object.keys(Lib.EXTRA_LABELS || {});
+        function fieldBucket(key) {
+          if (STD.indexOf(key) !== -1) return "fields";
+          if (EXTRA.indexOf(key) !== -1) return "extra";
+          return null;
+        }
+        // Build a one-time title → id map for optional human-title resolution.
+        var byTitle = {};
+        (Lib.allCards ? Lib.allCards() : []).forEach(function (c) {
+          var t = (c.title || "").trim().toLowerCase();
+          if (!t) return;
+          byTitle[t] = byTitle[t] ? "AMBIGUOUS" : c.id;
+        });
+
+        var plan = [];           // per-entry, per-field rows
+        var counts = { fill: 0, identical: 0, conflict: 0, overwrite: 0, error: 0, entriesWithWrites: 0 };
+
+        entries.forEach(function (raw, idx) {
+          var row = { index: idx, id: null, title: null, fields: [], errors: [] };
+          // Resolve id (prefer explicit id; else unambiguous title).
+          var id = raw && raw.id;
+          if (!id && raw && raw.title) {
+            var hit = byTitle[String(raw.title).trim().toLowerCase()];
+            if (hit === "AMBIGUOUS") { row.errors.push("Title is ambiguous — use the card id."); }
+            else if (hit) id = hit;
+          }
+          if (!id) { row.errors.push("No valid card id."); counts.error++; plan.push(row); return; }
+          var card = Lib.getCard(id);
+          if (!card) { row.id = id; row.errors.push("Card id not found: " + id); counts.error++; plan.push(row); return; }
+          row.id = id; row.title = card.title;
+
+          // Content may be given flat ({meaning:...}) or split ({fields:{}, extra:{}}).
+          var incoming = {};
+          if (raw.fields && typeof raw.fields === "object") Object.assign(incoming, raw.fields);
+          if (raw.extra && typeof raw.extra === "object") Object.assign(incoming, raw.extra);
+          Object.keys(raw).forEach(function (k) {
+            if (["id", "title", "fields", "extra", "links"].indexOf(k) === -1) incoming[k] = raw[k];
+          });
+
+          var anyWrite = false;
+          Object.keys(incoming).forEach(function (fk) {
+            var bucket = fieldBucket(fk);
+            var val = incoming[fk];
+            if (bucket === null) { row.fields.push({ field: fk, status: "error", reason: "Unknown field name" }); counts.error++; return; }
+            if (typeof val !== "string") { row.fields.push({ field: fk, status: "error", reason: "Value must be text" }); counts.error++; return; }
+            var incomingText = val.trim();
+            if (!incomingText) { row.fields.push({ field: fk, status: "skip-empty", reason: "Incoming value is blank" }); return; }
+            var current = ((bucket === "fields" ? card.fields : card.extra) || {})[fk] || "";
+            var curText = current.trim();
+            if (!curText) {
+              row.fields.push({ field: fk, status: "fill", bucket: bucket, value: val });
+              counts.fill++; anyWrite = true;
+            } else if (curText === incomingText) {
+              row.fields.push({ field: fk, status: "identical" });
+              counts.identical++;
+            } else if (allowOverwrite) {
+              row.fields.push({ field: fk, status: "overwrite", bucket: bucket, value: val, previous: current });
+              counts.overwrite++; anyWrite = true;
+            } else {
+              row.fields.push({ field: fk, status: "conflict", previewOld: current, previewNew: val });
+              counts.conflict++;
+            }
+          });
+          if (anyWrite) counts.entriesWithWrites++;
+          plan.push(row);
+        });
+
+        return { ok: true, plan: plan, counts: counts, total: entries.length };
+      }
+
+      // Apply a plan produced by analyzeBulkImport. Writes ONLY fill/overwrite
+      // rows, through the proven saveCard path (deep-merge; never nulls other
+      // fields). Returns a report. A backup is taken by the UI before calling.
+      function applyBulkImport(plan) {
+        var Lib = window.SBALibrary;
+        if (!Lib) return { ok: false, error: "Library not ready." };
+        var applied = 0, cardsChanged = 0, failed = [];
+        plan.forEach(function (row) {
+          if (!row.id) return;
+          var fields = {}, extra = {}, hasF = false, hasE = false;
+          row.fields.forEach(function (f) {
+            if (f.status === "fill" || f.status === "overwrite") {
+              if (f.bucket === "fields") { fields[f.field] = f.value; hasF = true; }
+              else { extra[f.field] = f.value; hasE = true; }
+              applied++;
+            }
+          });
+          if (hasF || hasE) {
+            var okW = Lib.saveCard(row.id, hasF ? fields : null, hasE ? extra : null);
+            if (okW) cardsChanged++; else failed.push(row.id);
+          }
+        });
+        return { ok: failed.length === 0, applied: applied, cardsChanged: cardsChanged, failed: failed };
+      }
+
       // Self-test (dev only): proves a library export restores byte-identically
       // without disturbing clients. Snapshots, round-trips, verifies, restores.
       function verifyLibraryBackup() {
@@ -7456,6 +7767,8 @@
         downloadLibraryBackup: downloadLibraryBackup,
         importLibraryJSON: importLibraryJSON,
         verifyLibraryBackup: verifyLibraryBackup,
+        analyzeBulkImport: analyzeBulkImport,
+        applyBulkImport: applyBulkImport,
         _uid: uid
       };
     })();
