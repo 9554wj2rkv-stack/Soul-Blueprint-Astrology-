@@ -1238,6 +1238,15 @@
       border-radius: 4px; padding: 0.45rem 0.65rem; margin-bottom: 0.9rem;
       font-style: italic;
     }
+    /* Library-only backup row */
+    .lib-backup-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+    .lib-backup-out { font-size: 0.82rem; border-radius: 6px; padding: 0.55rem 0.7rem; margin-bottom: 0.9rem; }
+    .lib-backup-out.ok { background: #eef3ea; color: #3c5a32; border: 1px solid #c7d9ba; }
+    .lib-backup-out.bad { background: #fff3f3; color: #8b2020; border: 1px solid #e5b8b8; }
+    .lv-summary { font-weight: 700; margin-bottom: 0.3rem; }
+    .lv-summary.ok { color: #3c5a32; } .lv-summary.bad { color: #8b2020; }
+    .lv-row { font-size: 0.78rem; padding: 0.1rem 0; }
+    .lv-row.ok { color: #3c5a32; } .lv-row.bad { color: #8b2020; }
     /* Body Blueprint */
     .bb-disclaimer {
       font-size: 0.72rem; color: #8a7f6c; background: #f7f4ee;
@@ -1551,6 +1560,13 @@
     <div class="prac-toolbar">
       <input id="librarySearch" type="text" placeholder="Search houses, planets, points, angles…" autocomplete="off" />
     </div>
+    <div class="lib-backup-row">
+      <button class="btn-prac" id="btnExportLibrary" type="button">⬇ Export Library (JSON)</button>
+      <button class="btn-prac" id="btnRestoreLibrary" type="button">⬆ Restore Library (JSON)</button>
+      <input type="file" id="libraryFile" accept="application/json,.json" hidden />
+      <button class="btn-prac" id="btnVerifyLibrary" type="button" hidden>✔ Run backup verification</button>
+    </div>
+    <div id="libBackupOut" class="lib-backup-out" hidden></div>
     <div class="prac-section">
       <details class="lib-fold" id="libHousesFold">
         <summary class="lib-fold-head">
@@ -5258,6 +5274,57 @@
         });
         $("librarySearch").addEventListener("input", function () { renderLibrary(this.value); });
 
+        // ── Library-only backup / restore (Step 0) ────────────────────────────
+        var libBackupOut = $("libBackupOut");
+        function libBackupMsg(html, kind) {
+          if (!libBackupOut) return;
+          libBackupOut.hidden = false;
+          libBackupOut.className = "lib-backup-out" + (kind ? " " + kind : "");
+          libBackupOut.innerHTML = html;
+        }
+        var S2 = window.SBAStore;
+        if ($("btnExportLibrary")) $("btnExportLibrary").addEventListener("click", function () {
+          try {
+            var n = JSON.parse(S2.exportLibraryJSON()).entryCount;
+            S2.downloadLibraryBackup();
+            libBackupMsg("Exported " + n + " interpretation entr" + (n === 1 ? "y" : "ies") + " to a library backup file.", "ok");
+          } catch (e) { libBackupMsg("Export failed: " + esc(e.message || e), "bad"); }
+        });
+        if ($("btnRestoreLibrary")) $("btnRestoreLibrary").addEventListener("click", function () { $("libraryFile").click(); });
+        if ($("libraryFile")) $("libraryFile").addEventListener("change", function () {
+          var f = this.files && this.files[0]; if (!f) return;
+          var self = this;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var merge = window.confirm(
+              "Restore library backup:\n\nOK = MERGE (file entries fill in / update; your other entries are kept)\nCancel = REPLACE (library becomes exactly this file)"
+            );
+            var res = S2.importLibraryJSON(String(reader.result), merge ? "merge" : "replace");
+            self.value = "";
+            if (!res.ok) { libBackupMsg("Restore failed: " + esc(res.error), "bad"); return; }
+            libBackupMsg("Restored (" + res.mode + "). File had " + res.entriesInFile +
+              " entries. Library went from " + res.overlayBefore + " to " + res.overlayAfter + " entries.", "ok");
+            renderLibrary($("librarySearch") ? $("librarySearch").value : "");
+          };
+          reader.onerror = function () { libBackupMsg("Could not read that file.", "bad"); };
+          reader.readAsText(f);
+        });
+        // Dev-gated verification button (same gate as the other test buttons).
+        try {
+          var devOn = (location.hash.indexOf("dev") !== -1) || localStorage.getItem("sba_dev") === "1";
+          if (devOn && $("btnVerifyLibrary")) $("btnVerifyLibrary").hidden = false;
+        } catch (e) {}
+        if ($("btnVerifyLibrary")) $("btnVerifyLibrary").addEventListener("click", function () {
+          var r = S2.verifyLibraryBackup();
+          var rows = r.checks.map(function (c) {
+            return '<div class="lv-row ' + (c.ok ? "ok" : "bad") + '">' + (c.ok ? "✓" : "✗") + " " +
+              esc(c.name) + (c.detail ? ' <span class="muted">— ' + esc(c.detail) + '</span>' : '') + '</div>';
+          }).join("");
+          libBackupMsg('<div class="lv-summary ' + (r.pass ? "ok" : "bad") + '">' +
+            (r.pass ? "All backup/restore checks passed" : "Some checks FAILED") + '</div>' + rows,
+            r.pass ? "ok" : "bad");
+        });
+
         // Interpretation Matrix: open a category folder, or go back to folders.
         // (Item cards use .lib-card[data-card] and are opened by the global
         // click handler below, exactly like every other library page.)
@@ -7150,6 +7217,130 @@
         return JSON.stringify(bundle, null, 2);
       }
 
+      // ── Library-only backup (Step 0) ─────────────────────────────────────────
+      // A smaller, interpretation-only backup: exactly the overlay that holds
+      // AJ's written content, nothing else. Safe to export, diff, and restore
+      // before bulk-import work. Does NOT touch clients/sessions.
+      function exportLibraryJSON() {
+        var bundle = {
+          format: "sba-library",
+          version: DB_VERSION,
+          exportedAt: nowISO(),
+          entryCount: Object.keys(readLibraryOverlay()).length,
+          library: readLibraryOverlay()
+        };
+        return JSON.stringify(bundle, null, 2);
+      }
+
+      function downloadLibraryBackup() {
+        var data = exportLibraryJSON();
+        var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+        var blob = new Blob([data], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "sba-library-" + stamp + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      }
+
+      // Restore a library-only backup. mode "merge" (incoming entries win per id,
+      // existing non-listed ids kept) or "replace" (overlay becomes the file).
+      // Accepts the sba-library bundle, OR a full sba-practice-backup (uses its
+      // .library), OR a bare overlay object. Never touches clients. Returns a
+      // report; on any structural problem it changes nothing.
+      function importLibraryJSON(jsonText, mode) {
+        var incoming;
+        try { incoming = JSON.parse(jsonText); }
+        catch (e) { return { ok: false, error: "The file is not valid JSON." }; }
+        if (!incoming || typeof incoming !== "object") {
+          return { ok: false, error: "This does not look like an SBA library file." };
+        }
+        var lib = null;
+        if (incoming.format === "sba-library" && incoming.library && typeof incoming.library === "object") {
+          lib = incoming.library;
+        } else if (incoming.library && typeof incoming.library === "object") {
+          lib = incoming.library;                        // full backup bundle
+        } else if (!incoming.format && !incoming.clients && !incoming.clientsDB) {
+          lib = incoming;                                // bare overlay object
+        } else {
+          return { ok: false, error: "No library content found in this file." };
+        }
+        // Validate: only plausible overlay entries (object values) are accepted.
+        var ids = Object.keys(lib), bad = 0;
+        ids.forEach(function (id) { if (!lib[id] || typeof lib[id] !== "object") bad++; });
+        if (bad) return { ok: false, error: bad + " invalid entr" + (bad === 1 ? "y" : "ies") + " in file." };
+
+        var before = readLibraryOverlay();
+        var result;
+        if (mode === "replace") {
+          result = lib;
+        } else {
+          result = {};
+          Object.keys(before).forEach(function (id) { result[id] = before[id]; });
+          ids.forEach(function (id) { result[id] = lib[id]; }); // incoming wins
+        }
+        if (!writeLibraryOverlay(result)) return { ok: false, error: "Could not write to storage (quota?)." };
+        return {
+          ok: true, mode: mode,
+          entriesInFile: ids.length,
+          overlayBefore: Object.keys(before).length,
+          overlayAfter: Object.keys(result).length
+        };
+      }
+
+      // Self-test (dev only): proves a library export restores byte-identically
+      // without disturbing clients. Snapshots, round-trips, verifies, restores.
+      function verifyLibraryBackup() {
+        var checks = [];
+        function chk(name, ok, detail) { checks.push({ name: name, ok: !!ok, detail: detail || "" }); }
+        var snapshotLib = localStorage.getItem(LIBRARY_KEY);
+        var snapshotClients = localStorage.getItem(DB_KEY);
+        try {
+          var exported = exportLibraryJSON();
+          var parsed = JSON.parse(exported);
+          chk("Export is valid JSON with sba-library format", parsed.format === "sba-library");
+          chk("Export entry count matches overlay",
+            parsed.entryCount === Object.keys(readLibraryOverlay()).length,
+            parsed.entryCount + " entries");
+
+          // Round-trip into a REPLACE and confirm identical overlay.
+          var origOverlay = JSON.stringify(readLibraryOverlay());
+          var r = importLibraryJSON(exported, "replace");
+          chk("Restore (replace) reports ok", r.ok, r.error || "");
+          chk("Overlay identical after round-trip", JSON.stringify(readLibraryOverlay()) === origOverlay);
+
+          // Merge of the same file must also be a no-op.
+          var r2 = importLibraryJSON(exported, "merge");
+          chk("Restore (merge) reports ok", r2.ok, r2.error || "");
+          chk("Overlay still identical after merge", JSON.stringify(readLibraryOverlay()) === origOverlay);
+
+          // Clients storage must be completely untouched by any of this.
+          chk("Clients storage untouched", localStorage.getItem(DB_KEY) === snapshotClients);
+
+          // A full-backup bundle's .library must also restore via this path.
+          var fullBundle = JSON.stringify({ format: "sba-practice-backup", library: readLibraryOverlay() });
+          var r3 = importLibraryJSON(fullBundle, "merge");
+          chk("Full-backup .library also restores", r3.ok && JSON.stringify(readLibraryOverlay()) === origOverlay, r3.error || "");
+
+          // Garbage input is rejected and changes nothing.
+          var r4 = importLibraryJSON("{not json", "merge");
+          chk("Invalid JSON rejected (no change)", !r4.ok && JSON.stringify(readLibraryOverlay()) === origOverlay);
+        } catch (e) {
+          chk("exception", false, e.message || String(e));
+        } finally {
+          // Always restore exactly what was there before the test.
+          if (snapshotLib === null) localStorage.removeItem(LIBRARY_KEY);
+          else localStorage.setItem(LIBRARY_KEY, snapshotLib);
+          if (snapshotClients === null) localStorage.removeItem(DB_KEY);
+          else localStorage.setItem(DB_KEY, snapshotClients);
+        }
+        var pass = checks.every(function (c) { return c.ok; });
+        return { pass: pass, checks: checks };
+      }
+
       function downloadBackup() {
         var data = exportJSON();
         var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
@@ -7261,6 +7452,10 @@
         exportJSON: exportJSON,
         downloadBackup: downloadBackup,
         importJSON: importJSON,
+        exportLibraryJSON: exportLibraryJSON,
+        downloadLibraryBackup: downloadLibraryBackup,
+        importLibraryJSON: importLibraryJSON,
+        verifyLibraryBackup: verifyLibraryBackup,
         _uid: uid
       };
     })();
