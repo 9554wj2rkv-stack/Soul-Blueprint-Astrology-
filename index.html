@@ -624,6 +624,18 @@
       margin: 0 0 1.25rem;
       font-style: italic;
     }
+    /* Reference-ring controls (discreet, below the wheel) */
+    .sba-ring-controls {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center;
+      margin: 0.5rem auto 0; max-width: 520px;
+    }
+    .sba-ring-btn {
+      font-family: Georgia, serif; font-size: 0.78rem; color: #5a4e3c;
+      background: #faf7f1; border: 1px solid #c9b896; border-radius: 999px;
+      padding: 0.35rem 0.8rem; min-height: 40px; cursor: pointer;
+    }
+    .sba-ring-btn:active { background: #f3ede2; }
+    .sba-outer-ring { -webkit-user-select: none; user-select: none; }
 
     .wheel-legend {
       display: flex;
@@ -3720,7 +3732,10 @@
       const rotStr = (rot, p) =>
         `rotate(${rot.toFixed(1)},${p.x.toFixed(2)},${p.y.toFixed(2)})`;
 
-      let svg = `<svg viewBox="0 0 560 560" style="width:100%;max-width:520px;display:block;margin:0 auto" aria-label="SBA Wheel — placement by constellation-based house">`;
+      // viewBox widened (inner wheel drawing is UNCHANGED — same CX/CY/radii)
+      // only to make room OUTSIDE OUTER_R for the interactive reference ring.
+      // Center 280,280 stays centered: (280+46)/652 = 0.5.
+      let svg = `<svg viewBox="-46 -46 652 652" style="width:100%;max-width:520px;display:block;margin:0 auto" aria-label="SBA Wheel — placement by constellation-based house with rotatable reference ring">`;
 
       // 1. House pie slices
       HOUSE_DEFS.forEach((h, i) => {
@@ -3798,6 +3813,42 @@
       svg += `<circle cx="${CX}" cy="${CY}" r="${CENTER_R}" fill="#f5f3ef" stroke="#c0b8b0" stroke-width="0.75" />`;
       svg += `<text x="${CX}" y="${CY}" text-anchor="middle" dominant-baseline="middle" font-size="7" fill="#aaa" font-family="Georgia, serif" letter-spacing="0.5">SBA</text>`;
 
+      // ── Interactive outer reference ring (rotates independently) ──────────────
+      // A purely visual comparison overlay. It carries NO natal data and never
+      // alters placements. Geometry is stored as data-* so the ring can be wired
+      // for interaction on both freshly-rendered and saved (snapshot) charts.
+      // The 13 reference signs follow the sequence given for this ring.
+      const RING_INNER_R = 277, RING_OUTER_R = 322, RING_NUM_R = 310, RING_SIGN_R = 290;
+      const RING_SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Ophiuchus","Sagittarius","Capricorn","Aquarius","Pisces"];
+      function annulusPath(cx, cy, ri, ro, s, e) {
+        const o1 = lonToXY(cx, cy, ro, s), o2 = lonToXY(cx, cy, ro, e);
+        const i2 = lonToXY(cx, cy, ri, e), i1 = lonToXY(cx, cy, ri, s);
+        return `M ${o1.x.toFixed(2)} ${o1.y.toFixed(2)} A ${ro} ${ro} 0 0 1 ${o2.x.toFixed(2)} ${o2.y.toFixed(2)} `
+             + `L ${i2.x.toFixed(2)} ${i2.y.toFixed(2)} A ${ri} ${ri} 0 0 0 ${i1.x.toFixed(2)} ${i1.y.toFixed(2)} Z`;
+      }
+      let ring = `<g class="sba-outer-ring" data-cx="${CX}" data-cy="${CY}" data-deg="${DEG}" data-count="${NUM_HOUSES}" data-angle="0" transform="rotate(0 ${CX} ${CY})" style="touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;">`;
+      // Transparent fallback hit-band ensures the whole ring is draggable.
+      ring += `<circle cx="${CX}" cy="${CY}" r="${(RING_INNER_R + RING_OUTER_R) / 2}" fill="none" stroke="#000" stroke-opacity="0" stroke-width="${RING_OUTER_R - RING_INNER_R}" />`;
+      for (let i = 0; i < NUM_HOUSES; i++) {
+        const col = (HOUSE_DEFS[i] && HOUSE_DEFS[i].color) || "#faf7f1";
+        ring += `<path d="${annulusPath(CX, CY, RING_INNER_R, RING_OUTER_R, i * DEG, (i + 1) * DEG)}" fill="${col}" stroke="#cac2ba" stroke-width="0.5" />`;
+      }
+      ring += `<circle cx="${CX}" cy="${CY}" r="${RING_OUTER_R}" fill="none" stroke="#9a9088" stroke-width="1" />`;
+      ring += `<circle cx="${CX}" cy="${CY}" r="${RING_INNER_R}" fill="none" stroke="#b0a89a" stroke-width="0.8" />`;
+      for (let i = 0; i < NUM_HOUSES; i++) {
+        const p1 = lonToXY(CX, CY, RING_INNER_R, i * DEG), p2 = lonToXY(CX, CY, RING_OUTER_R, i * DEG);
+        ring += `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" stroke="#b0a89a" stroke-width="0.6" />`;
+      }
+      for (let i = 0; i < NUM_HOUSES; i++) {
+        const midLon = i * DEG + DEG / 2;
+        const rot = tangentRot(midLon - ROTATION_OFFSET);
+        const pNum = lonToXY(CX, CY, RING_NUM_R, midLon), pSign = lonToXY(CX, CY, RING_SIGN_R, midLon);
+        ring += `<text x="${pNum.x.toFixed(2)}" y="${pNum.y.toFixed(2)}" transform="${rotStr(rot, pNum)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-weight="700" font-size="11" fill="#2a2620">${i + 1}</text>`;
+        ring += `<text x="${pSign.x.toFixed(2)}" y="${pSign.y.toFixed(2)}" transform="${rotStr(rot, pSign)}" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-size="8" fill="#555">${esc(RING_SIGNS[i])}</text>`;
+      }
+      ring += `</g>`;
+      svg += ring;
+
       svg += `</svg>`;
 
       svg += `<div class="wheel-legend">`;
@@ -3808,6 +3859,81 @@
 
       return svg;
     }
+
+    // Wire the interactive reference ring inside a container (fresh chart OR a
+    // loaded saved snapshot). Reads geometry from the ring's data-* attributes,
+    // so it needs no chart internals. Rotation lives only in the DOM transform /
+    // a local variable — never in any natal record. Idempotent per ring element.
+    function wireOuterRing(root) {
+      if (!root || !root.querySelector) return;
+      var ring = root.querySelector(".sba-outer-ring");
+      if (!ring || ring.__sbaWired) return;
+      ring.__sbaWired = true;
+      var cx = parseFloat(ring.getAttribute("data-cx")) || 280;
+      var cy = parseFloat(ring.getAttribute("data-cy")) || 280;
+      var deg = parseFloat(ring.getAttribute("data-deg")) || (360 / 13);
+      var svg = ring.ownerSVGElement || (ring.closest && ring.closest("svg"));
+      var angle = parseFloat(ring.getAttribute("data-angle")) || 0;
+      var snap = false, dragging = false, startPointerAng = 0, startAngle = 0;
+
+      function apply() {
+        ring.setAttribute("transform", "rotate(" + angle.toFixed(3) + " " + cx + " " + cy + ")");
+        ring.setAttribute("data-angle", angle.toFixed(3));
+      }
+      function pointerAngle(evt) {
+        if (!svg || !svg.getScreenCTM) return 0;
+        var ctm = svg.getScreenCTM(); if (!ctm) return 0;
+        var pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+        var loc = pt.matrixTransform(ctm.inverse());
+        return Math.atan2(loc.y - cy, loc.x - cx) * 180 / Math.PI;
+      }
+      function down(e) {
+        dragging = true; startPointerAng = pointerAngle(e); startAngle = angle;
+        ring.style.cursor = "grabbing";
+        if (ring.setPointerCapture && e.pointerId != null) { try { ring.setPointerCapture(e.pointerId); } catch (_) {} }
+        e.preventDefault(); e.stopPropagation();
+      }
+      function move(e) {
+        if (!dragging) return;
+        var d = pointerAngle(e) - startPointerAng;
+        angle = startAngle + d; apply(); e.preventDefault();
+      }
+      function up(e) {
+        if (!dragging) return;
+        dragging = false; ring.style.cursor = "grab";
+        if (snap) { angle = Math.round(angle / deg) * deg; apply(); }
+        if (ring.releasePointerCapture && e.pointerId != null) { try { ring.releasePointerCapture(e.pointerId); } catch (_) {} }
+      }
+      if (window.PointerEvent) {
+        ring.addEventListener("pointerdown", down);
+        ring.addEventListener("pointermove", move);
+        ring.addEventListener("pointerup", up);
+        ring.addEventListener("pointercancel", up);
+      } else {
+        // Very old fallback (iOS <13): touch events.
+        ring.addEventListener("touchstart", function (e) { if (e.touches[0]) { e.clientX = e.touches[0].clientX; e.clientY = e.touches[0].clientY; } down(e); }, { passive: false });
+        ring.addEventListener("touchmove", function (e) { if (e.touches[0]) { e.clientX = e.touches[0].clientX; e.clientY = e.touches[0].clientY; } move(e); }, { passive: false });
+        ring.addEventListener("touchend", up);
+      }
+
+      var ctr = root.querySelector(".sba-ring-controls");
+      if (ctr) {
+        var reset = ctr.querySelector('[data-ring-act="reset"]');
+        var modeBtn = ctr.querySelector('[data-ring-act="mode"]');
+        var togBtn = ctr.querySelector('[data-ring-act="toggle"]');
+        if (reset) reset.addEventListener("click", function () { angle = 0; apply(); });
+        if (modeBtn) modeBtn.addEventListener("click", function () {
+          snap = !snap; modeBtn.textContent = snap ? "Mode: Snap" : "Mode: Free";
+          if (snap) { angle = Math.round(angle / deg) * deg; apply(); }
+        });
+        if (togBtn) togBtn.addEventListener("click", function () {
+          var hidden = ring.style.display === "none";
+          ring.style.display = hidden ? "" : "none";
+          togBtn.textContent = hidden ? "Hide Ring" : "Show Ring";
+        });
+      }
+    }
+    if (typeof window !== "undefined") window.SBAWireOuterRing = wireOuterRing;
 
     // ═════════════════════════════════════════════════════════════════════════
     // App wiring — mirrors App.tsx state, validation, geocoding, and rendering.
@@ -4322,6 +4448,12 @@
             13 SBA houses shown as the fixed background. Placements are positioned by exact ecliptic longitude.
           </p>
           ${buildWheelSVG(result)}
+          <div class="sba-ring-controls" role="group" aria-label="Reference ring controls">
+            <button type="button" class="sba-ring-btn" data-ring-act="reset">Reset Ring</button>
+            <button type="button" class="sba-ring-btn" data-ring-act="mode">Mode: Free</button>
+            <button type="button" class="sba-ring-btn" data-ring-act="toggle">Hide Ring</button>
+          </div>
+          <p class="wheel-note" style="margin-top:0.3rem;">Drag the outer ring to compare houses. This is a visual overlay only — it never changes the natal placements.</p>
         </div>
 
         <div class="section-divider"></div>
@@ -4384,6 +4516,8 @@
         </div>
       `;
       resultsEl.hidden = false;
+      // Activate the rotatable reference ring on the freshly rendered chart.
+      try { wireOuterRing(resultsEl); } catch (e) {}
     }
 
     // ── Event wiring ──────────────────────────────────────────────────────────
@@ -6914,6 +7048,8 @@
         // Inject the saved immutable HTML snapshot exactly as it was saved.
         sstep("snapshot", function () {
           $("sessionSnapshot").innerHTML = s.snapshotHTML || '<div class="empty-note">No rendered snapshot stored for this session.</div>';
+          // Re-activate the rotatable reference ring on this saved chart (if present).
+          try { if (window.SBAWireOuterRing) window.SBAWireOuterRing($("sessionSnapshot")); } catch (e) {}
         });
 
         showScreen("session");
@@ -6965,10 +7101,27 @@
 
       var pendingSave = null; // { snapshotHTML, birth }
 
+      // Capture the results HTML for a session snapshot, with the reference ring
+      // normalised to its DEFAULT alignment/visibility — so a reader's temporary
+      // rotation is NEVER saved into the natal record. Uses a clone so the live
+      // view the reader is looking at is not disturbed.
+      function snapshotResultsHTML() {
+        var rs = $("resultsSection");
+        if (!rs) return "";
+        var clone = rs.cloneNode(true);
+        Array.prototype.forEach.call(clone.querySelectorAll(".sba-outer-ring"), function (g) {
+          var cx = g.getAttribute("data-cx") || 280, cy = g.getAttribute("data-cy") || 280;
+          g.setAttribute("transform", "rotate(0 " + cx + " " + cy + ")");
+          g.setAttribute("data-angle", "0");
+          g.style.display = "";
+        });
+        return clone.innerHTML;
+      }
+
       function openSaveModal() {
         if (!resultsReady()) { alert("Please calculate a reading first."); return; }
         pendingSave = {
-          snapshotHTML: $("resultsSection").innerHTML,
+          snapshotHTML: snapshotResultsHTML(),
           birth: readFormBirthData(),
         };
         $("saveConsultDate").value = new Date().toISOString().slice(0, 10);
