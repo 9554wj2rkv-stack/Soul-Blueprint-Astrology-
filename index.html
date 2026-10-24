@@ -5856,6 +5856,7 @@
         { key: "angle-cases",      label: "Angle Cases" },
         { key: "point-cases",      label: "Point Cases" },
         { key: "complex-examples", label: "Complex Examples" },
+        { key: "chiron-healing",   label: "Chiron · Healing & Integration" },
         // ── SBA Body Blueprint library (health/body-oriented interpretation) ──
         { key: "bb-sign",       label: "Body Blueprint · Signs",        group: "body-blueprint" },
         { key: "bb-house",      label: "Body Blueprint · Houses",       group: "body-blueprint" },
@@ -5955,6 +5956,12 @@
         BODY_KEYS.forEach(function (k) {
           cards["body:" + k] = { id: "body:" + k, slug: slugify(k), kind: "body", title: k, banner: BODY_BANNERS[k] || "", fields: blankFields() };
         });
+        // Chiron — The Wounded Healer, added to the Celestial Body Library with
+        // the same six editable interpretation fields as the other bodies. The
+        // existing Chiron POINT (point:Chiron, used by the chart) is left intact.
+        cards["body:Chiron"] = { id: "body:Chiron", slug: "chiron", kind: "body", title: "Chiron",
+          banner: "The Wounded Healer — From Wounding to Wisdom · Minor planetary body / healing archetype",
+          fields: blankFields() };
         ANGLE_KEYS.forEach(function (k) {
           cards["angle:" + k] = { id: "angle:" + k, slug: slugify(k), kind: "angle", title: k, fields: blankFields() };
         });
@@ -6050,6 +6057,23 @@
         BODY_KEYS.forEach(function (p) {
           HOUSE_NUMS.forEach(function (h) { addMatrix("planet-house", p + " + House " + h); });
         });
+        // Chiron across all 13 SBA signs and all 13 SBA houses. IDs follow the
+        // existing convention: matrix:planet-sign:chiron-<sign> and
+        // matrix:planet-house:chiron-house-<n> — so the prepared Chiron + 13 Signs
+        // bulk JSON maps directly, and nothing existing is duplicated.
+        SIGN_KEYS.forEach(function (s) { addMatrix("planet-sign", "Chiron + " + s); });
+        HOUSE_NUMS.forEach(function (h) { addMatrix("planet-house", "Chiron + House " + h); });
+        // Dedicated Chiron · Healing & Integration section — reflective, editable
+        // themes (content written by AJ; ships empty). Reuses the matrix card
+        // system so editing, saving, bulk import, links and export all apply.
+        [
+          "The Original Wound & Recurring Patterns",
+          "Protective Responses & Emotional Triggers",
+          "Shame, Vulnerability & Self-Acceptance",
+          "Healing Through Awareness & Integration",
+          "Personal Wisdom Through Lived Experience",
+          "Boundaries & Compassionate Self-Responsibility"
+        ].forEach(function (t) { addMatrix("chiron-healing", t); });
         MATRIX_ANGLES.forEach(function (a) {
           SIGN_KEYS.forEach(function (s) { addMatrix("angle-cases", a + " + " + s); });
         });
