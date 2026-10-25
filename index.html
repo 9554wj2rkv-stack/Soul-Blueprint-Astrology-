@@ -4795,10 +4795,10 @@
         // for display only, so previously-written content is never lost.
         if (card.bbEntry) {
           var bbx = card.extra || {};
-          BB_FIELDS.forEach(function (f) {
+          L.BB_FIELDS.forEach(function (f) {
             html += viewField(L.EXTRA_LABELS[f.key], (bbx[f.key] || "").trim());
             if (f.key === "bb_vitamins") {
-              html += '<div class="bb-disclaimer">' + esc(BB_NUTRIENT_DISCLAIMER) + '</div>';
+              html += '<div class="bb-disclaimer">' + esc(L.BB_NUTRIENT_DISCLAIMER) + '</div>';
             }
           });
           html += linksViewHTML();
@@ -4925,11 +4925,11 @@
         // becomes the starting point (originals remain in storage regardless).
         if (card.bbEntry) {
           var bbe = card.extra || {};
-          BB_FIELDS.forEach(function (f) {
+          L.BB_FIELDS.forEach(function (f) {
             html += editField("extra:" + f.key, L.EXTRA_LABELS[f.key], bbe[f.key],
               "[Write the SBA Body Blueprint interpretation for " + card.title + " \u2014 " + f.label + ". Themes only, no medical claims.]");
             if (f.key === "bb_vitamins") {
-              html += '<div class="bb-disclaimer">' + esc(BB_NUTRIENT_DISCLAIMER) + '</div>';
+              html += '<div class="bb-disclaimer">' + esc(L.BB_NUTRIENT_DISCLAIMER) + '</div>';
             }
           });
           html += linksPickerHTML();
@@ -6647,6 +6647,14 @@
         houseIdForConstellation: houseIdForConstellation,
         bodyId: bodyId, angleId: angleId, pointId: pointId, cycleId: cycleId,
         houseRef: function () { return HOUSE_REF.slice(); },
+        // Body Blueprint constants — exposed so the other script blocks
+        // (card modal in block 0, client Body Blueprint in block 2) can reach
+        // them. They live in this IIFE's scope and are otherwise invisible
+        // across <script> boundaries.
+        BB_FIELDS: BB_FIELDS,
+        BB_CLIENT_CATEGORIES: BB_CLIENT_CATEGORIES,
+        BB_NUTRIENT_DISCLAIMER: BB_NUTRIENT_DISCLAIMER,
+        BB_WEIGHTS: BB_WEIGHTS,
         _defaults: function () { return DEFAULTS; }
       };
     })();
@@ -6913,7 +6921,7 @@
           (haveAny ? 'Based on this client\u2019s resolved sign placements.' :
             'Add a saved reading with sign placements to generate this profile.') + '</div>';
 
-        var body = BB_CLIENT_CATEGORIES.map(function (cat) {
+        var body = Lib.BB_CLIENT_CATEGORIES.map(function (cat) {
           // Collect any written doctrine for this category across the source signs.
           var parts = sources.map(function (s) {
             var v = ((s.card.extra || {})[cat.key] || "").trim();
@@ -6923,7 +6931,7 @@
             ? parts.map(function (p) { return '<div class="bb-src"><span class="bb-src-tag">' + esc(p.label) + '</span>' + esc(p.text) + '</div>'; }).join("")
             : '<div class="bb-empty">Body Blueprint interpretation not yet written.</div>';
           var extra = (cat.key === "bb_vitamins" || cat.key === "bb_minerals")
-            ? '<div class="bb-disclaimer">' + esc(BB_NUTRIENT_DISCLAIMER) + '</div>' : '';
+            ? '<div class="bb-disclaimer">' + esc(Lib.BB_NUTRIENT_DISCLAIMER) + '</div>' : '';
           return '<details class="bb-cat"><summary>' + esc(cat.label) + '</summary>' +
             '<div class="bb-cat-body">' + inner + extra + '</div></details>';
         }).join("");
