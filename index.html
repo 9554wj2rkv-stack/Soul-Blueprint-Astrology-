@@ -1323,6 +1323,23 @@
     .bb-src-tag { display: inline-block; font-size: 0.68rem; color: #6b5e44; background: #f3ede2;
       border-radius: 999px; padding: 0.1rem 0.5rem; margin-right: 0.4rem; }
 
+    /* Cycle Guides — permanent reference chapters (SBA Year & SBA Lunar Month) */
+    .cg-sub { font-size: 0.84rem; color: #6b5e44; letter-spacing: 0.02em; margin-bottom: 0.75rem; }
+    .cg-intro { font-size: 0.98rem; line-height: 1.65; color: #2c2820; background: #faf7f0;
+      border: 1px solid #e6ddca; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 0.95rem; white-space: pre-wrap; }
+    .cg-controls { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .cg-controls button { font-family: inherit; font-size: 0.82rem; padding: 0.4rem 0.85rem; min-height: 44px;
+      border-radius: 999px; border: 1px solid #c9b896; background: #f3efe7; color: #5a4e3c; cursor: pointer; }
+    .cg-controls button:hover { background: #ece5d6; }
+    .cg-section { border: 1px solid #ded7cb; border-radius: 8px; margin-bottom: 0.55rem; background: #fff; }
+    .cg-section > summary { padding: 0.8rem 0.95rem; min-height: 48px; display: flex; align-items: center;
+      font-size: 1.02rem; font-weight: 600; color: #2c2820; cursor: pointer; list-style: none; }
+    .cg-section > summary::-webkit-details-marker { display: none; }
+    .cg-section > summary::after { content: "+"; margin-left: auto; color: #b0a58c; font-weight: 400; font-size: 1.2rem; }
+    .cg-section[open] > summary::after { content: "\2212"; }
+    .cg-body { padding: 0.35rem 0.95rem 0.95rem; font-size: 0.98rem; line-height: 1.7; color: #2c2820; white-space: pre-wrap; }
+    .cg-body.empty { color: #b08a8a; font-style: italic; }
+
     /* House three-level section headers */
     .interp-level-head {
       font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
@@ -4831,6 +4848,31 @@
           return;
         }
 
+        // Cycle Guides: dedicated reference-chapter layout (view). Only the two
+        // CYCLES entries carry cycleGuide; every other category is untouched.
+        if (card.cycleGuide && L.CYCLE_GUIDES && L.CYCLE_GUIDES[card.id]) {
+          var g = L.CYCLE_GUIDES[card.id];
+          var cgx = card.extra || {};
+          html += '<div class="cg-sub">' + esc(g.subtitle) + '</div>';
+          var introTxt = (cgx[g.introKey] || "").trim() || (g.introSeed || "");
+          if (introTxt) html += '<div class="cg-intro">' + esc(introTxt) + '</div>';
+          html += '<div class="cg-controls">' +
+            '<button type="button" data-cg-act="expand">Expand all</button>' +
+            '<button type="button" data-cg-act="collapse">Collapse all</button></div>';
+          g.sections.forEach(function (s, i) {
+            var val = (cgx[s.key] || "").trim();
+            var shown = val || (s.seed || "");
+            var isEmpty = !val && !shown;
+            html += '<details class="cg-section"' + (i === 0 ? ' open' : '') + '>' +
+              '<summary>' + esc(s.title) + '</summary>' +
+              '<div class="cg-body' + (isEmpty ? ' empty' : '') + '">' +
+              (shown ? esc(shown) : 'Not written yet.') + '</div></details>';
+          });
+          html += linksViewHTML();
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
         // Non-house cards: unchanged generic layout.
         fieldOrder().forEach(function (k) {
           html += viewField(L.FIELD_LABELS[k], card.fields[k]);
@@ -4969,6 +5011,27 @@
           html += hrEdit("hr_challenges", "shadow");
           html += hrEdit("hr_rulingPlanetModifiers", null);
           html += hrEdit("hr_practitionerReadingOrder", "practitionerNote");
+          html += linksPickerHTML();
+          $("interpBody").innerHTML = html;
+          return;
+        }
+
+        // Cycle Guides: dedicated reference-chapter layout (edit). Each section is
+        // an editable textarea saved to extra:cg_* via the existing save pipeline.
+        // Empty sections prefill from the methodology seed so it becomes the
+        // starting point (and nothing invented is ever forced in).
+        if (card.cycleGuide && L.CYCLE_GUIDES && L.CYCLE_GUIDES[card.id]) {
+          var ge = L.CYCLE_GUIDES[card.id];
+          var cge = card.extra || {};
+          html += '<div class="cg-sub">' + esc(ge.subtitle) + '</div>';
+          html += editField("extra:" + ge.introKey, "Introduction",
+            (cge[ge.introKey] || "").trim() || (ge.introSeed || ""),
+            "[Short introduction to this cycle guide.]");
+          ge.sections.forEach(function (s) {
+            html += editField("extra:" + s.key, s.title,
+              (cge[s.key] || "").trim() || (s.seed || ""),
+              "[Write the SBA " + card.title + " guide section — " + s.title + ". SBA methodology only; mark anything undefined.]");
+          });
           html += linksPickerHTML();
           $("interpBody").innerHTML = html;
           return;
@@ -5114,7 +5177,10 @@
          "libElementsFold", "libRetrosFold", "libMatrixFold"].forEach(function (id) {
           var el = $(id); if (el) el.open = searching;
         });
-        $("libCycles").innerHTML = groups.cycle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
+        $("libCycles").innerHTML = groups.cycle.map(function (c) {
+          var cg = L.CYCLE_GUIDES && L.CYCLE_GUIDES[c.id];
+          return libCardHTML(c, cg ? cg.subtitle : "");
+        }).join("") || '<div class="empty-note">No matches.</div>';
         $("libBodies").innerHTML = groups.body.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libAngles").innerHTML = groups.angle.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
         $("libPoints").innerHTML = groups.point.map(function (c) { return libCardHTML(c); }).join("") || '<div class="empty-note">No matches.</div>';
@@ -5799,6 +5865,12 @@
         // Inside the card: toggle link chips (edit mode), filter the picker,
         // navigate to a related page (view mode), and track dirtiness.
         $("interpBody").addEventListener("click", function (e) {
+          var cgAct = e.target.closest("[data-cg-act]");
+          if (cgAct) {
+            var open = cgAct.getAttribute("data-cg-act") === "expand";
+            Array.prototype.forEach.call($("interpBody").querySelectorAll("details.cg-section"), function (d) { d.open = open; });
+            return;
+          }
           var pick = e.target.closest(".link-chip.pick");
           if (pick) { pick.classList.toggle("on"); recomputeDirty(); return; }
           var goto = e.target.closest("[data-goto]");
@@ -6050,6 +6122,59 @@
       ];
       var BB_NUTRIENT_DISCLAIMER = "An SBA chart cannot diagnose a vitamin or mineral deficiency. Nutrient status depends on diet, physiology, health conditions and, where appropriate, clinical testing.";
 
+      // ── Cycle Guides (permanent reference chapters) ──────────────────────────
+      // Two entries only: cycle:SBA Year and cycle:SBA Lunar Month. These are
+      // educational reference guides, NOT readings for a specific person/year/month.
+      // Content is stored in extra:cg_* keys — the SAME proven overlay persistence,
+      // export/restore and bulk-import path as the Body Blueprint (nothing new to
+      // migrate). Seeds below contain ONLY methodology already established in this
+      // app's code; anything not yet defined is marked "SBA methodology to be
+      // defined" and left for AJ to complete. Astronomical facts are kept distinct
+      // from SBA's symbolic interpretation.
+      var TBD = "SBA methodology to be defined.";
+      var CYCLE_GUIDES = {
+        "cycle:SBA Year": {
+          subtitle: "Annual cycle · 13-house interpretation · Yearly themes",
+          introKey: "cg_year_intro",
+          introSeed: "The SBA Year is Soul Blueprint Astrology's annual cycle. It begins on the first New Moon after the March equinox and runs until the next, so each SBA Year contains either 12 or 13 lunar months. This is a reference guide to how the annual cycle is structured and read — not a reading for any specific person or year.",
+          sections: [
+            { key: "cg_year_understanding", title: "Understanding the SBA Year",
+              seed: "The SBA Year starts at the first New Moon after the March equinox and is divided into successive lunar months (12 or 13 per year). A person's Entry House for the year is derived from this date-based New-Year cycle, not from birth time.\n\n" + TBD + " (the full set of rules that give the year its overall meaning)" },
+            { key: "cg_year_mainTheme", title: "The Year's Main Theme",
+              seed: TBD + " (how the overarching theme for an SBA Year is identified and interpreted)" },
+            { key: "cg_year_houses", title: "The 13 Houses Across the Year",
+              seed: "Soul Blueprint Astrology uses 13 houses, including House 13.\n\n" + TBD + " (how the thirteen houses are mapped across the months of the year and how emphasis shifts)" },
+            { key: "cg_year_transitions", title: "Important Transitions",
+              seed: "Each SBA month begins at a New Moon; the SBA Calendar also tracks planetary stations and retrograde periods for the year.\n\n" + TBD + " (how meaningful transitions within the year are identified and read)" },
+            { key: "cg_year_working", title: "Working With Your Year",
+              seed: TBD + " (practical reflection and planning throughout the year)" },
+            { key: "cg_year_practitioner", title: "Practitioner Guidance",
+              seed: TBD + " (how a practitioner introduces the annual cycle and applies it within a client's reading)" }
+          ]
+        },
+        "cycle:SBA Lunar Month": {
+          subtitle: "Moon phases · 13 signs · Monthly guidance",
+          introKey: "cg_lunar_intro",
+          introSeed: "The SBA Lunar Month is Soul Blueprint Astrology's monthly cycle, following the Moon from one New Moon to the next. Moon phases are astronomical facts computed for each date; SBA's symbolic interpretation of those phases is described separately below. This is a reference guide — not a reading for any specific month.",
+          sections: [
+            { key: "cg_lunar_understanding", title: "Understanding the SBA Lunar Month",
+              seed: "An SBA Lunar Month runs from one New Moon to the next; an SBA Year contains 12 or 13 of them. The four phases (New, waxing, Full, waning) are astronomical facts computed for each date.\n\n" + TBD + " (how the lunar month sits within the SBA Year and its overall symbolic role)" },
+            { key: "cg_lunar_newMoon", title: "New Moon",
+              seed: "Astronomical: the Sun–Moon conjunction that begins the month.\nSymbolic focus: beginnings, intentions and reflection.\n\n" + TBD + " (SBA's specific symbolic reading of the New Moon)" },
+            { key: "cg_lunar_waxing", title: "Waxing Moon",
+              seed: "Astronomical: the Moon growing from New toward Full.\nSymbolic focus: development, momentum and action.\n\n" + TBD + " (SBA's specific symbolic reading of the waxing phase)" },
+            { key: "cg_lunar_full", title: "Full Moon",
+              seed: "Astronomical: the Sun–Moon opposition at mid-month.\nSymbolic focus: culmination, awareness and reflection.\n\n" + TBD + " (SBA's specific symbolic reading of the Full Moon)" },
+            { key: "cg_lunar_waning", title: "Waning Moon",
+              seed: "Astronomical: the Moon diminishing from Full back toward New.\nSymbolic focus: release, integration and preparation.\n\n" + TBD + " (SBA's specific symbolic reading of the waning phase)" },
+            { key: "cg_lunar_sunMoon", title: "The Sun and Moon in SBA",
+              seed: "Soul Blueprint Astrology uses 13 signs (including Ophiuchus) and 13 houses.\n\n" + TBD + " (how the actual sign and house positions of the Sun and Moon contribute to a particular month's interpretation)" },
+            { key: "cg_lunar_practitioner", title: "Practitioner Guidance",
+              seed: TBD + " (how a practitioner guides a client through the lunar cycle)" }
+          ]
+        }
+      };
+
       // Build the default catalogue: a flat map keyed by stable ids.
       // id formats:  house:1 … house:13 | body:Sun | angle:Ascendant (AC) |
       //              point:North Node | cycle:SBA Year
@@ -6085,7 +6210,8 @@
         });
 
         CYCLE_KEYS.forEach(function (k) {
-          cards["cycle:" + k] = { id: "cycle:" + k, slug: slugify(k), kind: "cycle", title: k, fields: blankFields() };
+          cards["cycle:" + k] = { id: "cycle:" + k, slug: slugify(k), kind: "cycle", title: k,
+            cycleGuide: true, fields: blankFields() };
         });
         BODY_KEYS.forEach(function (k) {
           cards["body:" + k] = { id: "body:" + k, slug: slugify(k), kind: "body", title: k, banner: BODY_BANNERS[k] || "", fields: blankFields() };
@@ -6619,7 +6745,25 @@
           bb_recoveryPattern: "RECOVERY PATTERN",
           bb_watchFor: "WATCH FOR",
           bb_bodyStrategy: "PERSONAL BODY STRATEGY",
-          bb_notes: "NOTES"
+          bb_notes: "NOTES",
+          // Cycle Guide fields (cg_ namespaced). Listing them here means the
+          // existing bulk importer accepts them automatically (same vocabulary
+          // mechanism as bb_), and export/restore carry them with no changes.
+          cg_year_intro: "SBA Year — Introduction",
+          cg_year_understanding: "Understanding the SBA Year",
+          cg_year_mainTheme: "The Year's Main Theme",
+          cg_year_houses: "The 13 Houses Across the Year",
+          cg_year_transitions: "Important Transitions",
+          cg_year_working: "Working With Your Year",
+          cg_year_practitioner: "Practitioner Guidance (Year)",
+          cg_lunar_intro: "SBA Lunar Month — Introduction",
+          cg_lunar_understanding: "Understanding the SBA Lunar Month",
+          cg_lunar_newMoon: "New Moon",
+          cg_lunar_waxing: "Waxing Moon",
+          cg_lunar_full: "Full Moon",
+          cg_lunar_waning: "Waning Moon",
+          cg_lunar_sunMoon: "The Sun and Moon in SBA",
+          cg_lunar_practitioner: "Practitioner Guidance (Lunar)"
         },
         ARCH_PLACEHOLDER: "[AJ to write archetypal energy here]",
         ENTRY_PLACEHOLDER: "[AJ to write entry theme here]",
@@ -6655,6 +6799,7 @@
         BB_CLIENT_CATEGORIES: BB_CLIENT_CATEGORIES,
         BB_NUTRIENT_DISCLAIMER: BB_NUTRIENT_DISCLAIMER,
         BB_WEIGHTS: BB_WEIGHTS,
+        CYCLE_GUIDES: CYCLE_GUIDES,
         _defaults: function () { return DEFAULTS; }
       };
     })();
