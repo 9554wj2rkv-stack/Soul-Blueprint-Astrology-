@@ -1154,6 +1154,7 @@
     .lib-card .lc-status { font-size: 0.68rem; margin-top: 0.35rem; letter-spacing: 0.04em; }
     .lc-status.empty { color: #b08a8a; }
     .lc-status.written { color: #5a8a5a; }
+    .lc-status.draft { color: #b07d2a; }
 
     /* Interpretation Matrix folder cards */
     .matrix-folder { border-left: 3px solid #c9b896; }
@@ -1214,6 +1215,28 @@
     .interp-row .ir-status { font-size: 0.68rem; white-space: nowrap; }
     .ir-status.empty { color: #b08a8a; }
     .ir-status.written { color: #5a8a5a; }
+    .ir-status.draft { color: #b07d2a; }
+
+    /* Reading Engine · Pattern Preview (Phase 1–2, read-only diagnostic) */
+    .re-preview { margin-top: 0.9rem; border: 1px solid #d8c7a6; border-radius: 8px; background: #fbf8f1; }
+    .re-preview > summary { padding: 0.75rem 0.9rem; min-height: 44px; display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.98rem; font-weight: 600; color: #3a3530; cursor: pointer; list-style: none; }
+    .re-preview > summary::-webkit-details-marker { display: none; }
+    .re-tag { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #6b5e44; background: #efe6d2; border-radius: 999px; padding: 0.12rem 0.5rem; }
+    #enginePreviewBody { padding: 0.3rem 0.9rem 0.95rem; }
+    .re-block { margin: 0.7rem 0 0.4rem; }
+    .re-h { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.07em; color: #8a7f6c; font-weight: 700;
+      border-bottom: 1px solid #e6ddca; padding-bottom: 0.25rem; margin-bottom: 0.45rem; }
+    .re-pattern { border-left: 3px solid #c9a24a; background: #fff; border-radius: 4px; padding: 0.5rem 0.7rem; margin-bottom: 0.5rem; }
+    .re-pattern .re-t { font-size: 0.95rem; font-weight: 600; color: #2c2820; }
+    .re-pattern .re-d { font-size: 0.9rem; color: #3a3530; line-height: 1.55; margin-top: 0.2rem; }
+    .re-chip { display: inline-block; font-size: 0.72rem; color: #5a4e3c; background: #f1ebdd;
+      border-radius: 999px; padding: 0.08rem 0.5rem; margin: 0.15rem 0.25rem 0 0; }
+    .re-src { font-size: 0.8rem; color: #4a4336; margin: 0.12rem 0; }
+    .re-src .re-s-written { color: #5a8a5a; } .re-src .re-s-draft { color: #b07d2a; } .re-src .re-s-missing { color: #b08a8a; }
+    .re-missing { font-size: 0.85rem; color: #8b2020; background: #fff4f4; border: 1px solid #e5c7c7; border-radius: 6px; padding: 0.45rem 0.6rem; }
+    .re-note { font-size: 0.76rem; color: #8a7f6c; font-style: italic; margin-top: 0.4rem; }
     .interp-group-head {
       font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
       color: #aaa; margin: 0.85rem 0.4rem 0.2rem;
@@ -2091,6 +2114,10 @@
     <div class="interp-panel" id="interpPanel" hidden>
       <div class="prac-section-head">Interpretation <span class="muted">tap any placement to read / edit your SBA meaning</span></div>
       <div id="interpPlacements"></div>
+      <details class="re-preview" id="enginePreview">
+        <summary>Reading Engine · Pattern Preview <span class="re-tag">Phase 1–2 · read-only</span></summary>
+        <div id="enginePreviewBody"></div>
+      </details>
     </div>
   </div>
 
@@ -5117,10 +5144,15 @@
       }
 
       // ── Library screen ───────────────────────────────────────────────────────
+      // 3-state badge markup (shared). status: "written" | "draft" | "missing".
+      function statusBadgeHTML(status, cls) {
+        var base = cls || "lc-status";
+        if (status === "written") return '<div class="' + base + ' written">● Written</div>';
+        if (status === "draft")   return '<div class="' + base + ' draft">◐ Draft</div>';
+        return '<div class="' + base + ' empty">○ Missing</div>';
+      }
       function statusBadge(card) {
-        return L.isCardEmpty(card)
-          ? '<div class="lc-status empty">○ not written yet</div>'
-          : '<div class="lc-status written">● written</div>';
+        return statusBadgeHTML(L.cardStatus ? L.cardStatus(card) : (L.isCardEmpty(card) ? "missing" : "written"));
       }
 
       function libCardHTML(card, sub) {
@@ -5284,8 +5316,7 @@
       function matrixItemCardHTML(it) {
         return '<button class="lib-card" data-card="' + esc(it.id) + '">' +
           '<div class="lc-title">' + esc(it.title) + '</div>' +
-          (it.written ? '<div class="lc-status written">● written</div>'
-                      : '<div class="lc-status empty">○ not written yet</div>') +
+          statusBadgeHTML(it.status || (it.written ? "written" : "missing")) +
           '</button>';
       }
 
@@ -5481,9 +5512,11 @@
 
       function rowHTML(p, showTemplate) {
         var card = p.id ? L.getCard(p.id) : null;
-        var status = card
-          ? (L.isCardEmpty(card) ? '<span class="ir-status empty">○ not written</span>' : '<span class="ir-status written">● written</span>')
-          : '<span class="ir-status empty">—</span>';
+        var st = card ? (L.cardStatus ? L.cardStatus(card) : (L.isCardEmpty(card) ? "missing" : "written")) : null;
+        var status = !card ? '<span class="ir-status empty">—</span>'
+          : st === "written" ? '<span class="ir-status written">● Written</span>'
+          : st === "draft"   ? '<span class="ir-status draft">◐ Draft</span>'
+          :                    '<span class="ir-status empty">○ Missing</span>';
         var sub = "";
         if (p.constellation && p.constellation !== "—") {
           sub = esc(p.constellation) + (p.houseName ? " · " + esc(p.houseName) : "");
@@ -5540,6 +5573,43 @@
             return rowHTML({ key: c.title, id: id, constellation: "", houseName: "" }, false);
           }).join("");
         }
+        host.innerHTML = html;
+        renderEnginePreview();
+      }
+
+      // Read-only preview of the Reading Engine foundation (Phase 1–2). Renders
+      // detected patterns + supporting library status from the structured result.
+      // Never writes anything; never fabricates meaning.
+      function renderEnginePreview() {
+        var host = $("enginePreviewBody"); if (!host) return;
+        var eng = window.SBAReadingEngine, result = window.__SBA_LAST_RESULT__;
+        if (!eng || !result) { host.innerHTML = '<div class="re-note">Calculate a reading to preview detected patterns.</div>'; return; }
+        var a; try { a = eng.analyze(result); } catch (e) { host.innerHTML = '<div class="re-note">Preview unavailable: ' + esc(e.message) + '</div>'; return; }
+        if (!a) { host.innerHTML = ''; return; }
+        function badge(s){ return '<span class="re-s-' + esc(s) + '">' + (s==="written"?"● Written":s==="draft"?"◐ Draft":"○ Missing") + '</span>'; }
+        var c = a.context, html = "";
+        html += '<div class="re-block"><div class="re-h">Chart data retrieved</div>' +
+          '<span class="re-chip">SBA Year ' + esc(c.sbaYear) + '</span>' +
+          '<span class="re-chip">Lunar month ' + esc(c.lunarMonth) + '</span>' +
+          '<span class="re-chip">Entry House ' + esc(c.entryHouse.number) + (c.entryHouse.archetype ? ' · ' + esc(c.entryHouse.archetype) : '') + '</span>' +
+          '<span class="re-chip">' + c.bodies.length + ' bodies</span>' +
+          '<span class="re-chip">' + c.angles.length + ' angles</span>' +
+          '<span class="re-chip">' + c.points.length + ' points</span></div>';
+        html += '<div class="re-block"><div class="re-h">Recurring patterns (' + a.patterns.length + ')</div>';
+        a.patterns.forEach(function (p) {
+          html += '<div class="re-pattern"><div class="re-t">' + esc(p.title) + '</div>' +
+            '<div class="re-d">' + esc(p.detail) + '</div>';
+          (p.sources || []).forEach(function (s) {
+            html += '<div class="re-src">' + esc(s.label) + ' — ' + badge(s.status) + '</div>';
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+        if (a.missing.length) {
+          html += '<div class="re-block"><div class="re-h">Missing / draft interpretations (' + a.missing.length + ')</div>' +
+            '<div class="re-missing">' + a.missing.map(function (s) { return esc(s.label) + ' (' + esc(s.status) + ')'; }).join(" · ") + '</div></div>';
+        }
+        html += '<div class="re-note">Read-only foundation preview (Phase 1–2). Official SBA Library content only — no synthesis, notes, or client text yet.</div>';
         host.innerHTML = html;
       }
 
@@ -6629,6 +6699,40 @@
         return false;
       }
 
+      // ── Placeholder-aware status (Written / Draft / Missing) ──────────────────
+      // A value counts as a PLACEHOLDER (scaffolding, not finished writing) when,
+      // trimmed, it is wholly a bracketed prompt like "[AJ to write …]" or
+      // "[Write the SBA …]", or it is only the "SBA methodology to be defined"
+      // marker. Any other non-empty text is genuine content. This NEVER edits or
+      // removes content — it only classifies it for the status badges.
+      function isPlaceholderText(s) {
+        var t = (s == null ? "" : String(s)).trim();
+        if (!t) return true; // empty is "not written" (handled as missing by callers)
+        if (t.charAt(0) === "[" && t.charAt(t.length - 1) === "]") return true;
+        var low = t.toLowerCase();
+        if (low.indexOf("sba methodology to be defined") !== -1 &&
+            low.replace(/sba methodology to be defined\.?/g, "").replace(/[()\s.]/g, "").length === 0) return true;
+        return false;
+      }
+      // Classify an overlay entry's text content: "written" | "draft" | "missing".
+      // written = has at least one genuine (non-placeholder) value.
+      // draft    = has values, but every one is a placeholder.
+      // missing  = no values at all.
+      function overlayEntryStatus(e) {
+        if (!e) return "missing";
+        var values = [];
+        if (e.fields) Object.keys(e.fields).forEach(function (k) { if ((e.fields[k] || "").trim()) values.push(e.fields[k]); });
+        if (e.extra)  Object.keys(e.extra).forEach(function (k) { if ((e.extra[k] || "").trim()) values.push(e.extra[k]); });
+        if (!values.length) return (Array.isArray(e.links) && e.links.length) ? "written" : "missing";
+        return values.some(function (v) { return !isPlaceholderText(v); }) ? "written" : "draft";
+      }
+      // Classify a MERGED card (defaults + overlay) the same way. Used by badges
+      // that already hold a full card (library grids, interpretation panel).
+      function cardStatus(card) {
+        if (!card) return "missing";
+        return overlayEntryStatus({ fields: card.fields, extra: card.extra, links: card.links });
+      }
+
       // ── Matrix listing helpers (lightweight; no deep-clone) ───────────────────
       function matrixCats() { return MATRIX_CATS.map(function (c) { return { key: c.key, label: c.label }; }); }
 
@@ -6638,6 +6742,7 @@
           var d = DEFAULTS[id];
           if (d.kind === "matrix" && d.matrixCat === catKey) {
             out.push({ id: id, title: d.title, slug: d.slug, written: overlayEntryWritten(ov[id]),
+                       status: overlayEntryStatus(ov[id]),
                        doctrine: !!d.doctrine, ruledHouse: d.ruledHouse, destinationHouse: d.destinationHouse });
           }
         });
@@ -6664,7 +6769,7 @@
           var d = DEFAULTS[id];
           if (d.kind !== "matrix") return;
           var hay = (d.title + " " + (d.slug || "")).toLowerCase();
-          if (hay.indexOf(q) !== -1) out.push({ id: id, title: d.title, cat: d.matrixCat, written: overlayEntryWritten(ov[id]) });
+          if (hay.indexOf(q) !== -1) out.push({ id: id, title: d.title, cat: d.matrixCat, written: overlayEntryWritten(ov[id]), status: overlayEntryStatus(ov[id]) });
         });
         return out;
       }
@@ -6783,6 +6888,9 @@
         matrixCounts: matrixCounts,
         searchMatrix: searchMatrix,
         isCardEmpty: isCardEmpty,
+        isPlaceholderText: isPlaceholderText,
+        overlayEntryStatus: overlayEntryStatus,
+        cardStatus: cardStatus,
         elementForSign: elementForSign,
         getLinks: getLinks,
         setLinks: setLinks,
@@ -9823,6 +9931,207 @@
 
     window.SBACalendarUI = { open: open };
   })();
+  </script>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════════════
+       SBA READING ENGINE — Phase 1–2 (READ-ONLY FOUNDATION)
+       · Reads the structured chart (window.__SBA_LAST_RESULT__) and the
+         authoritative library (window.SBALibrary). It NEVER calculates a chart,
+         NEVER writes to the library, and NEVER fabricates interpretation.
+       · Phase 1: buildContext()  — normalized placements + resolved library ids
+                                     + placeholder-aware status (Written/Draft/Missing).
+       · Phase 2: detectPatterns() — deterministic, inspectable pattern rules,
+                                     each carrying references to the placements and
+                                     SBA Library entries that support it (de-duplicated).
+       Synthesis, practitioner notes and client reports are LATER phases.
+       ═══════════════════════════════════════════════════════════════════════ */
+    (function () {
+      "use strict";
+      var ENGINE = {};
+      function L() { return window.SBALibrary; }
+
+      function statusOf(id) {
+        var lib = L(); if (!lib || !id) return "missing";
+        var c = lib.getCard(id); if (!c) return "missing";
+        return lib.cardStatus ? lib.cardStatus(c) : (lib.isCardEmpty(c) ? "missing" : "written");
+      }
+      // Authoritative title→id maps for the combination matrices (no slug guessing).
+      function matrixMap(cat) {
+        var lib = L(), m = {};
+        if (!lib || !lib.matrixList) return m;
+        lib.matrixList(cat).forEach(function (it) { m[it.title.toLowerCase()] = it; });
+        return m;
+      }
+      function findBody(arr, name) { for (var i = 0; i < arr.length; i++) if (arr[i].name === name) return arr[i]; return null; }
+      function dedupeSources(list) {
+        var seen = {}, out = [];
+        list.forEach(function (s) { if (!s || !s.id || seen[s.id]) return; seen[s.id] = 1; out.push(s); });
+        return out;
+      }
+
+      // ── Phase 1: normalized reading context ──
+      function buildContext(result) {
+        var lib = L();
+        if (!result || !lib) return null;
+        var psMap = matrixMap("planet-sign");
+        var phMap = matrixMap("planet-house");
+
+        function norm(p, group) {
+          var sign = p.sign || p.constellation || null;
+          var houseNum = (p.house != null ? p.house : (p.sbaHouseNumber != null ? p.sbaHouseNumber : null));
+          var cardId = group === "body" ? (lib.bodyId ? lib.bodyId(p.name) : null)
+                     : group === "angle" ? (lib.angleId ? lib.angleId(p.name) : null)
+                     : group === "point" ? (lib.pointId ? lib.pointId(p.name) : null) : null;
+          var houseId = (sign && lib.houseIdForConstellation) ? lib.houseIdForConstellation(sign) : null;
+          var sc = sign ? psMap[(p.name + " + " + sign).toLowerCase()] : null;
+          var hc = houseNum != null ? phMap[(p.name + " + House " + houseNum).toLowerCase()] : null;
+          return {
+            name: p.name, group: group, sign: sign, house: houseNum,
+            element: p.element || (lib.elementForSign ? lib.elementForSign(sign) : null),
+            retrograde: !!p.retrograde, motion: p.motion || null,
+            cardId: cardId, cardStatus: statusOf(cardId),
+            houseCardId: houseId, houseCardStatus: statusOf(houseId),
+            signComboId: sc ? sc.id : null, signComboStatus: sc ? statusOf(sc.id) : "missing",
+            houseComboId: hc ? hc.id : null, houseComboStatus: hc ? statusOf(hc.id) : "missing"
+          };
+        }
+        var bodies = (result.planets || []).map(function (p) { return norm(p, "body"); });
+        var angles = (result.angles || []).map(function (p) { return norm(p, "angle"); });
+        var points = (result.additionalPoints || [])
+          .filter(function (p) { return p && p.name && p.sign && p.sign !== "—"; })
+          .map(function (p) { return norm(p, "point"); });
+
+        // Entry House — permanent lifelong archetype, kept DISTINCT from the lunar
+        // month (methodology decision). Number currently equals the birth lunar
+        // month (the only source defined in code); its meaning is sourced from the
+        // house card, never made identical to the lunar-month interpretation.
+        var ehNum = (result.sbaLunarMonth != null) ? result.sbaLunarMonth : null;
+        var ehId = ehNum != null ? ("house:" + ehNum) : null;
+        var ehCard = (ehId && lib.getCard) ? lib.getCard(ehId) : null;
+
+        return {
+          sbaYear: result.sbaYear, sbaYearStart: result.sbaYearStart, lunarMonth: result.sbaLunarMonth,
+          entryHouse: {
+            number: ehNum, cardId: ehId, cardStatus: statusOf(ehId),
+            archetype: (ehCard && ehCard.ref) ? ehCard.ref.name : null,
+            note: "Permanent lifelong archetype — distinct from the SBA lunar month even when the numbers match."
+          },
+          bodies: bodies, angles: angles, points: points, all: bodies.concat(angles, points),
+          elementBalance: result.elementBalance || null
+        };
+      }
+
+      // ── Phase 2: deterministic pattern detection ──
+      function detectPatterns(ctx) {
+        if (!ctx) return [];
+        var pats = [], bodies = ctx.bodies;
+
+        // 1) House concentrations (≥2 bodies share a house) — dedup by body.
+        var byHouse = {};
+        bodies.forEach(function (b) { if (b.house != null) (byHouse[b.house] = byHouse[b.house] || []).push(b); });
+        Object.keys(byHouse).map(Number).sort(function (a, b) { return a - b; }).forEach(function (h) {
+          var m = byHouse[h];
+          if (m.length >= 2) {
+            pats.push({
+              type: "house-concentration",
+              title: (m.length >= 3 ? "Stellium" : "Concentration") + " in House " + h,
+              detail: m.map(function (x) { return x.name; }).join(", ") + " share House " + h +
+                (m[0].sign ? " (" + m[0].sign + ")" : "") + ".",
+              placements: m.map(function (x) { return x.name; }),
+              sources: dedupeSources(
+                [{ id: m[0].houseCardId, label: "House " + h, status: m[0].houseCardStatus }]
+                  .concat(m.map(function (x) { return { id: x.cardId, label: x.name, status: x.cardStatus }; }))
+                  .concat(m.map(function (x) { return { id: x.houseComboId, label: x.name + " + House " + h, status: x.houseComboStatus }; })))
+            });
+          }
+        });
+
+        // 2) Sign concentrations (≥2 bodies share a sign).
+        var bySign = {};
+        bodies.forEach(function (b) { if (b.sign) (bySign[b.sign] = bySign[b.sign] || []).push(b); });
+        Object.keys(bySign).forEach(function (s) {
+          var m = bySign[s];
+          if (m.length >= 2) {
+            pats.push({
+              type: "sign-concentration", title: m.length + " bodies in " + s,
+              detail: m.map(function (x) { return x.name; }).join(", ") + " all in " + s + ".",
+              placements: m.map(function (x) { return x.name; }),
+              sources: dedupeSources(m.map(function (x) { return { id: x.signComboId, label: x.name + " + " + s, status: x.signComboStatus }; }))
+            });
+          }
+        });
+
+        // 3) Moon–Sun relationship (Moon primary, Sun secondary).
+        var moon = findBody(bodies, "Moon"), sun = findBody(bodies, "Sun");
+        if (moon && sun) {
+          var rel = [];
+          rel.push(moon.house === sun.house ? "same house (House " + moon.house + ")" : "House " + moon.house + " vs House " + sun.house);
+          if (moon.sign && sun.sign) rel.push(moon.sign + " vs " + sun.sign);
+          if (moon.element && sun.element) rel.push(moon.element === sun.element ? "same element (" + moon.element + ")" : moon.element + " / " + sun.element);
+          pats.push({
+            type: "moon-sun", title: "Moon–Sun relationship",
+            detail: "Moon (" + moon.sign + ", House " + moon.house + ") leads; Sun (" + sun.sign + ", House " + sun.house + ") secondary — " + rel.join("; ") + ".",
+            placements: ["Moon", "Sun"],
+            sources: dedupeSources([
+              { id: moon.cardId, label: "Moon", status: moon.cardStatus },
+              { id: moon.signComboId, label: "Moon + " + moon.sign, status: moon.signComboStatus },
+              { id: sun.cardId, label: "Sun", status: sun.cardStatus },
+              { id: sun.signComboId, label: "Sun + " + sun.sign, status: sun.signComboStatus }
+            ])
+          });
+        }
+
+        // 4) Entry House connections.
+        if (ctx.entryHouse && ctx.entryHouse.number != null) {
+          var inEntry = bodies.filter(function (b) { return b.house === ctx.entryHouse.number; });
+          pats.push({
+            type: "entry-house",
+            title: "Entry House " + ctx.entryHouse.number + (ctx.entryHouse.archetype ? " · " + ctx.entryHouse.archetype : ""),
+            detail: "Permanent lifelong archetype (House " + ctx.entryHouse.number + ")." +
+              (inEntry.length ? " Reinforced by " + inEntry.map(function (b) { return b.name; }).join(", ") + " placed in this house." : " No bodies occupy this house in the chart.") +
+              " Kept distinct from birth lunar month " + ctx.lunarMonth + ".",
+            placements: inEntry.map(function (b) { return b.name; }),
+            sources: dedupeSources([{ id: ctx.entryHouse.cardId, label: "House " + ctx.entryHouse.number + " (Entry archetype)", status: ctx.entryHouse.cardStatus }]
+              .concat(inEntry.map(function (b) { return { id: b.cardId, label: b.name, status: b.cardStatus }; })))
+          });
+        }
+
+        // 5) Element balance (dominant / absent) — metadata pattern, no library card.
+        if (ctx.elementBalance) {
+          var eb = ctx.elementBalance, keys = ["Fire", "Earth", "Air", "Water"];
+          var max = Math.max.apply(null, keys.map(function (k) { return eb[k] || 0; }));
+          var dom = keys.filter(function (k) { return (eb[k] || 0) === max && max > 0; });
+          var absent = keys.filter(function (k) { return !(eb[k] || 0); });
+          pats.push({
+            type: "element", title: "Element balance",
+            detail: "Fire " + (eb.Fire || 0) + " · Earth " + (eb.Earth || 0) + " · Air " + (eb.Air || 0) + " · Water " + (eb.Water || 0) + "." +
+              (dom.length ? " Dominant: " + dom.join(", ") + "." : "") + (absent.length ? " Absent: " + absent.join(", ") + "." : ""),
+            placements: [], sources: []
+          });
+        }
+        return pats;
+      }
+
+      function analyze(result) {
+        var ctx = buildContext(result);
+        if (!ctx) return null;
+        var patterns = detectPatterns(ctx);
+        var seen = {}, sources = [], missing = [];
+        patterns.forEach(function (p) {
+          (p.sources || []).forEach(function (s) {
+            if (!s.id || seen[s.id]) return; seen[s.id] = 1; sources.push(s);
+            if (s.status === "missing" || s.status === "draft") missing.push(s);
+          });
+        });
+        return { context: ctx, patterns: patterns, sources: sources, missing: missing };
+      }
+
+      ENGINE.buildContext = buildContext;
+      ENGINE.detectPatterns = detectPatterns;
+      ENGINE.analyze = analyze;
+      window.SBAReadingEngine = ENGINE;
+    })();
   </script>
 </body>
 </html>
