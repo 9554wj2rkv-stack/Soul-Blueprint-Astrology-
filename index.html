@@ -5706,6 +5706,10 @@
       function capturedReadingHTML() {
         return buildReadingDraftHTML(window.__SBA_LAST_RESULT__);
       }
+      // Exposed globally so the save flow (a different script block) can capture
+      // the reading WITHOUT a cross-scope ReferenceError. Capture must never be
+      // able to break saving, so callers wrap it in try/catch.
+      window.__sbaCaptureReadingHTML = function () { try { return capturedReadingHTML(); } catch (e) { return ""; } };
 
       function renderReadingDraft() {
         var host = $("readingDraft"); if (!host) return;
@@ -7564,6 +7568,9 @@
 
       function confirmSave() {
         if (!pendingSave) { closeSaveModal(); return; }
+        if (confirmSave._busy) return;            // guard against accidental duplicate saves
+        confirmSave._busy = true;
+        try {
         var birth = pendingSave.birth;
         var sessionData = {
           consultationDate: $("saveConsultDate").value || new Date().toISOString().slice(0, 10),
@@ -7574,7 +7581,9 @@
           clientFacingNotes: $("saveClientNotes").value || "",
           followUpDate: $("saveFollowUp").value || "",
           tags: collectTags(),
-          readingHTML: capturedReadingHTML(),
+          // Cross-block + fully guarded: a reading-capture failure can never
+          // block the save. Worst case the session saves without a reading.
+          readingHTML: (typeof window.__sbaCaptureReadingHTML === "function" ? window.__sbaCaptureReadingHTML() : ""),
         };
 
         var clientId = ctx.saveClientId;
@@ -7608,6 +7617,9 @@
                   input: sessionData.input,
                   readingHTML: sessionData.readingHTML,
                 });
+                var vU = S.getClient(existing.id);
+                var okU = vU && (vU.sessions || []).some(function (x) { return x.id === latest.id; });
+                if (!okU) { window.alert("The session could not be updated in storage. Your existing data was not changed."); return; }
                 closeSaveModal();
                 openSession(existing.id, latest.id);
                 return;
@@ -7621,9 +7633,18 @@
         }
 
         var saved = S.addSession(clientId, sessionData);
+        if (!saved) { window.alert("Could not save: the client could not be matched. Nothing was changed."); return; }
+        // Report success only AFTER confirming the session persisted to storage.
+        var verify = S.getClient(clientId);
+        var persisted = verify && (verify.sessions || []).some(function (x) { return x.id === saved.id; });
+        if (!persisted) { window.alert("The session did not persist to storage. Please try again — your data was not changed."); return; }
         closeSaveModal();
-        if (saved) openSession(clientId, saved.id);
-        else openClient(clientId);
+        openSession(clientId, saved.id);
+        } catch (e) {
+          window.alert("Saving failed: " + (e && e.message ? e.message : e) + "\n\nYour existing data was not changed.");
+        } finally {
+          confirmSave._busy = false;
+        }
       }
 
       // ── New client / new session entry points ────────────────────────────────
