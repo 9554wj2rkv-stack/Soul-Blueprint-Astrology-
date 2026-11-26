@@ -1237,6 +1237,30 @@
     .re-src .re-s-written { color: #5a8a5a; } .re-src .re-s-draft { color: #b07d2a; } .re-src .re-s-missing { color: #b08a8a; }
     .re-missing { font-size: 0.85rem; color: #8b2020; background: #fff4f4; border: 1px solid #e5c7c7; border-radius: 6px; padding: 0.45rem 0.6rem; }
     .re-note { font-size: 0.76rem; color: #8a7f6c; font-style: italic; margin-top: 0.4rem; }
+    .re-ex { font-size: 0.82rem; color: #4a4336; line-height: 1.5; margin: 0.15rem 0 0.1rem 0.9rem; padding-left: 0.5rem; border-left: 2px solid #e0d6bd; }
+    .re-pl { border-left: 3px solid #b9c7a8; background: #fff; border-radius: 4px; padding: 0.5rem 0.7rem; margin-bottom: 0.5rem; }
+    .re-gap { font-size: 0.85rem; color: #6b5e44; line-height: 1.5; margin: 0.25rem 0; }
+
+    /* Phase 3 — practitioner review draft */
+    .rd-genwrap { margin-top: 1rem; }
+    #btnGenReading { width: 100%; }
+    .rd-head { font-family: Georgia, serif; font-size: 1.15rem; color: #2c2820; margin: 1rem 0 0.3rem; }
+    .rd-sec { border-radius: 8px; padding: 0.7rem 0.85rem; margin-bottom: 0.6rem; background: #fff; border: 1px solid #e4ddcf; }
+    .rd-sec.rd-high { border-left: 4px solid #c9a24a; }
+    .rd-sec.rd-medium { border-left: 4px solid #b9c7a8; }
+    .rd-sec.rd-low { border-left: 4px solid #d8cdb4; background: #fcfaf5; }
+    .rd-sec.rd-flag { border-left: 4px solid #d0a0a0; background: #fdf6f4; }
+    .rd-t { font-size: 1rem; font-weight: 700; color: #2c2820; margin-bottom: 0.35rem; }
+    .rd-gen { font-size: 0.97rem; line-height: 1.65; color: #3a3530; font-style: italic; margin-bottom: 0.5rem; }
+    .rd-src { font-size: 0.95rem; line-height: 1.6; color: #2c2820; margin: 0.35rem 0; padding-left: 0.6rem; border-left: 2px solid #e0d6bd; }
+    .rd-cite { display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: #8a7f6c; font-weight: 700; margin-bottom: 0.1rem; }
+    .rd-q { color: #2c2820; }
+    .rd-inspect { margin-top: 0.8rem; border: 1px solid #d8c7a6; border-radius: 8px; background: #faf7f1; }
+    .rd-inspect > summary { padding: 0.7rem 0.9rem; min-height: 44px; display: flex; align-items: center; font-size: 0.95rem; font-weight: 600; color: #3a3530; cursor: pointer; }
+    .rd-inspect-body { padding: 0.3rem 0.9rem 0.9rem; }
+    .rd-isec { margin: 0.5rem 0; }
+    .rd-ititle { font-size: 0.82rem; font-weight: 700; color: #6b5e44; margin-bottom: 0.2rem; }
+    .rd-id { font-size: 0.72rem; color: #a99f8c; }
     .interp-group-head {
       font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
       color: #aaa; margin: 0.85rem 0.4rem 0.2rem;
@@ -1605,6 +1629,9 @@
     <div class="prac-head" id="sessionHeader"></div>
     <div class="prac-actions-row" id="sessionActions"></div>
     <div class="session-meta" id="sessionMeta"></div>
+    <div class="section-divider"></div>
+    <!-- Saved generated Soul Blueprint reading (if one was saved with the session) -->
+    <div id="sessionReading"></div>
     <div class="section-divider"></div>
     <!-- Saved immutable HTML snapshot is injected here verbatim -->
     <div class="snapshot-wrap" id="sessionSnapshot"></div>
@@ -2118,6 +2145,10 @@
         <summary>Reading Engine · Pattern Preview <span class="re-tag">Phase 1–2 · read-only</span></summary>
         <div id="enginePreviewBody"></div>
       </details>
+      <div class="rd-genwrap">
+        <button class="btn-prac primary" id="btnGenReading" type="button">Generate Soul Blueprint Reading (Draft)</button>
+        <div id="readingDraft"></div>
+      </div>
     </div>
   </div>
 
@@ -5587,6 +5618,8 @@
         var a; try { a = eng.analyze(result); } catch (e) { host.innerHTML = '<div class="re-note">Preview unavailable: ' + esc(e.message) + '</div>'; return; }
         if (!a) { host.innerHTML = ''; return; }
         function badge(s){ return '<span class="re-s-' + esc(s) + '">' + (s==="written"?"● Written":s==="draft"?"◐ Draft":"○ Missing") + '</span>'; }
+        function srcLine(s){ return '<div class="re-src">' + esc(s.label) + ' — ' + badge(s.status) +
+          (s.excerpt ? '<div class="re-ex">' + esc(s.excerpt) + '</div>' : '') + '</div>'; }
         var c = a.context, html = "";
         html += '<div class="re-block"><div class="re-h">Chart data retrieved</div>' +
           '<span class="re-chip">SBA Year ' + esc(c.sbaYear) + '</span>' +
@@ -5595,22 +5628,116 @@
           '<span class="re-chip">' + c.bodies.length + ' bodies</span>' +
           '<span class="re-chip">' + c.angles.length + ' angles</span>' +
           '<span class="re-chip">' + c.points.length + ' points</span></div>';
+
+        // Themes (cross-linked clusters) — shown first so shared placements read as one theme.
+        if (a.themes && a.themes.length) {
+          html += '<div class="re-block"><div class="re-h">Connected themes (' + a.themes.length + ')</div>';
+          a.themes.forEach(function (t) {
+            html += '<div class="re-pattern"><div class="re-t">House ' + esc(t.house) + ' · ' + esc(t.sign) + ' — ' + esc(t.bodies.join(", ")) + '</div>' +
+              '<div class="re-d">' + esc(t.note) + '</div>';
+            (t.cards || []).forEach(function (s) { html += srcLine(s); });
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+
         html += '<div class="re-block"><div class="re-h">Recurring patterns (' + a.patterns.length + ')</div>';
         a.patterns.forEach(function (p) {
           html += '<div class="re-pattern"><div class="re-t">' + esc(p.title) + '</div>' +
             '<div class="re-d">' + esc(p.detail) + '</div>';
-          (p.sources || []).forEach(function (s) {
-            html += '<div class="re-src">' + esc(s.label) + ' — ' + badge(s.status) + '</div>';
-          });
+          (p.sources || []).forEach(function (s) { html += srcLine(s); });
           html += '</div>';
         });
         html += '</div>';
+
+        // Every library entry connected to each placement, with retrieved content.
+        html += '<div class="re-block"><div class="re-h">Connected library entries per placement</div>';
+        c.all.forEach(function (pl) {
+          if (!pl.connections || !pl.connections.length) return;
+          html += '<div class="re-pl"><div class="re-t">' + esc(pl.name) + (pl.sign ? ' · ' + esc(pl.sign) : '') + (pl.house != null ? ' · House ' + esc(pl.house) : '') + '</div>';
+          pl.connections.forEach(function (s) { html += srcLine(s); });
+          html += '</div>';
+        });
+        html += '</div>';
+
+        if (c.emptyHouses && c.emptyHouses.length) {
+          html += '<div class="re-block"><div class="re-h">Empty houses · lighter emphasis (' + c.emptyHouses.length + ' of 13)</div>' +
+            '<div class="re-note" style="margin-top:0;margin-bottom:0.4rem;">All 13 houses are part of the blueprint. Empty houses receive lighter emphasis unless meaningful connections justify more — never treated as lacking energy.</div>';
+          c.emptyHouses.forEach(function (h) {
+            html += '<div class="re-pl" style="border-left-color:#d8cdb4;"><div class="re-t">House ' + esc(h.house) + (h.sign ? ' · ' + esc(h.sign) : '') + (h.archetype ? ' · ' + esc(h.archetype) : '') + '</div>';
+            (h.cards || []).forEach(function (s) { html += srcLine(s); });
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+
         if (a.missing.length) {
           html += '<div class="re-block"><div class="re-h">Missing / draft interpretations (' + a.missing.length + ')</div>' +
             '<div class="re-missing">' + a.missing.map(function (s) { return esc(s.label) + ' (' + esc(s.status) + ')'; }).join(" · ") + '</div></div>';
         }
-        html += '<div class="re-note">Read-only foundation preview (Phase 1–2). Official SBA Library content only — no synthesis, notes, or client text yet.</div>';
+
+        if (a.coverage) {
+          html += '<div class="re-block"><div class="re-h">Category coverage</div>' +
+            '<div class="re-d"><b>Connected:</b> ' + a.coverage.wired.map(esc).join(" · ") + '</div>';
+          html += '<div class="re-h" style="margin-top:0.6rem;">Relationships still missing / undefined</div>';
+          a.coverage.gaps.forEach(function (g) { html += '<div class="re-gap">• ' + esc(g) + '</div>'; });
+          html += '</div>';
+        }
+
+        html += '<div class="re-note">Read-only foundation preview (Phase 1–2). Official SBA Library content only — no synthesis, practitioner notes, or client text. Excerpts are the first written lines of each entry; blank = not yet written in your library.</div>';
         host.innerHTML = html;
+      }
+
+      // Phase 3 — practitioner review DRAFT (read-only). Clean reading + a
+      // separate SBA source-inspection view. Generated connections are labelled;
+      // established meaning is quoted and attributed. Nothing is persisted.
+      // Build the generated-reading HTML from a chart result (pure — returns a
+      // string). Used both for the live preview and for saving the reading into a
+      // consultation session so it persists and reopens.
+      function buildReadingDraftHTML(result) {
+        var eng = window.SBAReadingEngine;
+        if (!eng || !result) return "";
+        var a, r;
+        try { a = eng.analyze(result); r = eng.synthesize(a); } catch (e) { return '<div class="re-note">Reading unavailable: ' + esc(e.message) + '</div>'; }
+        if (!r) return "";
+        return readingSectionsHTML(r);
+      }
+      // Returns the generated reading HTML for the CURRENT chart, or "" if none.
+      function capturedReadingHTML() {
+        return buildReadingDraftHTML(window.__SBA_LAST_RESULT__);
+      }
+
+      function renderReadingDraft() {
+        var host = $("readingDraft"); if (!host) return;
+        var eng = window.SBAReadingEngine, result = window.__SBA_LAST_RESULT__;
+        if (!eng || !result) { host.innerHTML = '<div class="re-note">Calculate a reading first, then generate the draft.</div>'; return; }
+        host.innerHTML = buildReadingDraftHTML(result) +
+          '<div class="re-note" style="margin-top:0.5rem;">Saving this chart as a consultation session stores this reading with it, so it reopens from the client profile.</div>';
+      }
+
+      function readingSectionsHTML(r) {
+        var html = '<div class="rd-head">SBA Soul Blueprint — Practitioner Review Draft</div>' +
+          '<div class="re-note" style="margin-bottom:0.6rem;">Draft for practitioner review, not a finalized client report. Italic lines are engine connections (structural); quoted passages are your SBA Library, shown with their source.</div>';
+        r.sections.forEach(function (s) {
+          html += '<div class="rd-sec rd-' + esc(s.emphasis) + '"><div class="rd-t">' + esc(s.title) + '</div>';
+          if (s.generated) html += '<div class="rd-gen">' + esc(s.generated) + '</div>';
+          var withText = (s.sources || []).filter(function (x) { return x.excerpt; });
+          withText.forEach(function (x) {
+            html += '<div class="rd-src"><span class="rd-cite">' + esc(x.label) + '</span><span class="rd-q">' + esc(x.excerpt) + '</span></div>';
+          });
+          html += '</div>';
+        });
+        html += '<details class="rd-inspect"><summary>SBA Source Inspection (practitioner)</summary><div class="rd-inspect-body">';
+        r.sections.forEach(function (s) {
+          if (!(s.sources || []).length) return;
+          html += '<div class="rd-isec"><div class="rd-ititle">' + esc(s.title) + '</div>';
+          s.sources.forEach(function (x) {
+            html += '<div class="re-src">' + esc(x.label) + ' — ' + (x.status === "written" ? '<span class="re-s-written">● Written</span>' : x.status === "draft" ? '<span class="re-s-draft">◐ Draft</span>' : '<span class="re-s-missing">○ Missing</span>') + ' <span class="rd-id">' + esc(x.id) + '</span></div>';
+          });
+          html += '</div>';
+        });
+        html += '</div></details>';
+        return html;
       }
 
       function refreshPanelStatuses() {
@@ -5925,6 +6052,7 @@
           }
         });
 
+        if ($("btnGenReading")) $("btnGenReading").addEventListener("click", renderReadingDraft);
         $("interpClose").addEventListener("click", closeCard);
         $("interpEdit").addEventListener("click", startEdit);
         $("interpSave").addEventListener("click", saveEdit);
@@ -7306,6 +7434,16 @@
           $("sessionMeta").innerHTML = meta || '<div class="empty-note">No notes recorded for this session.</div>';
         });
 
+        // Saved Soul Blueprint reading (if one was stored with this session).
+        sstep("reading", function () {
+          var rc = $("sessionReading"); if (!rc) return;
+          if (s.readingHTML) {
+            rc.innerHTML = '<div class="snapshot-wrap">' + s.readingHTML + '</div>';
+          } else {
+            rc.innerHTML = '<div class="empty-note">No generated reading was saved with this session. Open a New Session from this client, calculate, generate the reading, then save to attach it.</div>';
+          }
+        });
+
         // Inject the saved immutable HTML snapshot exactly as it was saved.
         sstep("snapshot", function () {
           $("sessionSnapshot").innerHTML = s.snapshotHTML || '<div class="empty-note">No rendered snapshot stored for this session.</div>';
@@ -7436,6 +7574,7 @@
           clientFacingNotes: $("saveClientNotes").value || "",
           followUpDate: $("saveFollowUp").value || "",
           tags: collectTags(),
+          readingHTML: capturedReadingHTML(),
         };
 
         var clientId = ctx.saveClientId;
@@ -7467,6 +7606,7 @@
                   allowResultReplace: true,
                   snapshotHTML: sessionData.snapshotHTML,
                   input: sessionData.input,
+                  readingHTML: sessionData.readingHTML,
                 });
                 closeSaveModal();
                 openSession(existing.id, latest.id);
@@ -7960,6 +8100,7 @@
           consultationDate: sessionData.consultationDate || (nowISO().slice(0, 10)),
           result: sessionData.result || null,           // immutable snapshot (structured)
           snapshotHTML: sessionData.snapshotHTML || "",  // immutable rendered HTML snapshot
+          readingHTML: sessionData.readingHTML || "",    // generated Soul Blueprint reading (saved with the session)
           input: sessionData.input || null,             // original input data
           notes: sessionData.notes || "",
           readingSummary: sessionData.readingSummary || "",
@@ -7994,6 +8135,7 @@
           if (patch.result !== undefined) s.result = patch.result;
           if (patch.snapshotHTML !== undefined) s.snapshotHTML = patch.snapshotHTML;
           if (patch.input !== undefined) s.input = patch.input;
+          if (patch.readingHTML !== undefined) s.readingHTML = patch.readingHTML;
         }
         s.updatedAt = nowISO();
         c.updatedAt = nowISO();
@@ -9969,13 +10111,35 @@
         list.forEach(function (s) { if (!s || !s.id || seen[s.id]) return; seen[s.id] = 1; out.push(s); });
         return out;
       }
+      // Retrieve a short excerpt of a card's GENUINE written content (placeholder
+      // text is skipped). Returns "" when nothing real is written.
+      function excerptOf(id) {
+        var lib = L(); if (!lib || !id || !lib.getCard) return "";
+        var c = lib.getCard(id); if (!c) return "";
+        var vals = [];
+        if (c.fields) Object.keys(c.fields).forEach(function (k) { var v = (c.fields[k] || "").trim(); if (v) vals.push(v); });
+        if (c.extra) Object.keys(c.extra).forEach(function (k) { var v = (c.extra[k] || "").trim(); if (v) vals.push(v); });
+        var real = vals.filter(function (v) { return !(lib.isPlaceholderText && lib.isPlaceholderText(v)); });
+        var t = (real[0] || "").replace(/\s+/g, " ").trim();
+        return t.length > 160 ? t.slice(0, 157) + "…" : t;
+      }
+      // A full source record: id, label, status, and a written excerpt.
+      function src(id, label) { return id ? { id: id, label: label, status: statusOf(id), excerpt: excerptOf(id) } : null; }
+      function mget(map, title) { var it = map[(title || "").toLowerCase()]; return it ? it.id : null; }
+      function cardExists(id) { var lib = L(); return !!(lib && lib.getCard && id && lib.getCard(id)); }
+      function angleBase(name) { return (name || "").replace(/\s*\(.*\)\s*$/, "").trim(); }
 
       // ── Phase 1: normalized reading context ──
       function buildContext(result) {
         var lib = L();
         if (!result || !lib) return null;
-        var psMap = matrixMap("planet-sign");
-        var phMap = matrixMap("planet-house");
+        // Authoritative title→id maps for every combination category in use.
+        var M = {
+          ps: matrixMap("planet-sign"),   ph: matrixMap("planet-house"),
+          hp: matrixMap("house-planet"),  hs: matrixMap("house-sign"),
+          ac: matrixMap("angle-cases"),   pc: matrixMap("point-cases"),
+          eh: matrixMap("empty-houses"),  ch: matrixMap("chiron-healing")
+        };
 
         function norm(p, group) {
           var sign = p.sign || p.constellation || null;
@@ -9984,16 +10148,35 @@
                      : group === "angle" ? (lib.angleId ? lib.angleId(p.name) : null)
                      : group === "point" ? (lib.pointId ? lib.pointId(p.name) : null) : null;
           var houseId = (sign && lib.houseIdForConstellation) ? lib.houseIdForConstellation(sign) : null;
-          var sc = sign ? psMap[(p.name + " + " + sign).toLowerCase()] : null;
-          var hc = houseNum != null ? phMap[(p.name + " + House " + houseNum).toLowerCase()] : null;
+          var sc = sign ? mget(M.ps, p.name + " + " + sign) : null;
+          var hc = houseNum != null ? mget(M.ph, p.name + " + House " + houseNum) : null;
+
+          // Every applicable SBA Library connection for this placement.
+          var conns = [];
+          function add(id, label) { if (id) conns.push(src(id, label)); }
+          add(cardId, p.name);                                                   // single card
+          if (houseId) add(houseId, "House " + houseNum + " archetype");         // house card
+          add(sc, p.name + " + " + sign);                                        // planet-sign
+          add(hc, p.name + " + House " + houseNum);                              // planet-house
+          if (houseNum != null) add(mget(M.hp, "House " + houseNum + " + " + p.name), "House " + houseNum + " + " + p.name); // house-planet
+          if (houseNum != null && sign) add(mget(M.hs, "House " + houseNum + " + " + sign), "House " + houseNum + " + " + sign); // house-sign
+          if (group === "angle" && sign) { var ab = angleBase(p.name); add(mget(M.ac, ab + " + " + sign), ab + " + " + sign); } // angle-cases
+          if (group === "point" && houseNum != null) {                           // point-cases (try full + base name)
+            var cand = [p.name, p.name.replace(/\s*\(.*\)\s*$/, "").trim()], done = false;
+            cand.forEach(function (nm) { if (done) return; var id = mget(M.pc, nm + " + House " + houseNum); if (id) { add(id, nm + " + House " + houseNum); done = true; } });
+          }
+          if (p.retrograde) { var rid = "retro:" + p.name + " Retrograde"; if (cardExists(rid)) add(rid, p.name + " Retrograde"); } // retrograde
+          if (p.name === "Chiron") Object.keys(M.ch).forEach(function (k) { add(M.ch[k].id, M.ch[k].title); }); // chiron-healing
+
           return {
             name: p.name, group: group, sign: sign, house: houseNum,
             element: p.element || (lib.elementForSign ? lib.elementForSign(sign) : null),
             retrograde: !!p.retrograde, motion: p.motion || null,
             cardId: cardId, cardStatus: statusOf(cardId),
             houseCardId: houseId, houseCardStatus: statusOf(houseId),
-            signComboId: sc ? sc.id : null, signComboStatus: sc ? statusOf(sc.id) : "missing",
-            houseComboId: hc ? hc.id : null, houseComboStatus: hc ? statusOf(hc.id) : "missing"
+            signComboId: sc, signComboStatus: sc ? statusOf(sc) : "missing",
+            houseComboId: hc, houseComboStatus: hc ? statusOf(hc) : "missing",
+            connections: dedupeSources(conns.filter(Boolean))
           };
         }
         var bodies = (result.planets || []).map(function (p) { return norm(p, "body"); });
@@ -10010,6 +10193,25 @@
         var ehId = ehNum != null ? ("house:" + ehNum) : null;
         var ehCard = (ehId && lib.getCard) ? lib.getCard(ehId) : null;
 
+        // All 13 houses belong to the blueprint. Empty houses carry LIGHTER
+        // emphasis and are never described as lacking energy; their written SBA
+        // cards already frame them that way.
+        var occupied = {};
+        bodies.concat(angles, points).forEach(function (pl) { if (pl.house != null) occupied[pl.house] = true; });
+        var emptyHouses = [];
+        for (var hn = 1; hn <= 13; hn++) {
+          if (occupied[hn]) continue;
+          var hcard = lib.getCard ? lib.getCard("house:" + hn) : null;
+          emptyHouses.push({
+            house: hn,
+            sign: (hcard && hcard.ref) ? hcard.ref.constellation : null,
+            archetype: (hcard && hcard.ref) ? hcard.ref.name : null,
+            emphasis: "low",
+            cards: dedupeSources([src("house:" + hn, "House " + hn + " archetype"),
+                                  src(mget(M.eh, "Empty House " + hn), "Empty House " + hn)].filter(Boolean))
+          });
+        }
+
         return {
           sbaYear: result.sbaYear, sbaYearStart: result.sbaYearStart, lunarMonth: result.sbaLunarMonth,
           entryHouse: {
@@ -10018,6 +10220,7 @@
             note: "Permanent lifelong archetype — distinct from the SBA lunar month even when the numbers match."
           },
           bodies: bodies, angles: angles, points: points, all: bodies.concat(angles, points),
+          emptyHouses: emptyHouses,
           elementBalance: result.elementBalance || null
         };
       }
@@ -10107,29 +10310,146 @@
             type: "element", title: "Element balance",
             detail: "Fire " + (eb.Fire || 0) + " · Earth " + (eb.Earth || 0) + " · Air " + (eb.Air || 0) + " · Water " + (eb.Water || 0) + "." +
               (dom.length ? " Dominant: " + dom.join(", ") + "." : "") + (absent.length ? " Absent: " + absent.join(", ") + "." : ""),
-            placements: [], sources: []
+            placements: [],
+            sources: dedupeSources(dom.map(function (d) { return src("element:" + d, d); })
+              .concat([src("element:Element Balance", "Element Balance")]).filter(Boolean))
           });
         }
         return pats;
+      }
+
+      // Cross-link placements that co-occur. In SBA each sign maps to one fixed
+      // house, so a house concentration and its sign concentration are the SAME
+      // cluster — grouped here as one theme so synthesis never double-counts them.
+      function buildThemes(ctx) {
+        var themes = [], byHouse = {};
+        ctx.bodies.forEach(function (b) { if (b.house != null) (byHouse[b.house] = byHouse[b.house] || []).push(b); });
+        Object.keys(byHouse).map(Number).sort(function (a, b) { return a - b; }).forEach(function (h) {
+          var m = byHouse[h]; if (m.length < 2) return;
+          var sign = m[0].sign;
+          themes.push({
+            house: h, sign: sign, bodies: m.map(function (x) { return x.name; }),
+            note: "House " + h + " and " + sign + " are one cluster (SBA maps each sign to a fixed house) — treated as a single theme, not separate evidence.",
+            cards: dedupeSources([src(m[0].houseCardId, "House " + h + " archetype")]
+              .concat(m.map(function (x) { return src(x.signComboId, x.name + " + " + sign); }))
+              .concat(m.map(function (x) { return src(x.houseComboId, x.name + " + House " + h); })).filter(Boolean))
+          });
+        });
+        return themes;
+      }
+
+      // Honest coverage report: which categories are wired, and what cannot be
+      // connected deterministically because the methodology is not defined in code.
+      function coverage() {
+        return {
+          wired: ["Bodies", "Houses", "Planet + Sign", "Planet + House", "House + Planet",
+                  "House + Sign", "Angle + Sign", "Point + House", "Retrogrades", "Chiron · Healing", "Elements"],
+          gaps: [
+            "House Rulers — the 'House N Ruler in House M' cards exist, but no planet→house rulership mapping is defined in code, so the engine cannot deterministically connect them. Needs your SBA rulership rule.",
+            "Node axis (North/South Node relationship), angles-to-bodies and body-to-body aspects — SBA aspect/relationship rules are not defined in code, so these are not modelled.",
+            "Empty Houses — cards exist; not auto-included yet (confirm whether empty houses should feature in readings).",
+            "Complex Examples / freeform doctrine — not auto-linked (not placement-keyed)."
+          ]
+        };
       }
 
       function analyze(result) {
         var ctx = buildContext(result);
         if (!ctx) return null;
         var patterns = detectPatterns(ctx);
+        var themes = buildThemes(ctx);
         var seen = {}, sources = [], missing = [];
-        patterns.forEach(function (p) {
-          (p.sources || []).forEach(function (s) {
-            if (!s.id || seen[s.id]) return; seen[s.id] = 1; sources.push(s);
-            if (s.status === "missing" || s.status === "draft") missing.push(s);
-          });
+        function consider(s) {
+          if (!s || !s.id || seen[s.id]) return; seen[s.id] = 1; sources.push(s);
+          if (s.status === "missing" || s.status === "draft") missing.push(s);
+        }
+        ctx.all.forEach(function (pl) { (pl.connections || []).forEach(consider); });
+        (ctx.emptyHouses || []).forEach(function (h) { (h.cards || []).forEach(consider); });
+        patterns.forEach(function (p) { (p.sources || []).forEach(consider); });
+        return { context: ctx, themes: themes, patterns: patterns, sources: sources, missing: missing, coverage: coverage() };
+      }
+
+      // ── Phase 3: synthesis prototype (deterministic, sourced) ──────────────
+      // Builds an ordered set of reading sections. Each separates GENERATED
+      // connective framing (structural facts only — never invented doctrine)
+      // from ESTABLISHED library meaning (quoted + attributed). It composes and
+      // orders; it does not fabricate SBA meaning, rulerships or aspects.
+      function synthesize(a) {
+        if (!a) return null;
+        var c = a.context, S = [];
+        var moon = findBody(c.bodies, "Moon"), sun = findBody(c.bodies, "Sun");
+        var themeNames = (a.themes || []).map(function (t) { return "House " + t.house + " (" + t.sign + ")"; });
+
+        S.push({ id: "overview", title: "Soul Blueprint Overview", emphasis: "high",
+          generated: (moon && sun ? "This blueprint is read Moon-first: the Moon in " + moon.sign + ", House " + moon.house + ", is the primary emotional lens, with the Sun in " + sun.sign + ", House " + sun.house + ", as the secondary voice of identity. " : "") +
+            (themeNames.length ? "The chart's energy concentrates in " + themeNames.join(" and ") + ". " : "") +
+            "All of it is entered through the permanent Entry House " + c.entryHouse.number + (c.entryHouse.archetype ? " (" + c.entryHouse.archetype + ")" : "") + " — a lifelong archetype, held distinct from the birth lunar month and not read as an Ascendant.",
+          sources: [] });
+
+        S.push({ id: "entry", title: "Entry House " + c.entryHouse.number + (c.entryHouse.archetype ? " · " + c.entryHouse.archetype : ""), emphasis: "high",
+          generated: "Carried for life as the doorway through which this person first meets existence — a permanent archetype, kept separate from the lunar month (" + c.lunarMonth + ") even though both are numbered " + c.entryHouse.number + ".",
+          sources: dedupeSources([src(c.entryHouse.cardId, "House " + c.entryHouse.number + " archetype")].filter(Boolean)) });
+
+        if (moon) S.push({ id: "lunar", title: "Lunar Foundation (primary)", emphasis: "high",
+          generated: "The Moon leads the whole reading. In " + moon.sign + " within House " + moon.house + ", the emotional nature sets the tone every other placement is read against.",
+          sources: moon.connections });
+
+        if (sun) S.push({ id: "solar", title: "Solar Identity (secondary)", emphasis: "medium",
+          generated: "The Sun is read as secondary to the Moon. In " + sun.sign + ", House " + sun.house + ", identity seeks expression through this arena." +
+            (moon ? " Against the Moon in " + moon.sign + "/House " + moon.house + ", this forms a " + moon.sign + "–" + sun.sign + " polarity (House " + moon.house + " vs House " + sun.house + ") — the reading's central tension." : ""),
+          sources: sun.connections });
+
+        (a.themes || []).forEach(function (t) {
+          S.push({ id: "theme-" + t.house, title: "Theme · House " + t.house + " · " + t.sign + " (" + t.bodies.join(", ") + ")", emphasis: "high",
+            generated: t.bodies.join(", ") + " gather in House " + t.house + " (" + t.sign + "), making this a central life arena. House and sign are one cluster here — read once, not as separate evidence.",
+            sources: t.cards });
         });
-        return { context: ctx, patterns: patterns, sources: sources, missing: missing };
+
+        var inTheme = {}; (a.themes || []).forEach(function (t) { t.bodies.forEach(function (n) { inTheme[n] = 1; }); });
+        var others = c.bodies.filter(function (b) { return b.name !== "Moon" && b.name !== "Sun" && !inTheme[b.name]; });
+        if (others.length) S.push({ id: "others", title: "Other Key Placements", emphasis: "medium",
+          generated: others.map(function (b) { return b.name + " in " + b.sign + ", House " + b.house + (b.house === c.entryHouse.number ? " — reinforcing the Entry House" : ""); }).join("; ") + ".",
+          sources: dedupeSources([].concat.apply([], others.map(function (b) { return b.connections; }))) });
+
+        if (c.elementBalance) { var eb = c.elementBalance;
+          S.push({ id: "elements", title: "Elemental Balance", emphasis: "low",
+            generated: "Fire " + (eb.Fire || 0) + ", Earth " + (eb.Earth || 0) + ", Air " + (eb.Air || 0) + ", Water " + (eb.Water || 0) + ".",
+            sources: dedupeSources(["Fire", "Earth", "Air", "Water"].filter(function (k) { return eb[k]; }).map(function (k) { return src("element:" + k, k); }).concat([src("element:Element Balance", "Element Balance")]).filter(Boolean)) }); }
+
+        if (c.emptyHouses && c.emptyHouses.length) S.push({ id: "empty", title: "Empty Houses (lighter emphasis)", emphasis: "low",
+          generated: "Houses " + c.emptyHouses.map(function (h) { return h.house; }).join(", ") + " hold no placements. They remain part of the blueprint at lighter emphasis — developed through life rather than dominant lessons, never absent of energy.",
+          sources: dedupeSources([].concat.apply([], c.emptyHouses.map(function (h) { return h.cards; }))) });
+
+        var interaction = "";
+        if (moon && sun) interaction += "The Moon in " + moon.sign + " (House " + moon.house + ") initiates, while the Sun and the House " + sun.house + " emphasis pull toward their arena — the chart's core dialogue between self and other. ";
+        if ((a.themes || []).length >= 2) interaction += "The two concentrations — " + a.themes.map(function (t) { return "House " + t.house + "/" + t.sign; }).join(" and ") + " — mark where the life's work gathers. ";
+        var ur = findBody(c.bodies, "Uranus");
+        interaction += "Everything is entered through House " + c.entryHouse.number + (c.entryHouse.archetype ? " (" + c.entryHouse.archetype + ")" : "") + (ur && ur.house === c.entryHouse.number ? ", reinforced by Uranus placed there" : "") + ".";
+        S.push({ id: "interaction", title: "How the Themes Interact", emphasis: "high", generated: interaction, sources: [] });
+
+        var qsrc = [c.entryHouse.cardId, moon && moon.houseCardId, sun && sun.houseCardId].filter(Boolean);
+        var qs = [];
+        qsrc.forEach(function (id) {
+          var lib = L(); var card = lib && lib.getCard ? lib.getCard(id) : null;
+          var q = card && card.fields ? (card.fields.clientQuestions || "") : "";
+          if (q.trim() && !(lib.isPlaceholderText && lib.isPlaceholderText(q)))
+            qs.push({ id: id, label: "Client questions · " + id, status: statusOf(id), excerpt: q.replace(/\s+/g, " ").slice(0, 220) });
+        });
+        S.push({ id: "reflection", title: "Reflection Questions", emphasis: "low",
+          generated: qs.length ? "Drawn from the client-question fields of your connected SBA cards." : "No written client-question fields were found in the connected house cards.",
+          sources: dedupeSources(qs) });
+
+        S.push({ id: "notconnected", title: "Not Yet Connected (flagged)", emphasis: "flag",
+          generated: "House Rulers (183 written cards) are not connected — SBA's 13-sign planetary rulership is undefined, so the ruling-planet layer is pending methodology. Aspects and the Node axis are not modelled (no SBA aspect rules defined). These layers are intentionally absent from this draft.",
+          sources: [] });
+
+        return { sections: S, generatedAt: new Date().toISOString() };
       }
 
       ENGINE.buildContext = buildContext;
       ENGINE.detectPatterns = detectPatterns;
       ENGINE.analyze = analyze;
+      ENGINE.synthesize = synthesize;
       window.SBAReadingEngine = ENGINE;
     })();
   </script>
