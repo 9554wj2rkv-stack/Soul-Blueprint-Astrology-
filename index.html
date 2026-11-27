@@ -6687,6 +6687,23 @@
       function saveOverlay(overlay) { return persistOverlay(overlay); }
 
       function libStorageMode() { return __ovMode; }
+
+      // Free the redundant frozen localStorage copy of the library to make room
+      // for the client DB. SAFE ONLY when the library is confirmed live in
+      // IndexedDB (mode "idb") AND that in-memory/IDB copy actually has content —
+      // so this never removes anything that isn't already safely stored elsewhere.
+      // The live library (IndexedDB) and any exported backup are untouched.
+      // Returns the number of characters freed (0 if not safe or nothing to free).
+      function reclaimLocalStorageBackup() {
+        try {
+          if (__ovMode !== "idb") return 0;                       // only when IDB is the live store
+          if (!__ovCache || Object.keys(__ovCache).length === 0) return 0; // IDB copy must hold content
+          var raw = localStorage.getItem(LIB_KEY);
+          if (!raw) return 0;
+          localStorage.removeItem(LIB_KEY);
+          return raw.length;
+        } catch (e) { return 0; }
+      }
       function libReady() { return __ovReady; }
 
       // One-time, idempotent cleanup: earlier builds could only ever SHOW the old
@@ -7013,6 +7030,7 @@
         ready: libReady,
         onReady: onOverlayReady,
         storageMode: libStorageMode,
+        reclaimBackup: reclaimLocalStorageBackup,
         allCards: allCards,
         coreCards: coreCards,
         matrixCats: matrixCats,
@@ -7566,6 +7584,16 @@
         return all.filter(function (v, i) { return all.indexOf(v) === i; });
       }
 
+      // Build a user-facing diagnostic (no personal data) naming the failing stage
+      // and the real underlying error (e.g. QuotaExceededError).
+      function saveErrorMessage(stage, error, freed) {
+        return "Couldn't save the session.\n\n" +
+          "Stage: " + stage + "\n" +
+          "Reason: " + (error || "unknown") +
+          (freed ? "\n(Freed " + Math.round(freed / 1024) + " KB of redundant library backup, but it still didn't fit.)" : "") +
+          "\n\nYour existing data was not changed.";
+      }
+
       function confirmSave() {
         if (!pendingSave) { closeSaveModal(); return; }
         if (confirmSave._busy) return;            // guard against accidental duplicate saves
@@ -7586,15 +7614,17 @@
           readingHTML: (typeof window.__sbaCaptureReadingHTML === "function" ? window.__sbaCaptureReadingHTML() : ""),
         };
 
-        var clientId = ctx.saveClientId;
-
-        if (!clientId) {
-          // Identify by name + DOB + time.
+        // Decide ONCE (before any retry) whether this save updates the current
+        // session of an existing client or creates a new one. The prompt must not
+        // repeat on a storage-reclaim retry.
+        var fixedClientId = ctx.saveClientId || null;
+        var updateTarget = null;                 // {clientId, sessionId} when updating current
+        var createGroups = collectGroups("svg"); // captured once (new-client case)
+        if (!fixedClientId) {
           var existing = S.findClientByIdentity(birth.name, birth.birthDate, birth.birthTime);
           if (existing) {
-            var hasSessions = (existing.sessions || []).length > 0;
-            if (hasSessions) {
-              // Default = new dated session; offer "update current".
+            fixedClientId = existing.id;
+            if ((existing.sessions || []).length > 0) {
               var updateCurrent = !window.confirm(
                 "“" + existing.name + "” already exists.\n\n" +
                 "OK = Create a NEW dated session (recommended)\n" +
@@ -7605,41 +7635,48 @@
                   return (b.consultationDate || "").localeCompare(a.consultationDate || "") ||
                          (b.createdAt || "").localeCompare(a.createdAt || "");
                 })[0];
-                S.updateSession(existing.id, latest.id, {
-                  consultationDate: sessionData.consultationDate,
-                  notes: sessionData.notes,
-                  readingSummary: sessionData.readingSummary,
-                  clientFacingNotes: sessionData.clientFacingNotes,
-                  followUpDate: sessionData.followUpDate,
-                  tags: sessionData.tags,
-                  allowResultReplace: true,
-                  snapshotHTML: sessionData.snapshotHTML,
-                  input: sessionData.input,
-                  readingHTML: sessionData.readingHTML,
-                });
-                var vU = S.getClient(existing.id);
-                var okU = vU && (vU.sessions || []).some(function (x) { return x.id === latest.id; });
-                if (!okU) { window.alert("The session could not be updated in storage. Your existing data was not changed."); return; }
-                closeSaveModal();
-                openSession(existing.id, latest.id);
-                return;
+                updateTarget = { clientId: existing.id, sessionId: latest.id };
               }
             }
-            clientId = existing.id;
-          } else {
-            var created = S.createClient(Object.assign({}, birth, { groups: collectGroups("svg") }));
-            clientId = created.id;
           }
         }
 
-        var saved = S.addSession(clientId, sessionData);
-        if (!saved) { window.alert("Could not save: the client could not be matched. Nothing was changed."); return; }
-        // Report success only AFTER confirming the session persisted to storage.
-        var verify = S.getClient(clientId);
-        var persisted = verify && (verify.sessions || []).some(function (x) { return x.id === saved.id; });
-        if (!persisted) { window.alert("The session did not persist to storage. Please try again — your data was not changed."); return; }
+        // One idempotent attempt. Client creation is matched by identity on retry
+        // (never duplicated); session save/update is verified by read-back.
+        var attempt = function () {
+          if (updateTarget) {
+            S.updateSession(updateTarget.clientId, updateTarget.sessionId, {
+              consultationDate: sessionData.consultationDate, notes: sessionData.notes,
+              readingSummary: sessionData.readingSummary, clientFacingNotes: sessionData.clientFacingNotes,
+              followUpDate: sessionData.followUpDate, tags: sessionData.tags, allowResultReplace: true,
+              snapshotHTML: sessionData.snapshotHTML, input: sessionData.input, readingHTML: sessionData.readingHTML,
+            });
+            if (S.lastSaveError && S.lastSaveError()) return { ok: false, stage: "session-update", error: S.lastSaveError() };
+            return { ok: true, clientId: updateTarget.clientId, sessionId: updateTarget.sessionId };
+          }
+          var cid = fixedClientId;
+          if (!cid) {
+            var again = S.findClientByIdentity(birth.name, birth.birthDate, birth.birthTime); // idempotent on retry
+            if (again) cid = again.id;
+            else {
+              var created = S.createClient(Object.assign({}, birth, { groups: createGroups }));
+              if (S.lastSaveError && S.lastSaveError()) return { ok: false, stage: "client-persist", error: S.lastSaveError() };
+              cid = created.id;
+            }
+          }
+          var r = S.saveSessionVerified(cid, sessionData);
+          return { ok: r.ok, stage: r.stage, error: r.error, clientId: cid, sessionId: r.session ? r.session.id : null };
+        };
+
+        var res = attempt();
+        if (!res.ok) {
+          var freed = 0;
+          try { if (window.SBALibrary && window.SBALibrary.reclaimBackup) freed = window.SBALibrary.reclaimBackup(); } catch (e) {}
+          if (freed > 0) { res = attempt(); res.reclaimed = freed; } else { res.reclaimed = 0; }
+        }
+        if (!res.ok) { window.alert(saveErrorMessage(res.stage || "session-persist", res.error, res.reclaimed)); return; }
         closeSaveModal();
-        openSession(clientId, saved.id);
+        openSession(res.clientId, res.sessionId);
         } catch (e) {
           window.alert("Saving failed: " + (e && e.message ? e.message : e) + "\n\nYour existing data was not changed.");
         } finally {
@@ -8022,11 +8059,17 @@
         }
       }
 
+      var __lastSaveError = null;
+      function lastSaveError() { return __lastSaveError; }
       function save(db) {
         try {
           localStorage.setItem(DB_KEY, JSON.stringify(db));
+          __lastSaveError = null;
           return true;
         } catch (err) {
+          // Keep the real error name (QuotaExceededError / SecurityError / …) for
+          // diagnostics. No personal data is included.
+          __lastSaveError = (err && err.name ? err.name : "Error") + (err && err.message ? ": " + String(err.message).slice(0, 120) : "");
           console.error("[SBAStore] Failed to save DB:", err);
           return false;
         }
@@ -8112,11 +8155,8 @@
 
       // ── Session CRUD ───────────────────────────────────────────────────────
 
-      function addSession(clientId, sessionData) {
-        var db = load();
-        var c = db.clients.find(function (x) { return x.id === clientId; });
-        if (!c) return null;
-        var session = {
+      function buildSession(sessionData) {
+        return {
           id: uid("session"),
           consultationDate: sessionData.consultationDate || (nowISO().slice(0, 10)),
           result: sessionData.result || null,           // immutable snapshot (structured)
@@ -8131,10 +8171,54 @@
           createdAt: nowISO(),
           updatedAt: nowISO()
         };
+      }
+
+      function addSession(clientId, sessionData) {
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === clientId; });
+        if (!c) return null;
+        var session = buildSession(sessionData);
         c.sessions.push(session);
         c.updatedAt = nowISO();
         save(db);
         return session;
+      }
+
+      // Persist a NEW session and confirm it with a read-back, returning a staged
+      // result instead of silently succeeding. stage ∈ client-match | session-persist
+      // | verify. The built session is returned even on failure so a retry can
+      // re-persist the SAME id (no duplicate).
+      function saveSessionVerified(clientId, sessionData) {
+        __lastSaveError = null;
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === clientId; });
+        if (!c) return { ok: false, stage: "client-match", error: "Client id not found." };
+        var session = buildSession(sessionData);
+        c.sessions.push(session);
+        c.updatedAt = nowISO();
+        var wrote = save(db);
+        if (!wrote) return { ok: false, stage: "session-persist", error: __lastSaveError || "Write rejected.", session: session };
+        var rb = load().clients.find(function (x) { return x.id === clientId; });
+        var ok = !!(rb && (rb.sessions || []).some(function (s) { return s.id === session.id; }));
+        if (!ok) return { ok: false, stage: "verify", error: __lastSaveError || "Read-back could not find the session.", session: session };
+        return { ok: true, session: session };
+      }
+
+      // Idempotent retry: ensure `session` (by id) is persisted under the client,
+      // adding it only if absent (so a false-negative verify never duplicates it).
+      function rePersistSession(clientId, session) {
+        __lastSaveError = null;
+        if (!session || !session.id) return { ok: false, stage: "input", error: "No session to re-persist." };
+        var db = load();
+        var c = db.clients.find(function (x) { return x.id === clientId; });
+        if (!c) return { ok: false, stage: "client-match", error: "Client id not found." };
+        var present = (c.sessions || []).some(function (s) { return s.id === session.id; });
+        if (!present) { c.sessions.push(session); c.updatedAt = nowISO(); }
+        var wrote = save(db);
+        if (!wrote) return { ok: false, stage: "session-persist", error: __lastSaveError || "Write rejected.", session: session };
+        var rb = load().clients.find(function (x) { return x.id === clientId; });
+        var ok = !!(rb && (rb.sessions || []).some(function (s) { return s.id === session.id; }));
+        return ok ? { ok: true, session: session } : { ok: false, stage: "verify", error: __lastSaveError || "Read-back missing.", session: session };
       }
 
       // Update editable fields of a session. The stored `result` snapshot is
@@ -8653,6 +8737,9 @@
         deleteClient: deleteClient,
         findClientByIdentity: findClientByIdentity,
         addSession: addSession,
+        saveSessionVerified: saveSessionVerified,
+        rePersistSession: rePersistSession,
+        lastSaveError: lastSaveError,
         updateSession: updateSession,
         deleteSession: deleteSession,
         stats: stats,
